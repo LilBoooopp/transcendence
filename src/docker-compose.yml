@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # Database - PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432" # Exposed for local tools
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - trascendence_net
+
+  # Cache - Redis
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - trascendence_net
+
+  # Backend - NestJS
+  backend:
+    build: ./backend
+    container_name: nestjs_app
+    restart: unless-stopped
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "4000:3000" # Maps container port 3000 to localhost:4000
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    env_file:
+      - .env
+    networks:
+      - trascendence_net
+
+  # Frontend - React
+  frontend:
+    build: ./frontend
+    container_name: react
+    restart: unless-stopped
+    ports:
+      - "3000:5173" # Maps Vite default port 5173 to localhost:3000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://backend:3000
+    networks:
+      - trascendence_net
+
+volumes:
+  db_data:
+
+networks:
+  trascendence_net:
+  driver: bridge
+
+
