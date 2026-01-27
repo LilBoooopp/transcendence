@@ -1,11 +1,11 @@
 name = transcendence
 
-COMPOSE_CMD = docker-compose -f ./src/docker-compose.yml --env-file srcs/.env
+COMPOSE_CMD = docker-compose -f ./src/docker-compose.yml --env-file ./src/.env
 
 
 all:
 	@printf "Launch configuration ${name}...\n"
-	@$(COMPOSE_CMD) up --build
+	@$(COMPOSE_CMD) up -d --build
 
 down:
 	@printf "Stopping configuration ${name}...\n"

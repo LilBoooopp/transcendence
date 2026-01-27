@@ -65,6 +65,6 @@ volumes:
 
 networks:
   trascendence_net:
-  driver: bridge
+    driver: bridge
 
 
