@@ -1,2 +1,32 @@
-src/.env
-src/backend/node_modules/*
+# --- Dependencies (The heavy stuff) ---
+node_modules/
+*/node_modules/
+
+# --- Build Outputs (Generated code) ---
+dist/
+build/
+*/dist/
+*/build/
+
+# --- Environment Variables (SECRETS! NEVER COMMIT THESE) ---
+.env
+.env.local
+.env.*.local
+*.env
+
+# --- OS Junk (Mac/Windows files) ---
+.DS_Store
+Thumbs.db
+
+# --- Editor Junk (VS Code settings) ---
+.vscode/
+.idea/
+
+# --- Logs ---
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Testing Coverage ---
+coverage/
+*/coverage/
