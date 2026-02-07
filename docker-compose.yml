@@ -35,7 +35,6 @@ services:
       JWT_EXPIRATION: ${JWT_EXPIRATION}
     volumes:
       - ./backend/src:/app/src
-      - ./backend/node_modules:/app/node_modules
     ports:
       - "4000:4000"
     depends_on:
