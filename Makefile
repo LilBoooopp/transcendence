@@ -1,6 +1,6 @@
 name = transcendence
 
-COMPOSE_CMD = docker-compose -f ./src/docker-compose.yml --env-file srcs/.env
+COMPOSE_CMD = docker compose 
 
 
 all:
