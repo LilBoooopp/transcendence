@@ -1,0 +1,193 @@
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  SubscribeMessage,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  MessageBody,
+  ConnectedSocket,
+} from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+
+@WebSocketGateway({
+  cors: {
+    origin: '*', // need to specify URL
+  },
+})
+export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  @WebSocketServer()
+  server: Server;
+
+  // Store connections
+  private activeUsers = new Map<string, string>();
+
+  //Store games
+  private activeGames = new Map<string, Set<string>>();
+
+  //new connection
+  handleConnection(client: Socket) {
+    console.log(`Client connected: ${client.id}`);
+  }
+
+  //disconnections
+  handleDisconnect(client: Socket) {
+    console.log(`Client disconnected: $(client.id)`);
+
+    // Remove from active user
+    for (const [userId, socketId] of this.activeUsers.entries()) {
+      if (socketId === client.id) {
+        this.activeUsers.delete(userId);
+        // Broadcast user offline
+        this.server.emit('user:status', { userId, isOnline: false});
+        break;
+      }
+    }
+
+    // Remove from active games
+    for (const [gameId, players] of this.activeGames.entries()) {
+      if (players.has(client.id)) {
+        players.delete(client.id);
+        if (players.size === 0) {
+          this.activeGames.delete(gameId);
+        }
+      }
+    }
+  }
+
+  // User authentication/identificaition
+  @SubscribeMessage('user:identify')
+  handleUserIdentify(
+    @MessageBody() data: { userId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    this.activeUsers.set(data.userId, client.id);
+
+    // braodcast user online
+    this.server.emit('user:status', { userId: data.userId, isOnline: true });
+
+    return { success: true, userId: data.userId };
+  }
+
+  // Join a room
+  @SubscribeMessage('game:join')
+  handleJoinGame(
+    @MessageBody() data: { gameId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    client.join(`gmae:${data.gameId}`);
+
+    if (!this.activeGames.has(data.gameId)) {
+      this.activeGames.set(data.gameId, new Set());
+    }
+    this.activeGames.get(data.gameId).add(client.id);
+
+    console.log(`Client ${client.id} joined game ${data.gameId}`);
+
+    // Notify others in the game
+    client.to(`game:${data.gameId}`).emit('game:player-joined', {
+      gameId: data.gameId,
+      playersCount: this.activeGames.get(data.gameId).size,
+    });
+
+    return { success: true, gameId: data.gameId };
+  }
+
+  // Leave a game
+  @SubscribeMessage('game:leave')
+  handleLeaveGame(
+    @MessageBody() data: { gameId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    client.leave(`game:${data.gameId}`);
+
+    if (this.activeGames.has(data.gameId)) {
+      this.activeGames.get(data.gameId).delete(client.id);
+      if (this.activeGames.get(data.gameId).size === 0) {
+        this.activeGames.delete(data.gameId);
+      }
+    }
+
+    return { success: true };
+  }
+
+  // Handle moves
+  @SubscribeMessage('game:move')
+  handleMove(
+    @MessageBody() data: { gameId: string; move: any; fen: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    // Send move to other players in the game
+    client.to(`game:${data.gameId}`).emit('game:move', {
+      move: data.move,
+      fen: data.fen,
+    });
+
+    console.log(`Move in game ${data.gameId}:`, data.move);
+
+    return { success: true };
+  }
+
+  @SubscribeMessage('game:over')
+  handleGameOver(
+    @MessageBody() data: { gameId: string; winner: string; result: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    // Broadcast gameover to all players
+    this.server.to(`game:${data.gameId}`).emit('game:over', {
+      winner: data.winner,
+      result: data.result,
+    });
+
+    return { success: true };
+  }
+
+  // Message
+  @SubscribeMessage('chat:message')
+  handleChatMessage(
+    @MessageBody() data: { gameId?: string; message: string; userId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (data.gameId) {
+      // Send to specific game
+      client.to(`game:${data.gameId}`).emit('chat:message', {
+        userId: data.userId,
+        message: data.message,
+        timestamp: new Date(),
+      });
+    } else {
+      // Broadcast to all users (global chat)
+      this.server.emit('chat:message', {
+        userId: data.userId,
+        message: data.message,
+        timestamp: new Date(),
+      });
+    }
+
+    return { success: true };
+  }
+
+  // Spectator join game
+  @SubscribeMessage('spectator:join')
+  handleSpectateJoin(
+    @MessageBody() data: { gameId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    client.join(`game:${data.gameId}`);
+
+    // Notify players that spectator count increased
+    this.server.to(`game:${data.gameId}`).emit('spectate:count', {
+      gameId: data.gameId,
+      count: this.activeGames.get(data.gameId)?.size || 0,
+    });
+
+    return { success: true };
+  }
+
+  // Get online users
+  @SubscribeMessage('user:get-online')
+  handleGetOnlineUsers() {
+    return {
+      users: Array.from(this.activeUsers.keys()),
+    };
+  }
+}
