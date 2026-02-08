@@ -48,6 +48,15 @@ class SocketService {
     this.emit('game:join', { gameId });
   }
 
+  loadGame(gameId: string): void {
+    console.log('Loading game:', gameId);
+    this.emit('game:load', { gameId} );
+  }
+
+  onGameLoaded(callback: (data: { gameId: string; fen: string; moves: any }) => void): void {
+    this.on('game:loaded', callback);
+  }
+
   // Leave a gmae room
   leaveGame(gameId: string): void {
     this.emit('game:leave', { gameId });

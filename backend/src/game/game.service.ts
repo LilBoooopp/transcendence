@@ -39,7 +39,26 @@ export class GameService {
     }
   }
 
+  async getOrCreateGame(gameId: string) {
+    let game = await this.prisma.game.findUnique({
+      where: { id: gameId },
+    });
+
+    if (!game) {
+      game = await this.prisma.game.create({
+        data: {
+          id: gameId,
+          status: 'WAITING',
+          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        },
+      });
+    }
+
+    return (game);
+  }
+
   async updateGame(gameId: string, data: { fen: string; moves: any}) {
+    await this.getOrCreateGame(gameId);
     return (this.prisma.game.update({
       where: { id: gameId },
       data: {

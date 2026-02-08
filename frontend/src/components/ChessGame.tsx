@@ -19,14 +19,41 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor }) =>
     console.log('Connecting to ws...');
     socketService.connect(userId);
     socketService.joinGame(gameId);
+
+    socketService.loadGame(gameId);
+    socketService.onGameLoaded((data) => {
+      console.log('Game loaded:', data);
+
+      if (data.fen && data.fen !== 'start') {
+        gameRef.current.load(data.fen);
+        setFen(data.fen);
+        setMoveHistory(gameRef.current.history());
+      }
+    });
+
     socketService.onMove((data) => {
       console.log('Received opponent move:', data);
 
-      // new instance from FEN
-      gameRef.current = new Chess(data.fen);
-      setFen(data.fen);
-      setMoveHistory(gameRef.current.history());
-      updateGameStatus(gameRef.current);
+      try {
+        if (data.move && data.move.from && data.move.to) {
+          gameRef.current.move({
+            from: data.move.from,
+            to: data.move.to,
+            promotion: data.move.promotion || 'q',
+          });
+        } else {
+          gameRef.current.load(data.fen);
+        }
+
+        setFen(gameRef.current.fen());
+        setMoveHistory(gameRef.current.history());
+        updateGameStatus(gameRef.current);
+      } catch (error) {
+        console.error('Error applying move:', error);
+        gameRef.current.load(data.fen);
+        setFen(data.fen);
+        setMoveHistory(gameRef.current.history());
+      }
     });
 
     socketService.onGameOver((data) => {

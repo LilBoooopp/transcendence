@@ -259,26 +259,20 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { gameId: string},
     @ConnectedSocket() client: Socket,
   ) {
-    const game = await this.prisma.game.findUnique({
-      where: { id: data.gameId },
-      include: {
-        whitePlayer: true,
-        blackPlayer: true,
-      },
-    });
+    try {
+      const game = await this.gameService.getGame(data.gameId);
 
-    if (!game) {
+      client.emit('game:loaded', {
+        gameId: game.id,
+        gen: game.fen,
+        moves: game.moves,
+        status: game.status,
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.log('Error loading game:', error);
       throw new WsException('Game not found');
     }
-
-    client.emit('game:loaded', {
-      gameId: game.id,
-      fen: game.fen,
-      moves: game.moves,
-      whitePlayer: game.whitePlayer,
-      blackPlayer: game.blackPlayer,
-    });
-
-    return { success: true };
   }
 }
