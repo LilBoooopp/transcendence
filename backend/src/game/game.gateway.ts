@@ -12,6 +12,7 @@ import { Server, Socket } from 'socket.io';
 @WebSocketGateway({
   cors: {
     origin: '*', // need to specify URL
+    credentials: true,
   },
 })
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -74,7 +75,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { gameId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    client.join(`gmae:${data.gameId}`);
+    const roomName = `game:${data.gameId}`;
+    client.join(roomName);
 
     if (!this.activeGames.has(data.gameId)) {
       this.activeGames.set(data.gameId, new Set());
@@ -84,7 +86,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(`Client ${client.id} joined game ${data.gameId}`);
 
     // Notify others in the game
-    client.to(`game:${data.gameId}`).emit('game:player-joined', {
+    client.to(roomName).emit('game:player-joined', {
       gameId: data.gameId,
       playersCount: this.activeGames.get(data.gameId).size,
     });
@@ -110,22 +112,34 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { success: true };
   }
 
-  // Handle moves
   @SubscribeMessage('game:move')
   handleMove(
     @MessageBody() data: { gameId: string; move: any; fen: string },
     @ConnectedSocket() client: Socket,
   ) {
-    // Send move to other players in the game
-    client.to(`game:${data.gameId}`).emit('game:move', {
+    const roomName = `game:${data.gameId}`;
+
+    console.log(`MOVE RECEIVED from client ${client.id}`);
+    console.log(`Game: ${data.gameId}`);
+    console.log(`Move:`, data.move);
+
+    const room = this.server.sockets.adapter.rooms.get(roomName);
+    const roomMembers = Array.from(room || []);
+    console.log(`Room "${roomName}" members (${room?.size || 0})"`, roomMembers);
+
+    const recipients = roomMembers.filter(id => id !== client.id);
+    console.log(`Recipients (excluding sender):`, recipients);
+
+    console.log(`Broadcasting 'game:move' event to room...`);
+    client.to(roomName).emit('game:move', {
       move: data.move,
       fen: data.fen,
     });
 
     console.log(`Move in game ${data.gameId}:`, data.move);
-
     return { success: true };
   }
+ 
 
   @SubscribeMessage('game:over')
   handleGameOver(
