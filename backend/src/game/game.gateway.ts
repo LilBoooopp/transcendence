@@ -264,7 +264,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       client.emit('game:loaded', {
         gameId: game.id,
-        gen: game.fen,
+        fen: game.fen,
         moves: game.moves,
         status: game.status,
       });

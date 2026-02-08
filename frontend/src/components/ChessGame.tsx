@@ -24,10 +24,15 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor }) =>
     socketService.onGameLoaded((data) => {
       console.log('Game loaded:', data);
 
-      if (data.fen && data.fen !== 'start') {
-        gameRef.current.load(data.fen);
-        setFen(data.fen);
-        setMoveHistory(gameRef.current.history());
+      if (data.fen) {
+        try {
+          gameRef.current.load(data.fen);
+          setFen(data.fen);
+          setMoveHistory(gameRef.current.history());
+          console.log('Game state restored:', data.fen);
+        } catch (error) {
+          console.error('Error loading FEN:', error);
+        }
       }
     });
 
@@ -128,6 +133,24 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor }) =>
     }, [gameId, playerColor]
   );
 
+  const formatMoveHistory = () => {
+    const formatted: JSX.Element[] = [];
+
+    for (let i = 0; i < moveHistory.length; i += 2) {
+      const moveNumber = Math.floor(i / 2) + 1;
+      const whiteMove = moveHistory[i];
+      const blackMove = moveHistory[i + 1];
+
+      formatted.push(
+        <span key={i} className="bg-white pg-2 py-1 rounded text-sm">
+          {moveNumber}. {whiteMove} {blackMove || ''}
+        </span>
+      );
+    }
+
+    return (formatted);
+  };
+
   return (
     <div className="flex flex-col items-center gap-4 p-4">
       <div className="text-2xl font-bold">
@@ -154,11 +177,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor }) =>
       <div className="w-full max-w-[600px] bg-gray-100 p-4 rounded">
         <h3 className="font-bold mb-2">Move History</h3>
         <div className="flex flex-wrap gap-2">
-          {moveHistory.map((move, index) => (
-            <span key={index} className="bg-white px-2 py-1 rounded text-sm">
-              {Math.floor(index/2) + 1}. {move}
-            </span>
-          ))}
+          {formatMoveHistory()}
         </div>
       </div>
     </div>
