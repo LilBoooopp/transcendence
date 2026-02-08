@@ -1,16 +1,17 @@
 import React from 'react';
+import ChessGame from './components/ChessGame';
 
 function App() {
+  const gameId = 'test-game';
+  const userId = 'user';
+  const playerColor = 'white';
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Chess Platform
-        </h1>
-        <p className="text-xl text-gray-600">
-          Setup done!
-        </p>
-      </div>
+    <div className="min-h-screen bg-gray-100">
+      <ChessGame
+        gameId={gameId}
+        userId={userId}
+        playerColor={playerColor}
+      />
     </div>
   );
 }

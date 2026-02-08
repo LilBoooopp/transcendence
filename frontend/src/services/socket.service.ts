@@ -99,7 +99,7 @@ class SocketService {
   }
 
   // Generic listener
-  private on(event: string, callback: (data: any) => void): void {
+  on(event: string, callback: any): () => void {
     if (this.socket) {
       this.socket.on(event, callback);
 
