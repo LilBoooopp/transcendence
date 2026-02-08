@@ -1,3 +1,4 @@
+import { WsException } from '@nestjs/websockets'; 
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -130,14 +131,41 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const recipients = roomMembers.filter(id => id !== client.id);
     console.log(`Recipients (excluding sender):`, recipients);
 
-    console.log(`Broadcasting 'game:move' event to room...`);
-    client.to(roomName).emit('game:move', {
-      move: data.move,
-      fen: data.fen,
-    });
+    try {
+      if (!data.gameId || !data.move || !data.fen) {
+        throw new WsException('Invalid move data');
+      }
 
-    console.log(`Move in game ${data.gameId}:`, data.move);
-    return { success: true };
+      const user = client.data.user;
+      const game = this.activeGames.get(data.gameId);
+
+      if (!game || !game.has(client.id)) {
+        throw new WsException('You are not in this game');
+      }
+
+      console.log(`Broadcasting 'game:move' event to room...`);
+      client.to(roomName).emit('game:move', {
+        move: data.move,
+        fen: data.fen,
+      });
+
+      await this.gameService.updateGame(data.gameId, {
+        fen: data.fen,
+        moves: data.move,
+      });
+
+      console.log(`Move in game ${data.gameId}:`, data.move);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error handling move:', error);
+
+      client.emit('error', {
+        message: error.message || 'failed to process move',
+      });
+
+      return { success: false, error: error.message };
+    }
   }
  
 
@@ -203,5 +231,47 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return {
       users: Array.from(this.activeUsers.keys()),
     };
+  }
+
+  @SubscribeMessage('matchmaking:find')
+  async handleFindMatch(
+    @ConnectedSocket() client: Socket,
+  ) {
+    const user = client.data.user;
+    const gameId = await this.gameService.findOpponent(user.userId, client.id);
+
+    if (gameId) {
+      client.emit('matchmaking:found', { gameId, color: 'black' });
+    } else {
+      client.emit('matchmaking:waiting');
+    }
+  }
+
+  @SubscribeMessage('game:load')
+  async handleLoadGame(
+    @MessageBody() data: { gameId: string},
+    @ConnectedSocket() client: Socket,
+  ) {
+    const game = await this.prisma.game.findUnique({
+      where: { id: data.gameId },
+      include: {
+        whitePlayer: true,
+        blackPlayer: true,
+      },
+    });
+
+    if (!game) {
+      throw new WsException('Game not found');
+    }
+
+    client.emit('game:loaded', {
+      gameId: game.id,
+      fen: game.fen,
+      moves: game.moves,
+      whitePlayer: game.whitePlayer,
+      blackPlayer: game.blackPlayer,
+    });
+
+    return { success: true };
   }
 }
