@@ -45,7 +45,7 @@ Open: **https://localhost**
 
 Create an account and start playing chess!
 
-## 📝 Common Commands
+## Common Commands
 ```bash
 # Stop everything
 docker-compose down
@@ -60,7 +60,7 @@ docker-compose restart backend
 docker exec -it chess-backend sh
 ```
 
-## 🐛 Having Issues?
+## Having Issues?
 
 1. **Port conflicts**: Make sure ports 80, 443, 3000, 4000, 5432 aren't in use
 2. **Database errors**: Run `docker-compose down -v` then start again
