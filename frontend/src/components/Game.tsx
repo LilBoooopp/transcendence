@@ -46,7 +46,7 @@ const Game: React.FC<GameProps> = ({ gameId, userId }) => {
 
   const handleMove = (move: any) => {
     // Send move to server
-    socketService.sendMove(gameId, move, fen);
+    socketService.sendMove(gameId, move, fen, '');
   };
 
   const handleSendMessage = (message: string) => {

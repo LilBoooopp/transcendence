@@ -24,15 +24,19 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor }) =>
     socketService.onGameLoaded((data) => {
       console.log('Game loaded:', data);
 
-      if (data.fen) {
-        try {
+      try {
+        if (data.pgn || data.moves) {
+          gameRef.current.loadPgn(data.pgn || data.moves);
+          setFen(gameRef.current.fen());
+          setMoveHistory(gameRef.current.history());
+          console.log('Game history restored');
+        } else if (data.fen) {
           gameRef.current.load(data.fen);
           setFen(data.fen);
-          setMoveHistory(gameRef.current.history());
-          console.log('Game state restored:', data.fen);
-        } catch (error) {
-          console.error('Error loading FEN:', error);
+          setMoveHistory([]);
         }
+      } catch (error) {
+        console.error('Error loading game state:', error);
       }
     });
 
@@ -118,11 +122,12 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor }) =>
         }
 
         const newFen = game.fen();
+        const newPgn = game.pgn();
         setFen(newFen);
         setMoveHistory(game.history());
 
         console.log('Sending move to opponent:', move);
-        socketService.sendMove(gameId, move, newFen);
+        socketService.sendMove(gameId, move, newFen, newPgn);
 
         updateGameStatus(game);
         return (true);

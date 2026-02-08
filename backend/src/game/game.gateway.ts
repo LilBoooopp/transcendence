@@ -122,7 +122,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('game:move')
   async handleMove(
-    @MessageBody() data: { gameId: string; move: any; fen: string },
+    @MessageBody() data: { gameId: string; move: any; fen: string; pgn: string },
     @ConnectedSocket() client: Socket,
   ) {
     const roomName = `game:${data.gameId}`;
@@ -154,11 +154,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.to(roomName).emit('game:move', {
         move: data.move,
         fen: data.fen,
+        pgn: data.pgn,
       });
 
       await this.gameService.updateGame(data.gameId, {
         fen: data.fen,
-        moves: data.move,
+        moves: data.pgn,
       });
 
       console.log(`Move in game ${data.gameId}:`, data.move);
@@ -265,7 +266,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.emit('game:loaded', {
         gameId: game.id,
         fen: game.fen,
-        moves: game.moves,
+        pgn: game.moves,
         status: game.status,
       });
 

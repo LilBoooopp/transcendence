@@ -53,7 +53,7 @@ class SocketService {
     this.emit('game:load', { gameId} );
   }
 
-  onGameLoaded(callback: (data: { gameId: string; fen: string; moves: any }) => void): void {
+  onGameLoaded(callback: (data: { gameId: string; fen: string; moves: any, pgn?: string }) => void): void {
     this.on('game:loaded', callback);
   }
 
@@ -63,13 +63,13 @@ class SocketService {
   }
 
   // Send a chess move
-  sendMove(gameId: string, move: any, fen:string): void {
+  sendMove(gameId: string, move: any, fen: string, pgn: string): void {
     console.log('Sending move:', move);
-    this.emit('game:move', { gameId, move, fen });
+    this.emit('game:move', { gameId, move, fen, pgn });
   }
 
   // Listen for oppenent's move
-  onMove(callback: (data: { move: any; fen: string }) => void): void {
+  onMove(callback: (data: { move: any; fen: string; pgn: string }) => void): void {
     this.on('game:move', callback);
   }
 
