@@ -108,7 +108,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor }) =>
       </div>
 
       <div className="text-lg">
-        You are playing: <span className="font-bold apitalize">{playerColor}</span>
+        You are playing: <span className="font-bold capitalize">{playerColor}</span>
       </div>
 
       <div className="w-full max-w-[600px]">

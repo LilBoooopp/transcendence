@@ -75,7 +75,7 @@ class SocketService {
   }
 
   // Listen for chat messages
-  onChatMessage(callback: (data: { userId: string; message: string; timestamp: Date}) => void) {
+  onChatMessage(callback: (data: { userId: string; message: string; timestamp: Date}) => void): void {
     this.on('chat:message', callback);
   }
 
