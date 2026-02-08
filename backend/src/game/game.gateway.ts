@@ -9,7 +9,8 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { GameService } from './game.service'
+import { GameService } from './game.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @WebSocketGateway({
   cors: {
@@ -26,6 +27,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   //Store games
   private activeGames = new Map<string, Set<string>>();
+
+  constructor(
+    private readonly gameService: GameService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   //new connection
   handleConnection(client: Socket) {
@@ -150,7 +156,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         fen: data.fen,
       });
 
-      await this.GameService.updateGame(data.gameId, {
+      await this.gameService.updateGame(data.gameId, {
         fen: data.fen,
         moves: data.move,
       });
@@ -239,7 +245,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const user = client.data.user;
-    const gameId = await this.GameService.findOpponent(user.userId, client.id);
+    const gameId = await this.gameService.findOpponent(user.userId, client.id);
 
     if (gameId) {
       client.emit('matchmaking:found', { gameId, color: 'black' });

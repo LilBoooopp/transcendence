@@ -1,7 +1,12 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+
 @Injectable()
 export class GameService {
   private waitingPlayers: Map<string, string> = new Map(); // userId to socketId
 
+  constructor(private prisma: PrismaService) {}
+  
   // Create a new game
   async createGame(whitePlayerId: string, blackPlayerId: string) {
     const game = await this.prisma.game.create({
@@ -32,5 +37,25 @@ export class GameService {
       this.waitingPlayers.set(userId, socketId);
       return (null);
     }
+  }
+
+  async updateGame(gameId: string, data: { fen: string; moves: any}) {
+    return (this.prisma.game.update({
+      where: { id: gameId },
+      data: {
+        fen: data.fen,
+        moves: data.moves,
+      },
+    }));
+  }
+
+  async getGame(gameId: string) {
+    return (this.prisma.game.findUnique({
+      where: { id: gameId },
+      include: {
+        whitePlayer: true,
+        blackPlayer: true,
+      },
+    }));
   }
 }
