@@ -20,7 +20,7 @@ export class GameService {
     // is someone waiing
     const entries = Array.from(this.waitingPlayers.entries());
 
-    if (entries.lentgh > 0) {
+    if (entries.length > 0) {
       const [opponentId, opponentSocketId] = entries[0];
       this.waitingPlayers.delete(opponentId);
 

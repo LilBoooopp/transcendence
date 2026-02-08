@@ -9,6 +9,7 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { GameService } from './game.service'
 
 @WebSocketGateway({
   cors: {
@@ -114,7 +115,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('game:move')
-  handleMove(
+  async handleMove(
     @MessageBody() data: { gameId: string; move: any; fen: string },
     @ConnectedSocket() client: Socket,
   ) {
@@ -149,7 +150,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         fen: data.fen,
       });
 
-      await this.gameService.updateGame(data.gameId, {
+      await this.GameService.updateGame(data.gameId, {
         fen: data.fen,
         moves: data.move,
       });
@@ -238,7 +239,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const user = client.data.user;
-    const gameId = await this.gameService.findOpponent(user.userId, client.id);
+    const gameId = await this.GameService.findOpponent(user.userId, client.id);
 
     if (gameId) {
       client.emit('matchmaking:found', { gameId, color: 'black' });
