@@ -5,7 +5,8 @@ class SocketService {
 
   connect(userId?: string): void {
     // Connect to backend Websocket
-    this.socket = io('http://localhost:4000', {
+    const SOCKET_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+    this.socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
     });
 
@@ -101,7 +102,10 @@ class SocketService {
   private on(event: string, callback: (data: any) => void): void {
     if (this.socket) {
       this.socket.on(event, callback);
+
+      return () => this.socket?.off(event, callback);
     }
+    return () => {};
   }
 
   // Remove listener

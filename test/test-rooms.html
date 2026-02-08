@@ -107,7 +107,7 @@
     </div>
 
     <div class="instructions">
-        <h3>📋 Test Instructions:</h3>
+        <h3>Test Instructions:</h3>
         <ol>
             <li>Connect all 3 players (click "1. Connect" for each)</li>
             <li>Player 1 & 2: Join Game A</li>
@@ -133,10 +133,10 @@
             const status = document.getElementById(`player${player}-status`);
             if (connected) {
                 status.className = 'status connected';
-                status.textContent = '✅ Connected';
+                status.textContent = 'Connected';
             } else {
                 status.className = 'status not-connected';
-                status.textContent = '❌ Not Connected';
+                status.textContent = 'Not Connected';
             }
         }
 
@@ -145,28 +145,28 @@
             socket1 = io('http://localhost:4000');
             
             socket1.on('connect', () => {
-                log(1, `✅ Connected! Socket ID: ${socket1.id}`);
+                log(1, `Connected! Socket ID: ${socket1.id}`);
                 updateStatus(1, true);
             });
             
             socket1.on('disconnect', () => {
-                log(1, '❌ Disconnected');
+                log(1, 'Disconnected');
                 updateStatus(1, false);
             });
             
             // IMPORTANT: Listen for moves from OTHER players
             socket1.on('game:move', (data) => {
-                log(1, `🎮 RECEIVED MOVE FROM OPPONENT: ${JSON.stringify(data.move)}`, true);
+                log(1, `RECEIVED MOVE FROM OPPONENT: ${JSON.stringify(data.move)}`, true);
             });
 
             socket1.on('game:player-joined', (data) => {
-                log(1, `👥 Player joined game: ${JSON.stringify(data)}`);
+                log(1, `Player joined game: ${JSON.stringify(data)}`);
             });
         }
 
         function player1JoinGameA() {
             socket1.emit('game:join', { gameId: 'game-A' }, (response) => {
-                log(1, `📍 Joined Game A: ${JSON.stringify(response)}`);
+                log(1, `Joined Game A: ${JSON.stringify(response)}`);
             });
         }
 
@@ -177,7 +177,7 @@
                 move: move, 
                 fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1' 
             }, (response) => {
-                log(1, `📤 SENT MOVE: ${JSON.stringify(move)}`);
+                log(1, `SENT MOVE: ${JSON.stringify(move)}`);
             });
         }
 
@@ -186,28 +186,28 @@
             socket2 = io('http://localhost:4000');
             
             socket2.on('connect', () => {
-                log(2, `✅ Connected! Socket ID: ${socket2.id}`);
+                log(2, `Connected! Socket ID: ${socket2.id}`);
                 updateStatus(2, true);
             });
             
             socket2.on('disconnect', () => {
-                log(2, '❌ Disconnected');
+                log(2, 'Disconnected');
                 updateStatus(2, false);
             });
             
             // IMPORTANT: Listen for moves from OTHER players
             socket2.on('game:move', (data) => {
-                log(2, `🎮 RECEIVED MOVE FROM OPPONENT: ${JSON.stringify(data.move)}`, true);
+                log(2, `RECEIVED MOVE FROM OPPONENT: ${JSON.stringify(data.move)}`, true);
             });
 
             socket2.on('game:player-joined', (data) => {
-                log(2, `👥 Player joined game: ${JSON.stringify(data)}`);
+                log(2, `Player joined game: ${JSON.stringify(data)}`);
             });
         }
 
         function player2JoinGameA() {
             socket2.emit('game:join', { gameId: 'game-A' }, (response) => {
-                log(2, `📍 Joined Game A: ${JSON.stringify(response)}`);
+                log(2, `Joined Game A: ${JSON.stringify(response)}`);
             });
         }
 
@@ -218,7 +218,7 @@
                 move: move, 
                 fen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2' 
             }, (response) => {
-                log(2, `📤 SENT MOVE: ${JSON.stringify(move)}`);
+                log(2, `SENT MOVE: ${JSON.stringify(move)}`);
             });
         }
 
@@ -227,28 +227,28 @@
             socket3 = io('http://localhost:4000');
             
             socket3.on('connect', () => {
-                log(3, `✅ Connected! Socket ID: ${socket3.id}`);
+                log(3, `Connected! Socket ID: ${socket3.id}`);
                 updateStatus(3, true);
             });
             
             socket3.on('disconnect', () => {
-                log(3, '❌ Disconnected');
+                log(3, 'Disconnected');
                 updateStatus(3, false);
             });
             
             // IMPORTANT: Listen for moves from OTHER players
             socket3.on('game:move', (data) => {
-                log(3, `🎮 RECEIVED MOVE FROM OPPONENT: ${JSON.stringify(data.move)}`, true);
+                log(3, `RECEIVED MOVE FROM OPPONENT: ${JSON.stringify(data.move)}`, true);
             });
 
             socket3.on('game:player-joined', (data) => {
-                log(3, `👥 Player joined game: ${JSON.stringify(data)}`);
+                log(3, `Player joined game: ${JSON.stringify(data)}`);
             });
         }
 
         function player3JoinGameB() {
             socket3.emit('game:join', { gameId: 'game-B' }, (response) => {
-                log(3, `📍 Joined Game B: ${JSON.stringify(response)}`);
+                log(3, `Joined Game B: ${JSON.stringify(response)}`);
             });
         }
 
@@ -259,7 +259,7 @@
                 move: move, 
                 fen: 'rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1' 
             }, (response) => {
-                log(3, `📤 SENT MOVE: ${JSON.stringify(move)}`);
+                log(3, `SENT MOVE: ${JSON.stringify(move)}`);
             });
         }
     </script>
