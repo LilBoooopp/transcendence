@@ -1,6 +1,6 @@
-# Chess Platform
+*This project has been created as part of the 42 curriculum by [beboccas], [bschmid], [cbopp], [sforster]*
 
-*This project has been created as part of the 42 curriculum by [login1], [login2], [login3], [login4]*
+# Chess Platform
 
 ## Description
 
@@ -13,10 +13,10 @@ See [QUICKSTART.md](QUICKSTART.md) for a 5-minute setup guide.
 ## Team Information
 
 ### Team Members
-1. **[Name]** ([login1]) - [Role]
-2. **[Name]** ([login2]) - [Role]
-3. **[Name]** ([login3]) - [Role]
-4. **[Name]** ([login4]) - [Role]
+1. **[Charlie Bopp]** ([cbopp]) - [Product Owner, Developer]
+2. **[Bastian Schmid]** ([bschmid]) - [Project Manager, Developer]
+3. **[Sylvie Forster]** ([sforster]) - [Technical Lead, Developer]
+4. **[Bertrand Boccassino]** ([beboccas]) - [Developer]
 
 ## Technical Stack
 
@@ -46,20 +46,20 @@ chess-platform/
 - ✅ Minor: ORM (Prisma) (1pt)
 
 ### User Management (3 points)
-- ✅ Major: Standard user management (2pts)
-- ✅ Minor: Game statistics (1pt)
+- Major: Standard user management (2pts)
+- Minor: Game statistics (1pt)
 
 ### Gaming (7 points)
-- ✅ Major: Web-based chess game (2pts)
-- ✅ Major: Remote players (2pts)
-- ✅ Major: AI opponent (Stockfish) (2pts)
-- ✅ Minor: Tournament system (1pt)
+- Major: Web-based chess game (2pts)
+- Major: Remote players (2pts)
+- Major: AI opponent (Stockfish) (2pts)
+- Minor: Tournament system (1pt)
 
 ### User Interaction (2 points)
-- ✅ Major: Chat, profiles, friends (2pts)
+- Major: Chat, profiles, friends (2pts)
 
 ### Spectator Mode (1 point)
-- ✅ Minor: Watch live games (1pt)
+- Minor: Watch live games (1pt)
 
 **Total: 18 Points** (4 points bonus)
 
@@ -89,33 +89,31 @@ Educational project for 42 School.
 
 ## Summary - Complete File Structure
 
-You should now have this complete structure:
 ```
 chess-platform/
-├── docker-compose.yml          ✅ Orchestrates all services
-├── .env.example                ✅ Environment variables template
-├── .gitignore                  ✅ Git ignore rules
-├── README.md                   ✅ Project documentation
-├── QUICKSTART.md               ✅ 5-minute setup guide
+├── docker-compose.yml          
+├── .env.example                 
+├── .gitignore                  
 │
 ├── backend/
-│   ├── Dockerfile              ✅ Backend container config
-│   ├── package.json            ✅ Dependencies
-│   ├── tsconfig.json           ✅ TypeScript config
-│   ├── nest-cli.json           ✅ NestJS CLI config
+│   ├── Dockerfile               
+│   ├── package.json             
+│   ├── tsconfig.json           
+│   ├── nest-cli.json          
 │   └── prisma/
-│       └── schema.prisma       ✅ Database schema
+│       └── schema.prisma     
 │
 ├── frontend/
-│   ├── Dockerfile              ✅ Frontend container config
-│   ├── package.json            ✅ Dependencies
-│   ├── tsconfig.json           ✅ TypeScript config
-│   └── tailwind.config.js      ✅ Tailwind CSS config
+│   ├── Dockerfile              
+│   ├── package.json           
+│   ├── tsconfig.json         
+│   └── tailwind.config.js   
 │
 ├── database/
-│   └── init.sql                ✅ Database initialization
+│   └── init.sql            
 │
 └── nginx/
-    ├── Dockerfile              ✅ Nginx container config
-    ├── nginx.conf              ✅ HTTPS configuration
-    └── ssl/                    (will create certificates here)
+    ├── Dockerfile              
+    ├── nginx.conf             
+    └── ssl/                  
+```
