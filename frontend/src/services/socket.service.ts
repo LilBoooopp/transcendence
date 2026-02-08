@@ -5,13 +5,16 @@ class SocketService {
 
   connect(userId?: string): void {
     // Connect to backend Websocket
-    const SOCKET_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+    const SOCKET_URL = 'http://localhost:4000';
+
+    console.log(' Connecting to WebSocket at:', SOCKET_URL);
+
     this.socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
     });
 
     this.socket.on('connect', () => {
-      console.log('Connected to Websocket server');
+      console.log('Connected to Websocket server, socket ID:', this.socket?.id);
 
       // Identify user if Id provided
       if (userId) {
@@ -24,7 +27,7 @@ class SocketService {
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
+      console.error('Connection error:', error.message);
     });
   }
 
@@ -41,6 +44,7 @@ class SocketService {
 
   // Join a game room
   joinGame(gameId: string): void {
+    console.log('Joining game:', gameId);
     this.emit('game:join', { gameId });
   }
 
@@ -51,6 +55,7 @@ class SocketService {
 
   // Send a chess move
   sendMove(gameId: string, move: any, fen:string): void {
+    console.log('Sending move:', move);
     this.emit('game:move', { gameId, move, fen });
   }
 
@@ -102,7 +107,6 @@ class SocketService {
   on(event: string, callback: any): () => void {
     if (this.socket) {
       this.socket.on(event, callback);
-
       return () => this.socket?.off(event, callback);
     }
     return () => {};

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Chessboard } from 'react-chessboard';
 import { Chess } from 'chess.js';
 import { socketService } from '../services/socket.service';
@@ -10,7 +10,7 @@ interface ChessGameProps {
 }
 
 const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor }) => {
-  const [game, setGame] = useState(new Chess());
+  const gameRef = useRef(new Chess());
   const [fen, setFen] = useState('start');
   const [moveHistory, setMoveHistory] = useState<string[]>([]);
   const [gameStatus, setGameStatus] = useState<string>('Playing');
@@ -23,12 +23,10 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor }) =>
       console.log('Received opponent move:', data);
 
       // new instance from FEN
-      const newGame = new Chess(data.fen);
-      setGame(newGame);
+      gameRef.current = new Chess(data.fen);
       setFen(data.fen);
-
-      setMoveHistory(newGame.history());
-      updateGameStatus(newGame);
+      setMoveHistory(gameRef.current.history());
+      updateGameStatus(gameRef.current);
     });
 
     socketService.onGameOver((data) => {
@@ -64,6 +62,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor }) =>
 
   const onDrop = useCallback(
     (sourceSquare: string, targetSquare: string) => {
+      const game = gameRef.current;
       const currentTurn = game.turn();
       const isPlayerTurn =
         (playerColor === 'white' && currentTurn === 'w') ||
@@ -82,6 +81,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor }) =>
         });
 
         if (!move) {
+          console.log('invalid move');
           return (false);
         }
 
@@ -98,7 +98,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor }) =>
         console.error('Invalid move:', error);
         return (false);
       }
-    }, [game, gameId, playerColor]
+    }, [gameId, playerColor]
   );
 
   return (
@@ -115,6 +115,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor }) =>
         <Chessboard
           position={fen}
           onPieceDrop={onDrop}
+          boardOrientation={playerColor}
           customBoardStyle={{
             borderRadius: '4px',
             boxShadow: '0 2px 10px rgba(0, 0, 0, 0.5)',
