@@ -31,6 +31,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     white: string | null; // white players socket ID
     black: string | null; // black plaeyrs socket ID
     spectators: Set<string>; // spectator socket ID // spectator socket ID
+    fen: string;
+    pgn: string;
   }>();
 
   constructor(
@@ -106,6 +108,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         white: null,
         black: null,
         spectators: new Set(),
+        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        pgn: '',
       });
     }
     const gameRoom = this.activeGames.get(data.gameId);
@@ -146,6 +150,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       whiteConnected: gameRoom.white !== null,
       blackConnected: gameRoom.black !== null,
       spectatorCount: gameRoom.spectators.size,
+    });
+
+    client.emit('game:state', {
+      gameId: data.gameId,
+      fen: gameRoom.fen,
+      pgn: gameRoom.pgn,
     });
 
     return { success: true, gameId: data.gameId, role: assignedRole };
@@ -220,6 +230,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         pgn: data.pgn,
       });  
 
+      if (gameRoom) {
+        gameRoom.fen = data.fen;
+        gameRoom.pgn = data.pgn;
+      }
       console.log(`Move in game ${data.gameId}:`, data.move);
 
       this.gameService.updateGame(data.gameId, {

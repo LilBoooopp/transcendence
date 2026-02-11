@@ -143,6 +143,10 @@ class SocketService {
   onRoleAssigned(callback: (data: { gameId: string; role: 'white' | 'black' | 'spectator' }) => void): void {
     this.on('game:role-assigned', callback);
   }
+
+  onGameState(callback: (data: { gameId: string; fen: string; pgn: string }) => void): void {
+    this.on('game:state', callback);
+  }
 }
 
 export const socketService = new SocketService();

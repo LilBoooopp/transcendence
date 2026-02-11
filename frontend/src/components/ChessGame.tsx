@@ -19,17 +19,41 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
   useEffect(() => {
     console.log('Setting up game listeners for:', gameId);
 
-    socketService.onMove((data) => {
-      console.log('Receved opponent move:', data);
+    const unsubState = socketService.on('game:state', (data: { gameId: string; fen: string; pgn: string }) => {
+      console.log('Received game state:', data);
+      try {
+        if (data.pgn && data.pgn.length > 0) {
+          gameRef.current.loadPgn(data.pgn);
+        } else if (data.fen) {
+          gameRef.current.load(data.fen);
+        }
+        setFen(gameRef.current.fen());
+        setMoveHistory(gameRef.current.history());
+        updateGameStatus(gameRef.current);
+      } catch (error) {
+        console.error('Error restoring game state:', error);
+        if (data.fen) {
+          gameRef.current.load(data.fen);
+          setFen(data.fen);
+        }
+      }
+    });
+
+    const unsubMove = socketService.on('game:move', (data: { move: any; fen: string; pgn: string }) => {
+      console.log('Received opponent move:', data);
 
       try {
-        if (data.move && data.move.from && data.move.to) {
+        // Validate the move can be applied to current position
+        const currentFen = gameRef.current.fen();
+        if (data.move && data.move.from && data.move.to && data.move.before === currentFen) {
           gameRef.current.move({
             from: data.move.from,
             to: data.move.to,
             promotion: data.move.promotion || 'q',
           });
         } else {
+          // out of sync -> load FEN
+          console.log('Board out of sync, loading from fen');
           gameRef.current.load(data.fen);
         }
 
@@ -37,22 +61,22 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
         setMoveHistory(gameRef.current.history());
         updateGameStatus(gameRef.current);
       } catch (error) {
-        console.error('Error applying move:', error);
+        console.error('Error applying move, falling back to fen:', error);
         gameRef.current.load(data.fen);
         setFen(data.fen);
-        setMoveHistory(gameRef.current.history());
       }
     });
 
-    socketService.onGameOver((data) => {
+    const unsubGameOver = socketService.on('game:over', (data: { winner: string; result: string }) => {
       console.log('Game over:', data);
       setGameStatus(`Game Over - ${data.result}`);
       alert(`Game Over! ${data.result}`);
     });
 
     return () => {
-      socketService.off('game:move');
-      socketService.off('game:over');
+      if (unsubState) unsubState();
+      if (unsubMove) unsubMove();
+    if (unsubGameOver) unsubGameOver();
     };
   }, [gameId, userId]);
 

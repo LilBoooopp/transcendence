@@ -50,8 +50,8 @@ chess-platform/
 - Minor: Game statistics (1pt)
 
 ### Gaming (7 points)
-- Major: Web-based chess game (2pts)
-- Major: Remote players (2pts)
+- ✅ Major: Web-based chess game (2pts)
+- ✅ Major: Remote players (2pts)
 - Major: AI opponent (Stockfish) (2pts)
 - Minor: Tournament system (1pt)
 
@@ -59,7 +59,7 @@ chess-platform/
 - Major: Chat, profiles, friends (2pts)
 
 ### Spectator Mode (1 point)
-- Minor: Watch live games (1pt)
+- ✅ Minor: Watch live games (1pt)
 
 **Total: 18 Points** (4 points bonus)
 
