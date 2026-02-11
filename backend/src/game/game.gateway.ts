@@ -218,14 +218,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         move: data.move,
         fen: data.fen,
         pgn: data.pgn,
-      });
-
-      await this.gameService.updateGame(data.gameId, {
-        fen: data.fen,
-        moves: data.pgn,
-      });
+      });  
 
       console.log(`Move in game ${data.gameId}:`, data.move);
+
+      this.gameService.updateGame(data.gameId, {
+        fen: data.fen,
+        moves: data.pgn,
+      }).catch((err) => {
+          console.log('Failed to save game state to DB (non-fatal):', err.message);
+        });
 
       return { success: true };
     } catch (error) {
