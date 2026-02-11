@@ -4,12 +4,8 @@ class SocketService {
   private socket: Socket | null = null;
 
   connect(userId?: string): void {
-    // Connect to backend Websocket
-    const SOCKET_URL = 'http://localhost:4000';
-
-    console.log(' Connecting to WebSocket at:', SOCKET_URL);
-
-    this.socket = io(SOCKET_URL, {
+    console.log('Connecting to Websocket via current origin...');
+    this.socket = io({
       transports: ['websocket', 'polling'],
     });
 
@@ -131,6 +127,11 @@ class SocketService {
   // Check if connected
   isConnected(): boolean {
     return this.socket?.connected || false;
+  }
+
+  // Listen for role assignment from server
+  onRoleAssigned(callback: (data: { gameId: string; role: 'white' | 'black' | 'spectator' }) => void): void {
+    this.on('game:role-assigned', callback);
   }
 }
 

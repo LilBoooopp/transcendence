@@ -7,9 +7,10 @@ interface ChessGameProps {
   gameId: string;
   userId: string;
   playerColor: 'white' | 'black';
+  isSpectator?: boolean;
 }
 
-const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor }) => {
+const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSpectator = false }) => {
   const gameRef = useRef(new Chess());
   const [fen, setFen] = useState('start');
   const [moveHistory, setMoveHistory] = useState<string[]>([]);
@@ -98,6 +99,11 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor }) =>
 
   const onDrop = useCallback(
     (sourceSquare: string, targetSquare: string) => {
+      if (isSpectator) {
+        console.log('Spectators cannot move pieces');
+        return (false);
+      }
+
       const game = gameRef.current;
       const currentTurn = game.turn();
       const isPlayerTurn =
@@ -135,7 +141,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor }) =>
         console.error('Invalid move:', error);
         return (false);
       }
-    }, [gameId, playerColor]
+    }, [gameId, playerColor, isSpectator]
   );
 
   const formatMoveHistory = () => {

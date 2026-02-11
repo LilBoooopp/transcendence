@@ -26,7 +26,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private activeUsers = new Map<string, string>();
 
   //Store games
-  private activeGames = new Map<string, Set<string>>();
+  private activeGames = new Map<string, {
+    players: Set<string>; // All socket IDs
+    white: string | null; // white players socket ID
+    black: string | null; // black plaeyrs socket ID
+    spectators: Set<string>; // spectator socket ID // spectator socket ID
+  }>();
 
   constructor(
     private readonly gameService: GameService,
@@ -53,10 +58,19 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     // Remove from active games
-    for (const [gameId, players] of this.activeGames.entries()) {
-      if (players.has(client.id)) {
-        players.delete(client.id);
-        if (players.size === 0) {
+    for (const [gameId, gameRoom] of this.activeGames.entries()) {
+      if (gameRoom.players.has(client.id)) {
+        gameRoom.players.delete(client.id);
+        gameRoom.spectators.delete(client.id);
+
+        if (gameRoom.white === client.id) {
+          gameRoom.white = null;
+        }
+        if (gameRoom.black === client.id) {
+          gameRoom.black = null;
+        }
+
+        if (gameRoom.players.size === 0) {
           this.activeGames.delete(gameId);
         }
       }
@@ -87,19 +101,54 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.join(roomName);
 
     if (!this.activeGames.has(data.gameId)) {
-      this.activeGames.set(data.gameId, new Set());
+      this.activeGames.set(data.gameId, {
+        players: new Set(),
+        white: null,
+        black: null,
+        spectators: new Set(),
+      });
     }
-    this.activeGames.get(data.gameId).add(client.id);
+    const gameRoom = this.activeGames.get(data.gameId);
+    gameRoom.players.add(client.id);
 
-    console.log(`Client ${client.id} joined game ${data.gameId}`);
+    let assignedRole: 'white' | 'black' | 'spectator';
+
+    if (gameRoom.white === null && gameRoom.black === null) {
+      assignedRole = Math.random() < 0.5 ? 'white' : 'black';
+      if (assignedRole === 'white') {
+        gameRoom.white = client.id;
+      } else {
+        gameRoom.black = client.id;
+      }
+    } else if (gameRoom.white === null) {
+      assignedRole = 'white'
+      gameRoom.white = client.id;
+    } else if (gameRoom.black === null) {
+      assignedRole = 'black';
+      gameRoom.black = client.id;
+    } else {
+      assignedRole = 'spectator';
+      gameRoom.spectators.add(client.id);
+    }
+
+    console.log(`Client ${client.id} joined game ${data.gameId} as ${assignedRole}`);
+
+    // tell the client what role they got
+    client.emit('game:role-assigned', {
+      gameId: data.gameId,
+      role: assignedRole,
+    });
 
     // Notify others in the game
     client.to(roomName).emit('game:player-joined', {
       gameId: data.gameId,
-      playersCount: this.activeGames.get(data.gameId).size,
+      playersCount: gameRoom.players.size,
+      whiteConnected: gameRoom.white !== null,
+      blackConnected: gameRoom.black !== null,
+      spectatorCount: gameRoom.spectators.size,
     });
 
-    return { success: true, gameId: data.gameId };
+    return { success: true, gameId: data.gameId, role: assignedRole };
   }
 
   // Leave a game
@@ -111,8 +160,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.leave(`game:${data.gameId}`);
 
     if (this.activeGames.has(data.gameId)) {
-      this.activeGames.get(data.gameId).delete(client.id);
-      if (this.activeGames.get(data.gameId).size === 0) {
+      const gameRoom = this.activeGames.get(data.gameId);
+      gameRoom.players.delete(client.id);
+      gameRoom.spectators.delete(client.id);
+
+      if (gameRoom.white === client.id) {
+        gameRoom.white = null;
+      }
+      if (gameRoom.black === client.id) {
+        gameRoom.black = null;
+      }
+
+      if (gameRoom.players.size === 0) {
         this.activeGames.delete(data.gameId);
       }
     }
@@ -144,10 +203,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       const user = client.data.user;
-      const game = this.activeGames.get(data.gameId);
+      const gameRoom = this.activeGames.get(data.gameId);
 
-      if (!game || !game.has(client.id)) {
+      if (!gameRoom || !gameRoom.players.has(client.id)) {
         throw new WsException('You are not in this game');
+      }
+
+      if (gameRoom.white !== client.id && gameRoom.black !== client.id) {
+        throw new WsException('Spectators cannot make moves');
       }
 
       console.log(`Broadcasting 'game:move' event to room...`);
@@ -227,7 +290,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Notify players that spectator count increased
     this.server.to(`game:${data.gameId}`).emit('spectate:count', {
       gameId: data.gameId,
-      count: this.activeGames.get(data.gameId)?.size || 0,
+      count: this.activeGames.get(data.gameId)?.spectators.size || 0,
     });
 
     return { success: true };
