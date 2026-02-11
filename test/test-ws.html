@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>WebSocket Test</h1>
+    <div id="status">Disconnected</div>
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+    <button onclick="identifyUser()">Identify User</button>
+    <button onclick="joinGame()">Join Game</button>
+    <button onclick="sendMove()">Send Move</button>
+    
+    <h2>Logs:</h2>
+    <div id="logs" style="border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll;"></div>
+
+    <script>
+        let socket = null;
+
+        function log(message) {
+            const logs = document.getElementById('logs');
+            const time = new Date().toLocaleTimeString();
+            logs.innerHTML += `[${time}] ${message}<br>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function connect() {
+            // CHANGED: Connect to port 4000 directly
+            socket = io('http://localhost:4000', {
+                transports: ['websocket', 'polling']
+            });
+
+            socket.on('connect', () => {
+                log('✅ Connected! Socket ID: ' + socket.id);
+                document.getElementById('status').innerText = 'Connected';
+                document.getElementById('status').style.color = 'green';
+            });
+
+            socket.on('disconnect', () => {
+                log('❌ Disconnected');
+                document.getElementById('status').innerText = 'Disconnected';
+                document.getElementById('status').style.color = 'red';
+            });
+
+            socket.on('connect_error', (error) => {
+                log('❌ Connection error: ' + error.message);
+            });
+
+            socket.on('user:status', (data) => {
+                log('👤 User status: ' + JSON.stringify(data));
+            });
+
+            socket.on('game:move', (data) => {
+                log('♟️ Move received: ' + JSON.stringify(data));
+            });
+
+            socket.on('chat:message', (data) => {
+                log('💬 Chat message: ' + JSON.stringify(data));
+            });
+
+            socket.on('game:over', (data) => {
+                log('🏁 Game over: ' + JSON.stringify(data));
+            });
+
+            socket.on('game:player-joined', (data) => {
+                log('👥 Player joined: ' + JSON.stringify(data));
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+        }
+
+        function identifyUser() {
+            if (!socket) {
+                log('❌ Not connected!');
+                return;
+            }
+            socket.emit('user:identify', { userId: 'test-user-123' }, (response) => {
+                log('📤 Identify response: ' + JSON.stringify(response));
+            });
+        }
+
+        function joinGame() {
+            if (!socket) {
+                log('❌ Not connected!');
+                return;
+            }
+            socket.emit('game:join', { gameId: 'test-game-456' }, (response) => {
+                log('📤 Join game response: ' + JSON.stringify(response));
+            });
+        }
+
+        function sendMove() {
+            if (!socket) {
+                log('❌ Not connected!');
+                return;
+            }
+            socket.emit('game:move', {
+                gameId: 'test-game-456',
+                move: { from: 'e2', to: 'e4' },
+                fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1'
+            }, (response) => {
+                log('📤 Move response: ' + JSON.stringify(response));
+            });
+        }
+    </script>
+</body>
+</html>

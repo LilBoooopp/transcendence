@@ -1,0 +1,200 @@
+// Prisma Schema for Chess Platform
+// This file defines the database structure
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model - handles authentication and profiles
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  username      String    @unique
+  password      String    // Hashed
+  avatar        String?   // avatar URL
+  
+  firstName     String?
+  lastName      String?
+  bio           String?
+  
+  // OAuth fields 
+  oauthProvider String?   // 'google', 'github', etc.
+  oauthId       String?   // ID from OAuth provider
+  
+  // 2FA fields 
+  twoFactorSecret   String?
+  twoFactorEnabled  Boolean @default(false)
+  
+  isOnline      Boolean   @default(false)
+  lastSeen      DateTime  @default(now())
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  gamesAsWhite  Game[]    @relation("WhitePlayer")
+  gamesAsBlack  Game[]    @relation("BlackPlayer")
+  friends       User[]    @relation("Friendship")
+  friendOf      User[]    @relation("Friendship")
+  chatMessages  ChatMessage[]
+  tournaments   TournamentParticipant[]
+  statistics    UserStatistics?
+  
+  @@index([email])
+  @@index([username])
+}
+
+// user statistics
+model UserStatistics {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  eloRating     Int       @default(1200)
+  
+  totalGames    Int       @default(0)
+  wins          Int       @default(0)
+  losses        Int       @default(0)
+  draws         Int       @default(0)
+  
+  currentStreak Int       @default(0)
+  bestStreak    Int       @default(0)
+  
+  totalPlayTime Int       @default(0) // seconds
+  
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([eloRating])
+}
+
+// game model 
+model Game {
+  id            String    @id @default(uuid())
+  
+  whitePlayerId String?
+  blackPlayerId String?
+  whitePlayer   User?     @relation("WhitePlayer", fields: [whitePlayerId], references: [id])
+  blackPlayer   User?     @relation("BlackPlayer", fields: [blackPlayerId], references: [id])
+  
+  // game state
+  status        GameStatus @default(WAITING)
+  result        GameResult?
+  winner        String?    // 'white', 'black', or null for draw
+  
+  // chess data
+  pgn           String     @default("") // Portable Game Notation
+  fen           String     @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") // Forsyth-Edwards Notation
+  moves         Json       @default("[]") // Array of moves
+  
+  //settings
+  timeControl   String?    // e.g, "10+0" "15+10"
+  isRanked      Boolean    @default(true)
+  
+  // bot opponents
+  isAiGame      Boolean    @default(false)
+  aiDifficulty  Int?       // 1-20 for Stockfish
+  
+  // tournament 
+  tournamentId  String?
+  tournament    Tournament? @relation(fields: [tournamentId], references: [id])
+  
+  // Spectators
+  spectatorCount Int       @default(0)
+  
+  // Timestamps
+  startedAt     DateTime?
+  endedAt       DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([whitePlayerId])
+  @@index([blackPlayerId])
+  @@index([status])
+  @@index([tournamentId])
+}
+
+enum GameStatus {
+  WAITING       // Waiting for opponent
+  IN_PROGRESS   // Game is active
+  COMPLETED     // Game finished
+  ABANDONED     // Player left
+}
+
+enum GameResult {
+  WHITE_WIN
+  BLACK_WIN
+  DRAW
+  STALEMATE
+  TIMEOUT
+  RESIGNATION
+}
+
+// Chat messages
+model ChatMessage {
+  id          String    @id @default(uuid())
+  senderId    String
+  sender      User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId  String?   // null for global chat
+  content     String
+  isRead      Boolean   @default(false)
+  
+  createdAt   DateTime  @default(now())
+  
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+}
+
+// Tournament system 
+model Tournament {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  
+  // Tournament settings
+  maxPlayers    Int       @default(8)
+  currentRound  Int       @default(1)
+  status        TournamentStatus @default(REGISTRATION)
+  
+  // Timestamps
+  startDate     DateTime
+  endDate       DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  participants  TournamentParticipant[]
+  games         Game[]
+  
+  @@index([status])
+  @@index([startDate])
+}
+
+enum TournamentStatus {
+  REGISTRATION  // Players can join
+  IN_PROGRESS   // Tournament started
+  COMPLETED     // TouGame A)rnament finished
+  CANCELLED     // Tournament cancelled
+}
+
+model TournamentParticipant {
+  id            String    @id @default(uuid())
+  tournamentId  String
+  tournament    Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  seed          Int?
+  eliminated    Boolean   @default(false)
+  placement     Int?      // (1st, 2nd, etc.)
+  
+  joinedAt      DateTime  @default(now())
+  
+  @@unique([tournamentId, userId])
+  @@index([tournamentId])
+  @@index([userId])
+}
