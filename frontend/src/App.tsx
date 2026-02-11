@@ -6,18 +6,22 @@ import { socketService } from './services/socket.service';
 type GameRole = 'white' | 'black' | 'spectator' | null;
 
 function App() {
-  const [gameId, setGameId] = useState<string | null>(null);
+  const [gameId, setGameId] = useState<string | null>(() => {
+    const hash = window.location.hash.slice(1);
+    return hash.length > 0 ? hash : null;
+  });
   const [userId] = useState<string>(() => `player-${Math.random().toString(36).substr(2, 9)}`);
   const [role, setRole] = useState<GameRole>(null);
   const [waiting, setWaiting] = useState(false);
   const hasConnected = useRef(false);
 
   const handleJoinGame = (gameName: string) =>  {
+    window.location.hash = gameName;
     setWaiting(true);
     setGameId(gameName);
   };
 
-  // Cleanup on unmount
+  // Handle socket connection when gameId is set
   useEffect(() => {
     if (!gameId || hasConnected.current) return;
     hasConnected.current = true;

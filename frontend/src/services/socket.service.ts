@@ -4,9 +4,19 @@ class SocketService {
   private socket: Socket | null = null;
 
   connect(userId?: string): void {
+    if (this.socket?.connected) {
+      console.log('Socket already connected, skipping connect');
+      return;
+    }
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+
     console.log('Connecting to Websocket via current origin...');
+    
     this.socket = io({
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
     });
 
     this.socket.on('connect', () => {

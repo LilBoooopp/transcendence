@@ -17,32 +17,10 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
   const [gameStatus, setGameStatus] = useState<string>('Playing');
 
   useEffect(() => {
-    console.log('Connecting to ws...');
-    socketService.connect(userId);
-    socketService.joinGame(gameId);
-
-    socketService.loadGame(gameId);
-    socketService.onGameLoaded((data) => {
-      console.log('Game loaded:', data);
-
-      try {
-        if (data.pgn || data.moves) {
-          gameRef.current.loadPgn(data.pgn || data.moves);
-          setFen(gameRef.current.fen());
-          setMoveHistory(gameRef.current.history());
-          console.log('Game history restored');
-        } else if (data.fen) {
-          gameRef.current.load(data.fen);
-          setFen(data.fen);
-          setMoveHistory([]);
-        }
-      } catch (error) {
-        console.error('Error loading game state:', error);
-      }
-    });
+    console.log('Setting up game listeners for:', gameId);
 
     socketService.onMove((data) => {
-      console.log('Received opponent move:', data);
+      console.log('Receved opponent move:', data);
 
       try {
         if (data.move && data.move.from && data.move.to) {
@@ -73,7 +51,6 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
     });
 
     return () => {
-      socketService.leaveGame(gameId);
       socketService.off('game:move');
       socketService.off('game:over');
     };
