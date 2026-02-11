@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ChessGame from './components/ChessGame';
 import HomePage from './components/HomePage';
 import { socketService } from './services/socket.service';
@@ -10,30 +10,37 @@ function App() {
   const [userId] = useState<string>(() => `player-${Math.random().toString(36).substr(2, 9)}`);
   const [role, setRole] = useState<GameRole>(null);
   const [waiting, setWaiting] = useState(false);
+  const hasConnected = useRef(false);
 
-  const handleJoinGame = useCallback((gameName: string) =>  {
+  const handleJoinGame = (gameName: string) =>  {
     setWaiting(true);
     setGameId(gameName);
-
-    socketService.connect(userId);
-    socketService.onRoleAssigned((data) => {
-      console.log('Role assigned:', data);
-      setRole(data.role);
-      setWaiting(false);
-    });
-
-    socketService.joinGame(gameName);
-  }, [userId]);
+  };
 
   // Cleanup on unmount
   useEffect(() => {
+    if (!gameId || hasConnected.current) return;
+    hasConnected.current = true;
+
+    socketService.connect(userId);
+
+    socketService.on('connect', () => {
+      console.log('Socket connected, now joining game:', gameId);
+
+      socketService.onRoleAssigned((data: { gameId: string; role: 'white' | 'black' | 'spectator' }) => {
+        console.log('Role assigned:', data);
+        setRole(data.role);
+        setWaiting(false);
+      });
+      socketService.joinGame(gameId);
+    });
+
     return () => {
-      if (gameId) {
-        socketService.leaveGame(gameId);
-      }
+      socketService.leaveGame(gameId);
       socketService.disconnect();
+      hasConnected.current = false;
     };
-  }, [gameId]);
+  }, [gameId, userId]);
 
   // State: homepage (no gameid yet)
   if (!gameId) {
