@@ -5,7 +5,7 @@ echo "Running Prisma setup..."
 echo "Generating Prisma client"
 npx prisma generate
 echo "Database migrations"
-npx prisma migrate deploy
+npx prisma db push
 
 if [ $? -eq 0 ]; then
   echo "Prisma setup complete"
