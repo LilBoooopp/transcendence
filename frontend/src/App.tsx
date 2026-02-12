@@ -5,6 +5,11 @@ import { socketService } from './services/socket.service';
 
 type GameRole = 'white' | 'black' | 'spectator' | null;
 
+interface GameState {
+  fen: string;
+  pgn: string;
+}
+
 function App() {
   const [gameId, setGameId] = useState<string | null>(() => {
     const hash = window.location.hash.slice(1);
@@ -12,7 +17,11 @@ function App() {
   });
   const [userId] = useState<string>(() => `player-${Math.random().toString(36).substr(2, 9)}`);
   const [role, setRole] = useState<GameRole>(null);
-  const [waiting, setWaiting] = useState(false);
+  const [waiting, setWaiting] = useState(() => {
+    const hash = window.location.hash.slice(1);
+    return (hash.length > 0);
+  });
+  const [initialState, setInitialState] = useState<GameState | null>(null);
   const hasConnected = useRef(false);
 
   const handleJoinGame = (gameName: string) =>  {
@@ -36,6 +45,12 @@ function App() {
         setRole(data.role);
         setWaiting(false);
       });
+
+      socketService.on('game:state', (data: { gameId: string; fen: string; pgn: string; }) => {
+        console.log('Game state received in App:', data);
+        setInitialState({ fen: data.fen, pgn: data.pgn });
+      });
+
       socketService.joinGame(gameId);
     });
 
@@ -76,6 +91,7 @@ function App() {
           userId={userId}
           playerColor="white"
           isSpectator={true}
+          initialState={initialState}
         />
       </div>
     );
@@ -91,6 +107,7 @@ function App() {
         userId={userId}
         playerColor={role}
         isSpectator={false}
+        initialState={initialState}
       />
     </div>
   );

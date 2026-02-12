@@ -8,36 +8,34 @@ interface ChessGameProps {
   userId: string;
   playerColor: 'white' | 'black';
   isSpectator?: boolean;
+  initialState?: { fen: string; pgn: string } | null;
 }
 
-const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSpectator = false }) => {
+const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSpectator = false, initialState = null }) => {
   const gameRef = useRef(new Chess());
   const [fen, setFen] = useState('start');
   const [moveHistory, setMoveHistory] = useState<string[]>([]);
   const [gameStatus, setGameStatus] = useState<string>('Playing');
 
   useEffect(() => {
-    console.log('Setting up game listeners for:', gameId);
-
-    const unsubState = socketService.on('game:state', (data: { gameId: string; fen: string; pgn: string }) => {
-      console.log('Received game state:', data);
-      try {
-        if (data.pgn && data.pgn.length > 0) {
-          gameRef.current.loadPgn(data.pgn);
-        } else if (data.fen) {
-          gameRef.current.load(data.fen);
-        }
-        setFen(gameRef.current.fen());
-        setMoveHistory(gameRef.current.history());
-        updateGameStatus(gameRef.current);
-      } catch (error) {
-        console.error('Error restoring game state:', error);
-        if (data.fen) {
-          gameRef.current.load(data.fen);
-          setFen(data.fen);
-        }
+    if (!initialState) return;
+    console.log('Restoring game from initial state:', initialState);
+    try {
+      if (initialState.pgn && initialState.pgn.length > 0) {
+        gameRef.current.loadPgn(initialState.pgn);
+      } else if (initialState.fen && initialState.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
+        gameRef.current.load(initialState.fen);
       }
-    });
+      setFen(gameRef.current.fen());
+      setMoveHistory(gameRef.current.history());
+      updateGameStatus(gameRef.current);
+    } catch (error) {
+      console.error('Error restoring initial state:', error);
+    }
+  }, [initialState]);
+
+  useEffect(() => {
+    console.log('Setting up game listeners for:', gameId);
 
     const unsubMove = socketService.on('game:move', (data: { move: any; fen: string; pgn: string }) => {
       console.log('Received opponent move:', data);
@@ -74,7 +72,6 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
     });
 
     return () => {
-      if (unsubState) unsubState();
       if (unsubMove) unsubMove();
     if (unsubGameOver) unsubGameOver();
     };
