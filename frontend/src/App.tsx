@@ -22,6 +22,12 @@ function App() {
     return (hash.length > 0);
   });
   const [initialState, setInitialState] = useState<GameState | null>(null);
+  const [initialTimer, setInitialTimer] = useState<{
+    whiteTimeMs: number;
+    blackTimeMs: number;
+    currentTurn: string;
+    timerRunning: boolean;
+  } | null>(null);
   const hasConnected = useRef(false);
 
   const handleJoinGame = (gameName: string) =>  {
@@ -46,9 +52,16 @@ function App() {
         setWaiting(false);
       });
 
+      // capture game state here before ChessGame mounts
       socketService.on('game:state', (data: { gameId: string; fen: string; pgn: string; }) => {
         console.log('Game state received in App:', data);
         setInitialState({ fen: data.fen, pgn: data.pgn });
+      });
+
+      // caputre timer state here before ChessGame mounts
+      socketService.on('game:timer', (data: { whiteTimeMs: number; blackTimeMs: number; currentTurn: string; timerRunning: boolean }) => {
+        console.log('Timer state received in App:', data);
+        setInitialTimer(data);
       });
 
       socketService.joinGame(gameId);
@@ -92,6 +105,7 @@ function App() {
           playerColor="white"
           isSpectator={true}
           initialState={initialState}
+          initialTimer={initialTimer}
         />
       </div>
     );
@@ -108,6 +122,7 @@ function App() {
         playerColor={role}
         isSpectator={false}
         initialState={initialState}
+        initialTimer={initialTimer}
       />
     </div>
   );

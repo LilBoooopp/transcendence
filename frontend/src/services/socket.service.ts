@@ -147,6 +147,10 @@ class SocketService {
   onGameState(callback: (data: { gameId: string; fen: string; pgn: string }) => void): void {
     this.on('game:state', callback);
   }
+
+  onTimer(callback: (data: { whiteTimeMs: number; blackTimeMs: number; currentTurn: string; timerRunning: boolean }) => void): void {
+    this.on('game:timer', callback);
+  }
 }
 
 export const socketService = new SocketService();

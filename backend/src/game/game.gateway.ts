@@ -22,7 +22,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  // Store connections
+  // Store connectionsa
   private activeUsers = new Map<string, string>();
 
   //Store games
@@ -33,7 +33,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     spectators: Set<string>; // spectator socket ID // spectator socket ID
     fen: string;
     pgn: string;
+    gameStarted: boolean;
+    whiteTimeMs: number;
+    blackTimeMs: number;
+    currentTurn: 'w' | 'b';
+    lastMoveAt: number | null;
+    timerRunning: boolean;
+    timerInterval: ReturnType<typeof setInterval> | null;
   }>();
+
+  private readonly DEFAULT_TIME_MS = 10 * 60 * 1000;
 
   constructor(
     private readonly gameService: GameService,
@@ -47,7 +56,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   //disconnections
   handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: $(client.id)`);
+    console.log(`Client disconnected: ${client.id}`);
 
     // Remove from active user
     for (const [userId, socketId] of this.activeUsers.entries()) {
@@ -65,11 +74,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         gameRoom.players.delete(client.id);
         gameRoom.spectators.delete(client.id);
 
-        if (gameRoom.white === client.id) {
-          gameRoom.white = null;
-        }
-        if (gameRoom.black === client.id) {
-          gameRoom.black = null;
+        if (!gameRoom.gameStarted) {
+          if (gameRoom.white === client.id) {
+            gameRoom.white = null;
+          }
+          if (gameRoom.black === client.id) {
+            gameRoom.black = null;
+          }
         }
 
         if (gameRoom.players.size === 0) {
@@ -110,12 +121,25 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         spectators: new Set(),
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         pgn: '',
+        gameStarted: false,
+        whiteTimeMs: this.DEFAULT_TIME_MS,
+        blackTimeMs: this.DEFAULT_TIME_MS,
+        currentTurn: 'w',
+        lastMoveAt: null,
+        timerRunning: false,
+        timerInterval: null,
       });
     }
+
     const gameRoom = this.activeGames.get(data.gameId);
     gameRoom.players.add(client.id);
 
     let assignedRole: 'white' | 'black' | 'spectator';
+
+    if (gameRoom.gameStarted) {
+      assignedRole = 'spectator';
+      gameRoom.spectators.add(client.id);
+    }
 
     if (gameRoom.white === null && gameRoom.black === null) {
       assignedRole = Math.random() < 0.5 ? 'white' : 'black';
@@ -127,9 +151,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } else if (gameRoom.white === null) {
       assignedRole = 'white'
       gameRoom.white = client.id;
+      gameRoom.gameStarted = true;
+      this.startGameTimer(data.gameId, gameRoom);
     } else if (gameRoom.black === null) {
       assignedRole = 'black';
       gameRoom.black = client.id;
+      gameRoom.gameStarted = true;
+      this.startGameTimer(data.gameId, gameRoom);
     } else {
       assignedRole = 'spectator';
       gameRoom.spectators.add(client.id);
@@ -158,7 +186,84 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       pgn: gameRoom.pgn,
     });
 
+    client.emit('game:timer', {
+      whiteTimeMs: this.getActiveTime(gameRoom, 'w'),
+      blackTimeMs: this.getActiveTime(gameRoom, 'b'),
+      currentTurn: gameRoom.currentTurn,
+      timerRunning: gameRoom.timerRunning,
+    });
+
     return { success: true, gameId: data.gameId, role: assignedRole };
+  }
+
+  private getActiveTime(gameRoom: any, color: 'w' | 'b'): number {
+    if (!gameRoom.timerRunning || !gameRoom.lastMoveAt) {
+      return (color === 'w' ? gameRoom.whiteTimeMs : gameRoom.blackTimeMs);
+    }
+    const stored = color === 'w' ? gameRoom.whiteTimeMs : gameRoom.blackTimeMs;
+    if (gameRoom.currentTurn === color) {
+      const elapsed = Date.now() - gameRoom.lastMoveAt;
+      return (Math.max(0, stored - elapsed));
+    }
+    return (stored);
+  }
+
+  private startGameTimer(gameId: string, gameRoom: any) {
+    gameRoom.timerRunning = true;
+    gameRoom.lastMoveAt = Date.now();
+
+    console.log(`Game ${gameId} started - timers running (${this.DEFAULT_TIME_MS / 1000}s per player)`);
+
+    this.server.to(`game:${gameId}`).emit('game:timer', {
+      whiteTimeMs: gameRoom.whiteTimeMs,
+      blackTimeMs: gameRoom.blackTimeMs,
+      currentTurn: gameRoom.currentTurn,
+      timerRunning: true,
+    });
+
+    gameRoom.timerInterval = setInterval(() => {
+      if (!gameRoom.timerRunning) return;
+      
+      const activeTime = this.getActiveTime(gameRoom, gameRoom.currentTurn);
+
+      if (activeTime <= 0) {
+        const winner = gameRoom.currentTurn === 'w' ? 'Black' : 'White';
+        const loser = gameRoom.currentTurn === 'b' ? 'White' : 'Black';
+
+        console.log(`Game ${gameId}: ${loser} ran out of time - ${winner} wins`);
+
+        gameRoom.timerRunning = false;
+        if (gameRoom.currentTurn === 'w') {
+          gameRoom.whiteTimeMs = 0;
+        } else {
+          gameRoom.blackTimeMs = 0;
+        }
+
+
+        this.server.to(`game:${gameId}`).emit('game:over', {
+          winner: winner,
+          result: `${loser} ran out of time - ${winner} wins`,
+        });
+
+        this.server.to(`game:${gameId}`).emit('game:timer', {
+          whiteTimeMs: gameRoom.whiteTimeMs,
+          blackTimeMs: gameRoom.blackTimeMs,
+          currentTurn: gameRoom.currentTurn,
+          timerRunning: false,
+        });
+
+        clearInterval(gameRoom.timerInterval);
+        gameRoom.timerInterval = null;
+      }
+    }, 1000);
+  }
+
+  private clearGameTimer(gameId: string) {
+    const gameRoom = this.activeGames.get(gameId);
+    if (gameRoom?.timerInterval) {
+      clearInterval(gameRoom.timerInterval);
+      gameRoom.timerInterval = null;
+    }
   }
 
   // Leave a game
@@ -174,14 +279,17 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       gameRoom.players.delete(client.id);
       gameRoom.spectators.delete(client.id);
 
-      if (gameRoom.white === client.id) {
-        gameRoom.white = null;
-      }
-      if (gameRoom.black === client.id) {
-        gameRoom.black = null;
+      if (!gameRoom.gameStarted) {
+        if (gameRoom.white === client.id) {
+          gameRoom.white = null;
+        }
+        if (gameRoom.black === client.id) {
+          gameRoom.black = null;
+        }
       }
 
       if (gameRoom.players.size === 0) {
+        this.clearGameTimer(data.gameId);
         this.activeGames.delete(data.gameId);
       }
     }
@@ -234,6 +342,25 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         gameRoom.fen = data.fen;
         gameRoom.pgn = data.pgn;
       }
+
+      if (gameRoom.timerRunning && gameRoom.lastMoveAt) {
+        const elapsed = Date.now() - gameRoom.lastMoveAt;
+        if (gameRoom.currentTurn === 'w') {
+          gameRoom.whiteTimeMs = Math.max(0, gameRoom.whiteTimeMs - elapsed);
+        } else {
+          gameRoom.blackTimeMs = Math.max(0, gameRoom.blackTimeMs - elapsed);
+        }
+
+        gameRoom.currentTurn = gameRoom.currentTurn === 'w' ? 'b' : 'w';
+        gameRoom.lastMoveAt = Date.now();
+
+        this.server.to(roomName).emit('game:timer', {
+          whiteTimeMs: gameRoom.whiteTimeMs,
+          blackTimeMs: gameRoom.blackTimeMs,
+          currentTurn: gameRoom.currentTurn,
+          timerRunning: true,
+        });
+      }
       console.log(`Move in game ${data.gameId}:`, data.move);
 
       this.gameService.updateGame(data.gameId, {
@@ -241,7 +368,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         moves: data.pgn,
       }).catch((err) => {
           console.log('Failed to save game state to DB (non-fatal):', err.message);
-        });
+     });
 
       return { success: true };
     } catch (error) {
@@ -261,6 +388,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { gameId: string; winner: string; result: string },
     @ConnectedSocket() client: Socket,
   ) {
+    const gameRoom = this.activeGames.get(data.gameId);
+    if (gameRoom) {
+      gameRoom.timerRunning = false;
+      this.clearGameTimer(data.gameId);
+    }
+
     // Broadcast gameover to all players
     this.server.to(`game:${data.gameId}`).emit('game:over', {
       winner: data.winner,
