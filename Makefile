@@ -19,6 +19,6 @@ clean: down
 
 fclean: clean
 	@printf "Total clean of all configurations docker\n"
-	@docker volume rm $$(docker volume ls -q)
+	# @docker volume rm 
 
 .PHONY: all down re clean fclean

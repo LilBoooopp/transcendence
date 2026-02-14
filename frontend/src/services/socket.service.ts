@@ -4,13 +4,19 @@ class SocketService {
   private socket: Socket | null = null;
 
   connect(userId?: string): void {
-    // Connect to backend Websocket
-    const SOCKET_URL = 'http://localhost:4000';
+    if (this.socket?.connected) {
+      console.log('Socket already connected, skipping connect');
+      return;
+    }
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
 
-    console.log(' Connecting to WebSocket at:', SOCKET_URL);
-
-    this.socket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
+    console.log('Connecting to Websocket via current origin...');
+    
+    this.socket = io({
+      transports: ['polling', 'websocket'],
     });
 
     this.socket.on('connect', () => {
@@ -131,6 +137,19 @@ class SocketService {
   // Check if connected
   isConnected(): boolean {
     return this.socket?.connected || false;
+  }
+
+  // Listen for role assignment from server
+  onRoleAssigned(callback: (data: { gameId: string; role: 'white' | 'black' | 'spectator' }) => void): void {
+    this.on('game:role-assigned', callback);
+  }
+
+  onGameState(callback: (data: { gameId: string; fen: string; pgn: string }) => void): void {
+    this.on('game:state', callback);
+  }
+
+  onTimer(callback: (data: { whiteTimeMs: number; blackTimeMs: number; currentTurn: string; timerRunning: boolean }) => void): void {
+    this.on('game:timer', callback);
   }
 }
 
