@@ -25,18 +25,11 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 
 ### 4. Start Everything
 ```bash
-docker-compose up --build
+make
 ```
 
-Wait for all services to start (1-2 minutes first time).
 
-### 5. Initialize Database
-In a new terminal:
-```bash
-docker exec -it chess-backend npx prisma migrate dev --name init
-```
-
-### 6. Access the Application
+### 5. Access the Application
 Open: **https://localhost**
 
 ⚠️ Click "Advanced" → "Proceed to localhost" when you see the SSL warning (this is expected with self-signed certificates).
@@ -48,10 +41,10 @@ Create an account and start playing chess!
 ## Common Commands
 ```bash
 # Stop everything
-docker-compose down
+make down
 
 # View logs
-docker-compose logs -f
+docker logs {container_name} 
 
 # Restart just the backend
 docker-compose restart backend
