@@ -42,7 +42,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     timerInterval: ReturnType<typeof setInterval> | null;
   }>();
 
-  private readonly DEFAULT_TIME_MS = 10 * 60 * 1000;
+  private readonly DEFAULT_TIME_MS = 1 * 60 * 1000;
 
   constructor(
     private readonly gameService: GameService,
@@ -228,7 +228,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       if (activeTime <= 0) {
         const winner = gameRoom.currentTurn === 'w' ? 'Black' : 'White';
-        const loser = gameRoom.currentTurn === 'b' ? 'White' : 'Black';
+        const loser = gameRoom.currentTurn === 'w' ? 'White' : 'Black';
 
         console.log(`Game ${gameId}: ${loser} ran out of time - ${winner} wins`);
 
