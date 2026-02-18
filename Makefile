@@ -1,11 +1,22 @@
 name = transcendence
 
+#ssl certificates
+SSL_DIR = nginx/ssl
+KEY = $(SSL_DIR)/key.pem
+CERT = $(SSL_DIR)/cert.pem
+
 COMPOSE_CMD = docker compose 
 
-
-all:
+all:$(CERT)
 	@printf "Launch configuration ${name}...\n"
 	@$(COMPOSE_CMD) up --build
+
+$(CERT):
+	mkdir -p $(SSL_DIR)
+	openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+		-keyout $(KEY) \
+		-out $(CERT) \
+		-subj "/CN=localhost"
 
 down:
 	@printf "Stopping configuration ${name}...\n"
@@ -19,6 +30,8 @@ clean: down
 
 fclean: clean
 	@printf "Total clean of all configurations docker\n"
-	# @docker volume rm 
+	rm -f $(KEY) $(CERT)
+	rm -rf nginx/ssl
+	# @docker volume rm
 
 .PHONY: all down re clean fclean
