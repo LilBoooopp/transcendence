@@ -9,6 +9,7 @@ import { socketService } from './services/socket.service';
 // Wireframe Imports
 import WireframeLayout from './wireframe/WireframeLayout';
 import WireframeDashboard from './wireframe/WireframeDashboard';
+import WireframeLanding from './wireframe/WireframeLanding';
 
 // --- TYPE DEFINITIONS (From your original file) ---
 type GameRole = 'white' | 'black' | 'spectator' | null;
@@ -135,7 +136,11 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* 1. The New Wireframe URL */}
+		<Route path="/wireframe/landing" element={
+			<WireframeLayout>
+				<WireframeLanding />
+			</WireframeLayout>
+		} />
         <Route path="/wireframe" element={
           <WireframeLayout>
             <WireframeDashboard />
