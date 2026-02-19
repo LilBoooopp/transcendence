@@ -14,30 +14,13 @@ Open `.env` and change:
 - `POSTGRES_PASSWORD` to a secure password
 - `JWT_SECRET` to a random string (at least 32 characters)
 
-### 3. Generate SSL Certificates
+### 3. Start Everything
 ```bash
-mkdir -p nginx/ssl
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout nginx/ssl/key.pem \
-  -out nginx/ssl/cert.pem \
-  -subj "/CN=localhost"
+make
 ```
 
-### 4. Start Everything
-```bash
-docker-compose up --build
-```
-
-Wait for all services to start (1-2 minutes first time).
-
-### 5. Initialize Database
-In a new terminal:
-```bash
-docker exec -it chess-backend npx prisma migrate dev --name init
-```
-
-### 6. Access the Application
-Open: **https://localhost**
+### 4. Access the Application
+Open: **https://localhost:8443**
 
 ⚠️ Click "Advanced" → "Proceed to localhost" when you see the SSL warning (this is expected with self-signed certificates).
 
@@ -48,10 +31,10 @@ Create an account and start playing chess!
 ## Common Commands
 ```bash
 # Stop everything
-docker-compose down
+make down
 
 # View logs
-docker-compose logs -f
+docker logs {container_name} 
 
 # Restart just the backend
 docker-compose restart backend
