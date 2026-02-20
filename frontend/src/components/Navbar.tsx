@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import Toggle from '../SamplePages/components/Toggle';
+import Toggle from './Toggle';
 
 interface NavbarProps {
   isDarkMode: boolean;

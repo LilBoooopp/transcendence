@@ -14,7 +14,7 @@ export default function Tile({ title, description, icon, onClick }: TileProps) {
       onClick={onClick}
       className={`${styles.card} ${styles.transition} ${styles.center} p-6 gap-3 h-full aspect-square overflow-hidden`}
     >
-      {icon && <div className="text-4xl">{icon}</div>}
+      {icon && <div className="text-4xl text-text-default">{icon}</div>}
       {title && <h3 className="text-xl font-heading font-bold text-text-default">{title}</h3>}
       {description && (
         <p className="text-text-default font-body text-sm">
