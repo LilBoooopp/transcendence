@@ -14,23 +14,13 @@ Open `.env` and change:
 - `POSTGRES_PASSWORD` to a secure password
 - `JWT_SECRET` to a random string (at least 32 characters)
 
-### 3. Generate SSL Certificates
-```bash
-mkdir -p nginx/ssl
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout nginx/ssl/key.pem \
-  -out nginx/ssl/cert.pem \
-  -subj "/CN=localhost"
-```
-
-### 4. Start Everything
+### 3. Start Everything
 ```bash
 make
 ```
 
-
-### 5. Access the Application
-Open: **https://localhost**
+### 4. Access the Application
+Open: **https://localhost:8443**
 
 ⚠️ Click "Advanced" → "Proceed to localhost" when you see the SSL warning (this is expected with self-signed certificates).
 
