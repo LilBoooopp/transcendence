@@ -1,16 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom'; // 1. Import Router
+
+// Existing Imports
 import ChessGame from './components/ChessGame';
 import HomePage from './components/HomePage';
 import { socketService } from './services/socket.service';
 
-type GameRole = 'white' | 'black' | 'spectator' | null;
+// Wireframe Imports
+import WireframeLayout from './SamplePages/WireframeLayout';
+import WireframeDashboard from './SamplePages/WireframeDashboard';
+import WireframeLanding from './SamplePages/WireframeLanding';
 
+// --- TYPE DEFINITIONS (From your original file) ---
+type GameRole = 'white' | 'black' | 'spectator' | null;
 interface GameState {
   fen: string;
   pgn: string;
 }
 
-function App() {
+// --- ORIGINAL APP LOGIC (Renamed) ---
+// I just wrapped your entire old App component in this function
+function CurrentGameLogic() {
   const [gameId, setGameId] = useState<string | null>(() => {
     const hash = window.location.hash.slice(1);
     return hash.length > 0 ? hash : null;
@@ -36,7 +46,6 @@ function App() {
     setGameId(gameName);
   };
 
-  // Handle socket connection when gameId is set
   useEffect(() => {
     if (!gameId || hasConnected.current) return;
     hasConnected.current = true;
@@ -47,20 +56,15 @@ function App() {
       console.log('Socket connected, now joining game:', gameId);
 
       socketService.onRoleAssigned((data: { gameId: string; role: 'white' | 'black' | 'spectator' }) => {
-        console.log('Role assigned:', data);
         setRole(data.role);
         setWaiting(false);
       });
 
-      // capture game state here before ChessGame mounts
       socketService.on('game:state', (data: { gameId: string; fen: string; pgn: string; }) => {
-        console.log('Game state received in App:', data);
         setInitialState({ fen: data.fen, pgn: data.pgn });
       });
 
-      // caputre timer state here before ChessGame mounts
       socketService.on('game:timer', (data: { whiteTimeMs: number; blackTimeMs: number; currentTurn: string; timerRunning: boolean }) => {
-        console.log('Timer state received in App:', data);
         setInitialTimer(data);
       });
 
@@ -74,7 +78,6 @@ function App() {
     };
   }, [gameId, userId]);
 
-  // State: homepage (no gameid yet)
   if (!gameId) {
     return <HomePage onJoinGame={handleJoinGame} />;
   }
@@ -125,6 +128,29 @@ function App() {
         initialTimer={initialTimer}
       />
     </div>
+  );
+}
+
+// --- NEW ROUTER APP ---
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+		<Route path="/wireframe/landing" element={
+			<WireframeLayout>
+				<WireframeLanding />
+			</WireframeLayout>
+		} />
+        <Route path="/wireframe" element={
+          <WireframeLayout>
+            <WireframeDashboard />
+          </WireframeLayout>
+        } />
+
+        {/* 2. The Default URL (Your existing game logic) */}
+        <Route path="*" element={<CurrentGameLogic />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
