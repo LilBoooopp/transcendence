@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Tile from '../components/Tile';
-import Button from '../components/Button';
+import LoginTile from '../components/LoginTile';
 import GameHistoryList, { GameHistoryItem } from '../components/GameHistoryList';
 import * as Icons from 'lucide-react';
 
@@ -11,9 +11,9 @@ export default function WireframeLanding() {
 
 	// Dummy data for the history list
 	const history: GameHistoryItem[] = [
-		{ id: '1', date: '2023-10-24', opponent: 'GrandMasterFlash', result: 'Win', moves: 34 },
-		{ id: '2', date: '2023-10-22', opponent: 'Rookie123', result: 'Loss', moves: 21 },
-		{ id: '3', date: '2023-10-20', opponent: 'ChessBot', result: 'Draw', moves: 55 },
+		{ id: '1', date: '2023-10-24', opponent: 'GrandMasterFlash', result: 'Win', moves: 34, mode: 'Blitz', accuracy: 89 },
+		{ id: '2', date: '2023-10-22', opponent: 'Rookie123', result: 'Loss', moves: 21, mode: 'Bullet', accuracy: 65 },
+		{ id: '3', date: '2023-10-20', opponent: 'ChessBot', result: 'Draw', moves: 55, mode: 'Rapid', accuracy: 92 },
 	];
 
 	const features = [
@@ -77,16 +77,10 @@ export default function WireframeLanding() {
 			{isLoggedIn ? (
 				<GameHistoryList history={history} />
 			) : (
-				<div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-					<h2 className="text-2xl font-heading font-bold mb-4 text-gray-800">Track Your Progress</h2>
-					<p className="text-gray-600 mb-8 max-w-md mx-auto">
-						Log in to view your match history, analyze past games, and track your rating improvement over time.
-					</p>
-					<div className="flex justify-center gap-4">
-						<Button variant="primary" onClick={() => console.log('Login clicked')}>Log In</Button>
-						<Button variant="secondary" onClick={() => console.log('Register clicked')}>Register</Button>
-					</div>
-				</div>
+				<LoginTile 
+					onLogin={() => console.log('Login clicked')} 
+					onRegister={() => console.log('Register clicked')} 
+				/>
 			)}
 		</div>
 
