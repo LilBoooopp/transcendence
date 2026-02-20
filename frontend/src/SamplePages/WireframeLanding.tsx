@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import Tile from './components/Tile';
+import Tile from '../components/Tile';
 import * as Icons from 'lucide-react';
 
 export default function WireframeLanding() {
@@ -19,7 +19,7 @@ export default function WireframeLanding() {
 		action: () => navigate('/wireframe')
 	},
 	{
-		title: "Solitaire",
+		title: "Solo",
 		description: "Play single player puzzles and challenges.",
 		icon: <Icons.User size={36} />,
 		action: () => navigate('/wireframe/social')

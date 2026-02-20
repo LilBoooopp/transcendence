@@ -7,9 +7,9 @@ import HomePage from './components/HomePage';
 import { socketService } from './services/socket.service';
 
 // Wireframe Imports
-import WireframeLayout from './wireframe/WireframeLayout';
-import WireframeDashboard from './wireframe/WireframeDashboard';
-import WireframeLanding from './wireframe/WireframeLanding';
+import WireframeLayout from './SamplePages/WireframeLayout';
+import WireframeDashboard from './SamplePages/WireframeDashboard';
+import WireframeLanding from './SamplePages/WireframeLanding';
 
 // --- TYPE DEFINITIONS (From your original file) ---
 type GameRole = 'white' | 'black' | 'spectator' | null;
