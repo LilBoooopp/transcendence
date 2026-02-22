@@ -4,7 +4,7 @@
 
 ### 1. Clone & Setup
 ```bash
-git clone --recurse-submodules git@github.com:LilBoooopp/transcendence.git
+git clone --recurse-submodules https://github.com/LilBoooopp/transcendence.git
 cd transcendence
 cp .env.example .env
 ```
@@ -35,7 +35,7 @@ make
 ```
 
 ### 4. Access the Application
-Open: **https://localhost:8443**
+Open: **https://localhost:4443**
 
 ⚠️ Click "Advanced" → "Proceed to localhost" when you see the SSL warning (this is expected with self-signed certificates).
 
