@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Chessboard } from 'react-chessboard';
-import { Chess } from 'chess.js';
+import { Chess } from './chess/src/Chess';
 import { socketService } from '../services/socket.service';
 
 interface ChessGameProps {
