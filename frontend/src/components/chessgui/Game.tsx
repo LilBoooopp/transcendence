@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react'
-import { Chess, Square, Move } from '../chess/src/Chess'
+import { Chess } from '../chess/src/Chess'
+import { Move, Square } from '../chess/src/types'
 import Board from './Board'
-import convertBoard from './utils'
+import { convertBoard } from './utils'
 
 interface GameProps {
   theme: Record<string, string>
@@ -13,7 +14,7 @@ const Game = (props: GameProps) => {
   const [highlighted, setHighlighted] = useState<boolean[][]>(Array.from({ length: 8}).map(() => Array.from({ length: 8 }).map(() => false)))
   const [selectedTile, setSelectedTile] = useState<{ rank: number, file: number } | null>(null)
 
-  function onTileClick(rank, file) {
+  function onTileClick(rank: number, file: number) {
     const fileToLetter = (file: number) => String.fromCharCode(file + 97)
     const squareToCoord = (square: string) => ({
       file: square.charCodeAt(0) - 97,

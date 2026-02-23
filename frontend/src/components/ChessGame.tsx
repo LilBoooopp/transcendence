@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Chessboard } from 'react-chessboard';
+import Board from './chessgui/Board'
+import { convertBoard } from './chessgui/utils'
+import { classicTheme } from './chessgui/themes'
 import { Chess } from './chess/src/Chess';
+import { Square, Move } from './chess/src/types'
 import { socketService } from '../services/socket.service';
 
 interface ChessGameProps {
@@ -23,7 +26,10 @@ const formatTime = (ms: number): string => {
 const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSpectator = false, initialState = null, initialTimer = null }) => {
   const gameRef = useRef(new Chess());
   const [fen, setFen] = useState('start');
+  const [board, setBoard] = useState(convertBoard(gameRef.current.board()))
   const [moveHistory, setMoveHistory] = useState<string[]>([]);
+  const [highlighted, setHighlighted] = useState<boolean[][]>(Array.from({ length: 8}).map(() => Array.from({ length: 8 }).map(() => false)))
+  const [selectedTile, setSelectedTile] = useState<{ rank: number, file: number } | null>(null)
   const [gameStatus, setGameStatus] = useState<string>('Playing');
   const [gameOver, setGameOver] = useState(false);
 
@@ -46,6 +52,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
       }
       setFen(gameRef.current.fen());
       setMoveHistory(gameRef.current.history());
+      setBoard(convertBoard(gameRef.current.board()));
       updateGameStatus(gameRef.current);
     } catch (error) {
       console.error('Error restoring initial state:', error);
@@ -124,6 +131,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
 
         setFen(gameRef.current.fen());
         setMoveHistory(gameRef.current.history());
+        setBoard(convertBoard(gameRef.current.board()));
         updateGameStatus(gameRef.current);
       } catch (error) {
         console.error('Error applying move, falling back to fen:', error);
@@ -214,6 +222,57 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
     }, [gameId, playerColor, isSpectator]
   );
 
+  function onTileClick(rank: number, file: number) {
+    const fileToLetter = (file: number) => String.fromCharCode(file + 97)
+    const squareToCoord = (square: string) => ({
+      file: square.charCodeAt(0) - 97,
+      rank: 8 - parseInt(square[1])
+    })
+
+    // Spectator and turn guards
+    if (isSpectator) return
+    const currentTurn = gameRef.current.turn()
+    const isPlayerTurn =
+      (playerColor === 'white' && currentTurn === 'w') ||
+        (playerColor === 'black' && currentTurn === 'b')
+    if (!isPlayerTurn) return
+
+    if (!highlighted[rank][file]) {
+      if (board[rank][file]) {
+        setSelectedTile({ rank, file })
+
+        const from = `${fileToLetter(file)}${8 - rank}` as Square
+        const moves = gameRef.current.moves({ square: from, verbose: true }) as Move[]
+
+        const newHighlited = Array.from({ length: 8 }).map(() =>
+          Array.from({ length: 8 }).map(() => false)
+        )
+
+        moves.forEach(move => {
+          const { rank, file } = squareToCoord(move.to)
+          newHighlited[rank][file] = true
+        })
+
+        setHighlighted(newHighlited)
+      }
+    } else {
+      const from = `${fileToLetter(selectedTile!.file)}${8 - selectedTile!.rank}` as Square
+      const to = `${fileToLetter(file)}${8 - rank}` as Square
+      const move = gameRef.current.move({ from, to })
+      if (!move) return
+      const newFen = gameRef.current.fen()
+      const newPgn = gameRef.current.pgn()
+      setFen(newFen)
+      setMoveHistory(gameRef.current.history())
+      setBoard(convertBoard(gameRef.current.board()))
+      socketService.sendMove(gameId, move, newFen, newPgn)
+      updateGameStatus(gameRef.current)
+      setSelectedTile(null)
+      setHighlighted(Array.from({ length: 8}).map(() => Array.from({ length: 8 }).map(() => false)))
+    }
+  }
+
+
   const formatMoveHistory = () => {
     const formatted: JSX.Element[] = [];
 
@@ -261,15 +320,18 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
           </span>
         </div>
 
-        <Chessboard
-          position={fen}
-          onPieceDrop={onDrop}
-          boardOrientation={playerColor}
-          arePiecesDraggable={!isSpectator && !gameOver}
-          customBoardStyle={{
-            borderRadius: '4px',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.5)',
-          }}
+        <Board
+          board={board}
+          theme={classicTheme}
+          highlighted={highlighted}
+          onTileClick={onTileClick}
+          // onPieceDrop={onDrop}
+          // boardOrientation={playerColor}
+          // arePiecesDraggable={!isSpectator && !gameOver}
+          // customBoardStyle={{
+          //   borderRadius: '4px',
+          //   boxShadow: '0 2px 10px rgba(0, 0, 0, 0.5)',
+          // }}
         />
 
         {/* Your timer (bottom) */}
