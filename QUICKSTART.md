@@ -4,9 +4,24 @@
 
 ### 1. Clone & Setup
 ```bash
-git clone <your-repo-url>
-cd chess-platform
+git clone --recurse-submodules https://github.com/LilBoooopp/transcendence.git
+cd transcendence
 cp .env.example .env
+```
+
+If you already cloned without that flag:
+```bash
+git submodule update --init --recursive
+```
+
+#### Updating the chess engin
+```bash
+cd frontend/src/components/chess
+git pull origin main
+cd ../../../..
+git add frontend/src/components/chess
+git commit -m "Update chess submodule"
+git push
 ```
 
 ### 2. Edit .env (Required)
@@ -20,7 +35,7 @@ make
 ```
 
 ### 4. Access the Application
-Open: **https://localhost:8443**
+Open: **https://localhost:4443**
 
 ⚠️ Click "Advanced" → "Proceed to localhost" when you see the SSL warning (this is expected with self-signed certificates).
 

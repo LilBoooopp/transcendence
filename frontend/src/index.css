@@ -2,9 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+/* body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Seoge UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+} */
+
+@layer base {
+
+	body {
+		@apply font-body bg-background-light text-text-dark transition-colors duration-200;
+	}
+	.dark body {
+		@apply bg-background-dark text-text-default;
+	}
+	h1, h2, h3, h4, h5, h6 {
+		@apply font-heading font-normal mb-4;
+	}
+	h1 {
+		@apply text-4xl sm:text-5xl;
+	}
+	h2 {
+		@apply text-3xl sm:text-4xl;
+	}
+	p {
+		@apply font-body text-base leading-relaxed mb-4;
+	}
 }
