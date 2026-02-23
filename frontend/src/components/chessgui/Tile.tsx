@@ -1,4 +1,5 @@
 import React from 'react'
+import Piece from './Piece'
 
 interface TileProps {
   rank: number
