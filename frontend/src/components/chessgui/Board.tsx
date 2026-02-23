@@ -10,9 +10,11 @@ interface BoardProps {
 }
 
 const Board = (props: BoardProps) => {
+  const displayBoard = props.playerColor === 'black' ? [...props.board].reverse().map(row => [...row].reverse()) : props.board
+  const displayHighlighted = props.playerColor === 'black' ? [...props.highlighted].reverse().map(row => [...row].reverse()) : props.highlighted
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)' }}>
-      {props.board.map((rank, rankIndex) =>
+      {displayBoard.map((rank, rankIndex) =>
         rank.map((piece, fileIndex) =>
           <Tile
             key={`${rankIndex}-${fileIndex}`}
@@ -20,8 +22,12 @@ const Board = (props: BoardProps) => {
             file={fileIndex}
             piece={piece ?? undefined}
             theme={props.theme}
-            isHighlighted={props.highlighted[rankIndex][fileIndex]}
-            onClick={() => props.onTileClick(rankIndex, fileIndex)}
+            isHighlighted={displayHighlighted[rankIndex][fileIndex]}
+            onClick={() => {
+            const actualRank = props.playerColor === 'black' ? 7 - rankIndex : rankIndex
+            const actualFile = props.playerColor === 'black' ? 7 - fileIndex : fileIndex
+            props.onTileClick(actualRank, actualFile)
+            }}
           />
         )
       )}

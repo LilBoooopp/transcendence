@@ -256,6 +256,10 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
         setHighlighted(newHighlited)
       }
     } else {
+      setSelectedTile(null)
+      setHighlighted(Array.from({ length: 8 }).map(() =>
+        Array.from({ length: 8 }).map(() => false)
+      ))
       const from = `${fileToLetter(selectedTile!.file)}${8 - selectedTile!.rank}` as Square
       const to = `${fileToLetter(file)}${8 - rank}` as Square
       const move = gameRef.current.move({ from, to })
@@ -325,6 +329,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
           theme={classicTheme}
           highlighted={highlighted}
           onTileClick={onTileClick}
+          playerColor={playerColor}
           // onPieceDrop={onDrop}
           // boardOrientation={playerColor}
           // arePiecesDraggable={!isSpectator && !gameOver}

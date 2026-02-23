@@ -15,17 +15,30 @@ const Tile = (props: TileProps) => {
   const isLight = (rank + file) % 2 !== 0
 
   return (
-    <div 
+    <div
       onClick={props.onClick}
       style={{
-        backgroundColor: props.isHighlighted ? 'yellow' : isLight ? '#f0d9b5' : '#b58863',
+        position: 'relative',
         aspectRatio: '1',
+        backgroundColor: isLight ? '#f0d9b5' : '#b58863',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
       {props.piece && <Piece type={props.piece} theme={props.theme}/>}
+      {props.isHighlighted && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '30%', height: '30%',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(0,0,0,0.2)',
+            pointerEvents: 'none',
+          }} />
+      )}
     </div>
   )
 }
