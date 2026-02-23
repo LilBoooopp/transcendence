@@ -18,7 +18,11 @@ const Tile = (props: TileProps) => {
     <div 
       onClick={props.onClick}
       style={{
-        backgroundColor: props.isHighlighted ? 'yellow' : isLight ? '#f0d9b5' : '#b58863'
+        backgroundColor: props.isHighlighted ? 'yellow' : isLight ? '#f0d9b5' : '#b58863',
+        aspectRatio: '1',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
       {props.piece && <Piece type={props.piece} theme={props.theme}/>}

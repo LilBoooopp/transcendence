@@ -6,6 +6,7 @@ interface BoardProps {
   theme: Record<string, string>
   highlighted: boolean[][]
   onTileClick: (rank: number, file: number) => void
+  playerColor: 'white' | 'black'
 }
 
 const Board = (props: BoardProps) => {
