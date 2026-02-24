@@ -38,6 +38,9 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
   const [arrowEnd, setArrowEnd] = useState<{ rank: number, file: number} | null>(null)
   const [arrows, setArrows] = useState<{ start: { rank: number, file: number }, end: { rank: number, file: number } }[]>([])
 
+  // last move
+  const [lastMove, setLastMove] = useState<{ from: { rank: number, file: number }, to: { rank: number, file: number } } | null>(null)
+
   // Timer state
   const [whiteTimeMs, setWhiteTimeMs] = useState(10 * 60 * 1000);
   const [blackTimeMs, setBlackTimeMs] = useState(10 * 60 * 1000);
@@ -137,6 +140,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
         setFen(gameRef.current.fen());
         setMoveHistory(gameRef.current.history());
         setBoard(convertBoard(gameRef.current.board()));
+        setLastMove({ from: squareToCoord(data.move.from), to: squareToCoord(data.move.to) })
         updateGameStatus(gameRef.current);
       } catch (error) {
         console.error('Error applying move, falling back to fen:', error);
@@ -216,6 +220,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
 
         const newFen = game.fen();
         const newPgn = game.pgn();
+        setLastMove({ from: squareToCoord(move.from), to: squareToCoord(move.to) })
         setFen(newFen);
         setMoveHistory(game.history());
         setBoard(convertBoard(game.board()))
@@ -258,12 +263,13 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
     setHighlighted(newHighlighted)
   }
 
+  const squareToCoord = (square: string) => ({
+    file: square.charCodeAt(0) - 97,
+    rank: 8 - parseInt(square[1])
+  })
+
   function onTileClick(rank: number, file: number) {
     const fileToLetter = (file: number) => String.fromCharCode(file + 97)
-    const squareToCoord = (square: string) => ({
-      file: square.charCodeAt(0) - 97,
-      rank: 8 - parseInt(square[1])
-    })
 
     // Spectator and turn guards
     if (isSpectator) return
@@ -302,6 +308,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
       if (!move) return
       const newFen = gameRef.current.fen()
       const newPgn = gameRef.current.pgn()
+      setLastMove({ from: squareToCoord(move.from), to: squareToCoord(move.to) })
       setFen(newFen)
       setMoveHistory(gameRef.current.history())
       setBoard(convertBoard(gameRef.current.board()))
@@ -368,13 +375,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
           onDrop={onDrop}
           onDragStart={onPieceDragStart}
           playerColor={playerColor}
-          // onPieceDrop={onDrop}
-          // boardOrientation={playerColor}
-          // arePiecesDraggable={!isSpectator && !gameOver}
-          // customBoardStyle={{
-          //   borderRadius: '4px',
-          //   boxShadow: '0 2px 10px rgba(0, 0, 0, 0.5)',
-          // }}
+          lastMove={lastMove}
         />
 
         {/* Your timer (bottom) */}

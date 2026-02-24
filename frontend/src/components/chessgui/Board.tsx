@@ -11,6 +11,7 @@ interface BoardProps {
   playerColor: 'white' | 'black'
   onDrop: (from: string, to:string) => void
   onDragStart: (rank: number, file: number) => void
+  lastMove: { from: { rank: number, file: number }, to: { rank: number, file: number } } | null
 }
 
 const Board = (props: BoardProps) => {
@@ -19,11 +20,18 @@ const Board = (props: BoardProps) => {
   const boardRef = useRef<HTMLDivElement>(null)
   const [arrowStart, setArrowStart] = useState<{ rank:number, file: number } | null>(null)
   const [arrows, setArrows] = useState<{ start: { rank: number, file: number }, end: { rank: number, file: number } }[]>([])
+
+  const displayLastMove = props.lastMove && props.playerColor === 'black' ? {
+    from: { rank: 7 - props.lastMove.from.rank, file: 7 - props.lastMove.from.file },
+    to: { rank: 7 - props.lastMove.to.Rank, file: 7 - props.lastMove.to.file }
+  } : props.lastMove
+
   const fileToLetter = (file: number) => String.fromCharCode(file + 97)
   const toActual = (rank: number, file: number) => ({
     rank: props.playerColor === 'black' ? 7 - rank : rank,
     file: props.playerColor === 'black' ? 7 - file : file,
   })
+
   const handleDrop = (fromRank: number, fromFile: number, toRank: number, toFile: number) => {
     const from = toActual(fromRank, fromFile)
     const to = toActual(toRank, toFile)
@@ -94,6 +102,7 @@ const Board = (props: BoardProps) => {
     : props.highlighted
   return (
     <DndProvider backend={HTML5Backend}>
+      {/* Board div */}
       <div style={{ position: 'relative', width: '100%', display: 'inline-block' }}>
         <div
           ref={boardRef}
@@ -121,6 +130,12 @@ const Board = (props: BoardProps) => {
                       setArrowStart(null)
                     }
                   }}
+                  isLastMove={
+                    displayLastMove !== null && (
+                      (rankIndex === displayLastMove.from.rank && fileIndex === displayLastMove.from.file) ||
+                      (rankIndex === displayLastMove.to.rank && fileIndex === displayLastMove.to.file)
+                    )
+                  }
                 />
               )
             })

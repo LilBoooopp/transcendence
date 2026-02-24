@@ -13,6 +13,7 @@ interface TileProps {
   onDragStart: (rank: number, file: number) => void
   onRightMouseDown: () => void
   onRightMouseUp: () => void
+  isLastMove: boolean
 }
 
 const Tile = (props: TileProps) => {
@@ -28,6 +29,10 @@ const Tile = (props: TileProps) => {
   const { rank, file } = props
   const isLight = (rank + file) % 2 !== 0
 
+  const backgroundColor = props.isLastMove
+    ? (isLight ? '#cdd16f' : '#aaa23a')
+    : isLight ? '#f0d9b5' : '#b58863'
+
   return (
     // tile div
     <div
@@ -39,7 +44,7 @@ const Tile = (props: TileProps) => {
       style={{
         position: 'relative',
         aspectRatio: '1',
-        backgroundColor: isLight ? '#f0d9b5' : '#b58863',
+        backgroundColor,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
