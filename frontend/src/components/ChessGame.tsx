@@ -32,6 +32,11 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
   const [selectedTile, setSelectedTile] = useState<{ rank: number, file: number } | null>(null)
   const [gameStatus, setGameStatus] = useState<string>('Playing');
   const [gameOver, setGameOver] = useState(false);
+  
+  // arrows
+  const [arrowStart, setArrowStart] = useState<{ rank: number, file: number } | null>(null)
+  const [arrowEnd, setArrowEnd] = useState<{ rank: number, file: number} | null>(null)
+  const [arrows, setArrows] = useState<{ start: { rank: number, file: number }, end: { rank: number, file: number } }[]>([])
 
   // Timer state
   const [whiteTimeMs, setWhiteTimeMs] = useState(10 * 60 * 1000);

@@ -11,6 +11,8 @@ interface TileProps {
   onClick: () => void
   onDrop: (fromRank: number, fromFile: number, toRank: number, toFile: number) => void
   onDragStart: (rank: number, file: number) => void
+  onRightMouseDown: () => void
+  onRightMouseUp: () => void
 }
 
 const Tile = (props: TileProps) => {
@@ -27,9 +29,13 @@ const Tile = (props: TileProps) => {
   const isLight = (rank + file) % 2 !== 0
 
   return (
+    // tile div
     <div
       ref={drop}
       onClick={props.onClick}
+      onContextMenu={(e) => e.preventDefault()}
+      onMouseDown={(e) => { if (e.button === 2) props.onRightMouseDown() }}
+      onMouseUp={(e) => { if (e.button === 2) props.onRightMouseUp() }}
       style={{
         position: 'relative',
         aspectRatio: '1',
