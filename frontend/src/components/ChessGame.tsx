@@ -184,6 +184,11 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
     }
   };
 
+  const squareToCoord = useCallback((square: string) => ({
+    file: square.charCodeAt(0) - 97,
+    rank: 8 - parseInt(square[1])
+  }), [])
+
   const onDrop = useCallback(
     (sourceSquare: string, targetSquare: string) => {
       if (isSpectator) {
@@ -234,7 +239,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
         console.error('Invalid move:', error);
         return (false);
       }
-    }, [gameId, playerColor, isSpectator]
+    }, [gameId, playerColor, isSpectator, squareToCoord]
   );
 
   // This is only because I want to be able to see the dots for possible moves when dragging...
@@ -247,10 +252,6 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
     if (!isPlayerTurn) return
 
     const fileToLetter = (f: number) => String.fromCharCode(f + 97)
-    const squareToCoord = (square: string) => ({
-      file: square.charCodeAt(0) - 97,
-      rank: 8 - parseInt(square[1])
-    })
     const from = `${fileToLetter(file)}${8 - rank}` as Square
     const moves = gameRef.current.moves({ square: from, verbose: true }) as Move[]
     const newHighlighted = Array.from({ length: 8 }).map(() =>
@@ -263,10 +264,6 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
     setHighlighted(newHighlighted)
   }
 
-  const squareToCoord = (square: string) => ({
-    file: square.charCodeAt(0) - 97,
-    rank: 8 - parseInt(square[1])
-  })
 
   function onTileClick(rank: number, file: number) {
     const fileToLetter = (file: number) => String.fromCharCode(file + 97)

@@ -23,7 +23,7 @@ const Board = (props: BoardProps) => {
 
   const displayLastMove = props.lastMove && props.playerColor === 'black' ? {
     from: { rank: 7 - props.lastMove.from.rank, file: 7 - props.lastMove.from.file },
-    to: { rank: 7 - props.lastMove.to.Rank, file: 7 - props.lastMove.to.file }
+    to: { rank: 7 - props.lastMove.to.rank, file: 7 - props.lastMove.to.file }
   } : props.lastMove
 
   const fileToLetter = (file: number) => String.fromCharCode(file + 97)
