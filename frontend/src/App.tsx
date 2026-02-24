@@ -6,10 +6,13 @@ import ChessGame from './components/ChessGame';
 import HomePage from './components/HomePage';
 import { socketService } from './services/socket.service';
 
-// Wireframe Imports
+// USERSYL
+// Wireframe Imports pages Bastian
 import WireframeLayout from './SamplePages/WireframeLayout';
 import WireframeDashboard from './SamplePages/WireframeDashboard';
 import WireframeLanding from './SamplePages/WireframeLanding';
+
+
 
 // --- TYPE DEFINITIONS (From your original file) ---
 type GameRole = 'white' | 'black' | 'spectator' | null;

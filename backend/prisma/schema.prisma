@@ -16,7 +16,7 @@ model User {
   email         String    @unique
   username      String    @unique
   password      String    // Hashed
-  avatar        String?   // avatar URL
+  avatar        String?   // avatar URL?
   
   firstName     String?
   lastName      String?
