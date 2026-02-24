@@ -329,6 +329,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
           theme={classicTheme}
           highlighted={highlighted}
           onTileClick={onTileClick}
+          onDrop={onDrop}
           playerColor={playerColor}
           // onPieceDrop={onDrop}
           // boardOrientation={playerColor}

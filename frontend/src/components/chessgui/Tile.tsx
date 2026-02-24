@@ -1,5 +1,6 @@
 import React from 'react'
 import Piece from './Piece'
+import { useDrop } from 'react-dnd'
 
 interface TileProps {
   rank: number
@@ -8,14 +9,25 @@ interface TileProps {
   isHighlighted: boolean
   theme: Record<string, string>
   onClick: () => void
+  onDrop: (fromRank: number, fromFile: number, toRank: number, toFile: number) => void
 }
 
 const Tile = (props: TileProps) => {
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: 'PIECE',
+    drop: (item: { fromRank: number, fromFile: number, piece: string }) => {
+      props.onDrop(item.fromRank, item.fromFile, props.rank, props.file)
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver()
+    })
+  }))
   const { rank, file } = props
   const isLight = (rank + file) % 2 !== 0
 
   return (
     <div
+      ref={drop}
       onClick={props.onClick}
       style={{
         position: 'relative',
@@ -26,7 +38,7 @@ const Tile = (props: TileProps) => {
         justifyContent: 'center',
       }}
     >
-      {props.piece && <Piece type={props.piece} theme={props.theme}/>}
+      {props.piece && <Piece type={props.piece} theme={props.theme} rank={rank} file={file} />}
       {props.isHighlighted && (
         <div
           style={{
