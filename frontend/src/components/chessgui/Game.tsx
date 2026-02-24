@@ -55,6 +55,7 @@ const Game = (props: GameProps) => {
         theme={props.theme}
         highlighted={highlighted}
         onTileClick={onTileClick}
+        playerColor='white'
       />
     </div>
   )
