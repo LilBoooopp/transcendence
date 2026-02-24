@@ -94,7 +94,7 @@ const Board = (props: BoardProps) => {
     : props.highlighted
   return (
     <DndProvider backend={HTML5Backend}>
-      <div style={{ position: 'relative', display: 'inline-block' }}>
+      <div style={{ position: 'relative', width: '100%', display: 'inline-block' }}>
         <div
           ref={boardRef}
           onMouseDown={(e) => { if (e.button === 0) setArrows([]) }}
