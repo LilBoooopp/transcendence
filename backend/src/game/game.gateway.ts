@@ -343,9 +343,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         gameRoom.pgn = data.pgn;
       }
 
+      gameRoom.currentTurn = gameRoom.currentTurn === 'w' ? 'b' : 'w';
+
       if (gameRoom.timerRunning && gameRoom.lastMoveAt) {
         const elapsed = Date.now() - gameRoom.lastMoveAt;
-        if (gameRoom.currentTurn === 'w') {
+        if (gameRoom.currentTurn === 'b') {
           gameRoom.whiteTimeMs = Math.max(0, gameRoom.whiteTimeMs - elapsed);
         } else {
           gameRoom.blackTimeMs = Math.max(0, gameRoom.blackTimeMs - elapsed);
