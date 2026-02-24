@@ -58,6 +58,12 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
       } else if (initialState.fen && initialState.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
         gameRef.current.load(initialState.fen);
       }
+      // for last move if refresh
+      const history = gameRef.current.history({ verbose: true }) as Move[]
+      if (history.length > 0) {
+        const last = history[history.length - 1]
+        setLastMove({ from: squareToCoord(last.from), to: squareToCoord(last.to) })
+      }
       setFen(gameRef.current.fen());
       setMoveHistory(gameRef.current.history());
       setBoard(convertBoard(gameRef.current.board()));
