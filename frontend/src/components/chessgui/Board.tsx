@@ -10,13 +10,18 @@ interface BoardProps {
   onTileClick: (rank: number, file: number) => void
   playerColor: 'white' | 'black'
   onDrop: (from: string, to:string) => void
+  onDragStart: (rank: number, file: number) => void
 }
 
 const Board = (props: BoardProps) => {
   const fileToLetter = (file: number) => String.fromCharCode(file + 97)
   const handleDrop = (fromRank: number, fromFile: number, toRank: number, toFile: number) => {
-    const from = `${fileToLetter(fromFile)}${8 - fromRank}`
-    const to = `${fileToLetter(toFile)}${8 - toRank}`
+    const actualFromRank = props.playerColor === 'black' ? 7 - fromRank : fromRank
+    const actualFromFile = props.playerColor === 'black' ? 7 - fromFile : fromFile
+    const actualToRank = props.playerColor === 'black' ? 7 - toRank : toRank
+    const actualToFile = props.playerColor === 'black' ? 7 - toFile : toFile
+    const from = `${fileToLetter(actualFromFile)}${8 - actualFromRank}`
+    const to = `${fileToLetter(actualToFile)}${8 - actualToRank}`
     props.onDrop(from, to)
   }
   const displayBoard = props.playerColor === 'black' ? [...props.board].reverse().map(row => [...row].reverse()) : props.board
@@ -34,6 +39,11 @@ const Board = (props: BoardProps) => {
               theme={props.theme}
               isHighlighted={displayHighlighted[rankIndex][fileIndex]}
               onDrop={handleDrop}
+              onDragStart={() => {
+                const actualRank = props.playerColor === 'black' ? 7 - rankIndex: rankIndex
+                const actualFile = props.playerColor === 'black' ? 7 - fileIndex: fileIndex
+                props.onDragStart(actualRank, actualFile)
+              }}
               onClick={() => {
               const actualRank = props.playerColor === 'black' ? 7 - rankIndex : rankIndex
               const actualFile = props.playerColor === 'black' ? 7 - fileIndex : fileIndex

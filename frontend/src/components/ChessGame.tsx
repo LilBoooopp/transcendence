@@ -209,6 +209,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
         const newPgn = game.pgn();
         setFen(newFen);
         setMoveHistory(game.history());
+        setBoard(convertBoard(game.board()))
 
         console.log('Sending move to opponent:', move);
         socketService.sendMove(gameId, move, newFen, newPgn);
@@ -221,6 +222,31 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
       }
     }, [gameId, playerColor, isSpectator]
   );
+
+  // This is only because I want to be able to see the dots for possible moves when dragging...
+  function onPieceDragStart(rank: number, file: number) {
+    if (isSpectator) return
+    const currentTurn = gameRef.current.turn()
+    const isPlayerTurn =
+      (playerColor === 'white' && currentTurn === 'w') ||
+      (playerColor === 'black' && currentTurn === 'b')
+    if (!isPlayerTurn) return
+
+    const fileToLetter = (f: number) => String.fromCharCode(f + 97)
+    const squareToCoord = (square: string) => ({
+      file: square.charCodeAt(0) - 97,
+      rank: 8 - parseInt(square[1])
+    })
+    const from = `${fileToLetter(file)}${8 - rank}` as Square
+    const moves = gameRef.current.moves({ square: from, verbose: true }) as Move[]
+    const newHighlighted = Array.from({ length: 8 }).map(() =>
+      Array.from({length: 8 }).map(() => false)
+    )
+    moves.forEach(move => {
+      const { rank, file } = squareToCoord(move.to)
+      newHighlighted
+    })
+  }
 
   function onTileClick(rank: number, file: number) {
     const fileToLetter = (file: number) => String.fromCharCode(file + 97)
@@ -244,16 +270,16 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
         const from = `${fileToLetter(file)}${8 - rank}` as Square
         const moves = gameRef.current.moves({ square: from, verbose: true }) as Move[]
 
-        const newHighlited = Array.from({ length: 8 }).map(() =>
+        const newHighlighted = Array.from({ length: 8 }).map(() =>
           Array.from({ length: 8 }).map(() => false)
         )
 
         moves.forEach(move => {
           const { rank, file } = squareToCoord(move.to)
-          newHighlited[rank][file] = true
+          newHighlighted[rank][file] = true
         })
 
-        setHighlighted(newHighlited)
+        setHighlighted(newHighlighted)
       }
     } else {
       setSelectedTile(null)
@@ -330,6 +356,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
           highlighted={highlighted}
           onTileClick={onTileClick}
           onDrop={onDrop}
+          onDragStart={onPieceDragStart}
           playerColor={playerColor}
           // onPieceDrop={onDrop}
           // boardOrientation={playerColor}

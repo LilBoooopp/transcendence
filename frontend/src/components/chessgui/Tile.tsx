@@ -10,6 +10,7 @@ interface TileProps {
   theme: Record<string, string>
   onClick: () => void
   onDrop: (fromRank: number, fromFile: number, toRank: number, toFile: number) => void
+  onDragStart: (rank: number, file: number) => void
 }
 
 const Tile = (props: TileProps) => {
@@ -38,7 +39,7 @@ const Tile = (props: TileProps) => {
         justifyContent: 'center',
       }}
     >
-      {props.piece && <Piece type={props.piece} theme={props.theme} rank={rank} file={file} />}
+      {props.piece && <Piece type={props.piece} theme={props.theme} rank={rank} file={file} onDragStart={props.onDragStart}/>}
       {props.isHighlighted && (
         <div
           style={{

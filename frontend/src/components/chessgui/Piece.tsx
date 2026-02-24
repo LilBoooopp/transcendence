@@ -6,12 +6,16 @@ interface PieceProps {
   theme: Record<string, string>
   rank: number
   file: number
+  onDragStart: (rank: number, file: number) => void
 }
 
 const Piece = (props: PieceProps) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'PIECE',
-    item: { fromRank: props.rank, fromFile: props.file, piece: props.type },
+    item: () => {
+      props.onDragStart(props.rank, props.file)
+      return { fromRank: props.rank, fromFile: props.file, piece: props.type }
+    },
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
     })
