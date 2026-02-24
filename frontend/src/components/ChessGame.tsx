@@ -204,6 +204,10 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
           console.log('invalid move');
           return (false);
         }
+        setHighlighted(Array.from({ length: 8 }).map(() =>
+          Array.from({ length: 8 }).map(() => false)
+        ))
+
 
         const newFen = game.fen();
         const newPgn = game.pgn();
@@ -244,8 +248,9 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
     )
     moves.forEach(move => {
       const { rank, file } = squareToCoord(move.to)
-      newHighlighted
+      newHighlighted[rank][file] = true
     })
+    setHighlighted(newHighlighted)
   }
 
   function onTileClick(rank: number, file: number) {
