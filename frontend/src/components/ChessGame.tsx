@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Board from './chessgui/Board'
 import { convertBoard } from './chessgui/utils'
 import { classicTheme } from './chessgui/themes'
@@ -428,6 +428,15 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
     }
   }
 
+  const premoveBoard = useMemo(() => {
+    const virtual = board.map(row => [...row])
+    premoves.forEach(({ from, to }) => {
+      virtual[to.rank][to.file] = virtual[from.rank][from.file]
+      virtual[from.rank][from.file] = null
+    })
+    return virtual
+  }, [board, premoves])
+
 
   const formatMoveHistory = () => {
     const formatted: JSX.Element[] = [];
@@ -477,7 +486,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
         </div>
 
         <Board
-          board={board}
+          board={premoveBoard}
           theme={classicTheme}
           highlighted={highlighted}
           onTileClick={onTileClick}
