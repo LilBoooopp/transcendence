@@ -303,19 +303,37 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
     const isPlayerTurn =
       (playerColor === 'white' && currentTurn === 'w') ||
       (playerColor === 'black' && currentTurn === 'b')
-    if (!isPlayerTurn) return
 
-    const fileToLetter = (f: number) => String.fromCharCode(f + 97)
-    const from = `${fileToLetter(file)}${8 - rank}` as Square
-    const moves = gameRef.current.moves({ square: from, verbose: true }) as Move[]
-    const newHighlighted = Array.from({ length: 8 }).map(() =>
-      Array.from({length: 8 }).map(() => false)
-    )
-    moves.forEach(move => {
-      const { rank, file } = squareToCoord(move.to)
-      newHighlighted[rank][file] = true
-    })
-    setHighlighted(newHighlighted)
+    if (isPlayerTurn) {
+      const fileToLetter = (f: number) => String.fromCharCode(f + 97)
+      const from = `${fileToLetter(file)}${8 - rank}` as Square
+      const moves = gameRef.current.moves({ square: from, verbose: true }) as Move[]
+      const newHighlighted = Array.from({ length: 8 }).map(() =>
+        Array.from({length: 8 }).map(() => false)
+      )
+      moves.forEach(move => {
+        const { rank, file } = squareToCoord(move.to)
+        newHighlighted[rank][file] = true
+      })
+      setHighlighted(newHighlighted)
+    } else {
+      // Premove target
+      const piece = board[rank][file]
+      if (!piece) return
+      const isOwnPiece =
+        (playerColor === 'white' && piece[0] === 'w') ||
+        (playerColor === 'black' && piece[0] === 'b')
+      if (!isOwnPiece) return
+
+      const targets = getPremoveTargets(piece, rank, file)
+      const newHighlighted = Array.from({ length: 8 }).map(() =>
+        Array.from({ length: 8 }).map(() => false)
+      )
+      targets.forEach(({ rank, file }) => {
+        newHighlighted[rank][file] = true
+      })
+      setHighlighted(newHighlighted)
+    }
   }
 
 
