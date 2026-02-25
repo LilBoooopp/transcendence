@@ -223,6 +223,20 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
     }
   };
 
+
+  const premoveBoard = useMemo(() => {
+    const virtual = board.map(row => [...row])
+    premoves.forEach(({ from, to }) => {
+      virtual[to.rank][to.file] = virtual[from.rank][from.file]
+      virtual[from.rank][from.file] = null
+    })
+    return virtual
+  }, [board, premoves])
+
+
+  const premoveBoardRef = useRef(premoveBoard)
+  useEffect(() => { premoveBoardRef.current = premoveBoard }, [premoveBoard])
+
   const squareToCoord = useCallback((square: string) => ({
     file: square.charCodeAt(0) - 97,
     rank: 8 - parseInt(square[1])
@@ -245,7 +259,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
         // premove
         const from = squareToCoord(sourceSquare)
         const to = squareToCoord(targetSquare)
-        const piece = board[from.rank][from.file]
+        const piece = premoveBoardRef.current[from.rank][from.file]
         if (!piece) return (false)
       
         const isOwnPiece =
@@ -399,8 +413,8 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
         ))
       } else {
         // first click - select piece and show premove targets
-        if (board[rank][file]) {
-          const piece = board[rank][file]!
+        if (premoveBoardRef.current[rank][file]) {
+          const piece = premoveBoardRef.current[rank][file]!
           // only allow selecting your own pieces
           const isOwnPiece =
             (playerColor === 'white' && piece[0] === 'w') ||
@@ -427,16 +441,6 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
       }
     }
   }
-
-  const premoveBoard = useMemo(() => {
-    const virtual = board.map(row => [...row])
-    premoves.forEach(({ from, to }) => {
-      virtual[to.rank][to.file] = virtual[from.rank][from.file]
-      virtual[from.rank][from.file] = null
-    })
-    return virtual
-  }, [board, premoves])
-
 
   const formatMoveHistory = () => {
     const formatted: JSX.Element[] = [];
