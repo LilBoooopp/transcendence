@@ -353,7 +353,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           gameRoom.blackTimeMs = Math.max(0, gameRoom.blackTimeMs - elapsed);
         }
 
-        gameRoom.currentTurn = gameRoom.currentTurn === 'w' ? 'b' : 'w';
         gameRoom.lastMoveAt = Date.now();
 
         this.server.to(roomName).emit('game:timer', {

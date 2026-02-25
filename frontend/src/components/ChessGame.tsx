@@ -242,8 +242,23 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
         (playerColor === 'black' && currentTurn === 'b');
 
       if (!isPlayerTurn) {
-        console.log('Not your turn!');
-        return (false);
+        // premove
+        const from = squareToCoord(sourceSquare)
+        const to = squareToCoord(targetSquare)
+        const piece = board[from.rank][from.file]
+        if (!piece) return (false)
+      
+        const isOwnPiece =
+          (playerColor === 'white' && piece[0] === 'w') ||
+            (playerColor === 'black' && piece[0] === 'b')
+        if (!isOwnPiece) return (false)
+        
+        setPremoves(prev => [...prev, { from, to }])
+        setSelectedTile(null)
+        setHighlighted(Array.from({ length: 8 }).map(() =>
+          Array.from({ length: 8 }).map(() => false)
+        ))
+        return true
       }
 
       try {
