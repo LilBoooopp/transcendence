@@ -14,6 +14,7 @@ interface TileProps {
   onRightMouseDown: () => void
   onRightMouseUp: () => void
   isLastMove: boolean
+  isPremove: boolean
 }
 
 const Tile = (props: TileProps) => {
@@ -29,9 +30,11 @@ const Tile = (props: TileProps) => {
   const { rank, file } = props
   const isLight = (rank + file) % 2 !== 0
 
-  const backgroundColor = props.isLastMove
-    ? (isLight ? '#cdd16f' : '#aaa23a')
-    : isLight ? '#f0d9b5' : '#b58863'
+  const backgroundColor = props.isPremove
+    ? (isLight ? '#f0b7b7' : '#d4756b')
+    : props.isLastMove
+      ? (isLight ? '#cdd16f' : '#aaa23a')
+      : isLight ? '#f0d9b5' : '#b58863'
 
   return (
     // tile div

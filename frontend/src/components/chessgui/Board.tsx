@@ -12,6 +12,7 @@ interface BoardProps {
   onDrop: (from: string, to:string) => void
   onDragStart: (rank: number, file: number) => void
   lastMove: { from: { rank: number, file: number }, to: { rank: number, file: number } } | null
+  premoves: { from: { rank: number, file: number }, to: { rank: number, file: number } }[]
 }
 
 const Board = (props: BoardProps) => {
@@ -25,6 +26,13 @@ const Board = (props: BoardProps) => {
     from: { rank: 7 - props.lastMove.from.rank, file: 7 - props.lastMove.from.file },
     to: { rank: 7 - props.lastMove.to.rank, file: 7 - props.lastMove.to.file }
   } : props.lastMove
+
+  const displayPremoves = props.premoves.map(premove =>
+    props.playerColor === 'black' ? {
+      from: { rank: 7 - premove.from.rank, file: 7 - premove.from.file },
+      to: { rank: 7 - premove.to.rank, file: 7 - premove.to.file }
+    } : premove
+  )
 
   const fileToLetter = (file: number) => String.fromCharCode(file + 97)
   const toActual = (rank: number, file: number) => ({
@@ -134,6 +142,12 @@ const Board = (props: BoardProps) => {
                     displayLastMove !== null && (
                       (rankIndex === displayLastMove.from.rank && fileIndex === displayLastMove.from.file) ||
                       (rankIndex === displayLastMove.to.rank && fileIndex === displayLastMove.to.file)
+                    )
+                  }
+                  isPremove={
+                    displayPremoves.some(p =>
+                      (rankIndex === p.from.rank && fileIndex === p.from.file) ||
+                      (rankIndex === p.to.rank && fileIndex === p.to.file)
                     )
                   }
                 />

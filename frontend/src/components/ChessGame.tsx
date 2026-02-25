@@ -5,6 +5,7 @@ import { classicTheme } from './chessgui/themes'
 import { Chess } from './chess/src/Chess';
 import { Square, Move } from './chess/src/types'
 import { socketService } from '../services/socket.service';
+import { getPremoveTargets } from './chessgui/premoveTargets'
 
 interface ChessGameProps {
   gameId: string;
@@ -40,6 +41,14 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
 
   // last move
   const [lastMove, setLastMove] = useState<{ from: { rank: number, file: number }, to: { rank: number, file: number } } | null>(null)
+
+  //premoves
+  const [premoves, setPremoves] = useState<{
+    from: { rank: number, file: number },
+    to: { rank: number, file: number}
+  }[]>([])
+  const premovesRef = useRef(premoves)
+  useEffect(() => { premovesRef.current = premoves }, [premoves])
 
   // Timer state
   const [whiteTimeMs, setWhiteTimeMs] = useState(10 * 60 * 1000);
@@ -148,6 +157,30 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
         setBoard(convertBoard(gameRef.current.board()));
         setLastMove({ from: squareToCoord(data.move.from), to: squareToCoord(data.move.to) })
         updateGameStatus(gameRef.current);
+
+        // Execute premove if any
+        if (premovesRef.current.length > 0) {
+          const nextPremove = premovesRef.current[0]
+          const fileToLetter = (f: number) => String.fromCharCode(f + 97)
+          const from = `${fileToLetter(nextPremove.from.file)}${8 - nextPremove.from.rank}`
+          const to = `${fileToLetter(nextPremove.to.file)}${8 - nextPremove.to.rank}` as Square
+          const move = gameRef.current.move({ from, to })
+          if (!move) {
+            // premove is illegal - clear all premoves
+            setPremoves([])
+          } else {
+            // premove succeeded - remove it from queue
+            setPremoves(prev => prev.slice(1))
+            const newFen = gameRef.current.fen()
+            const newPgn = gameRef.current.pgn()
+            setLastMove({ from: squareToCoord(move.from), to: squareToCoord(move.to) })
+            setFen(newFen)
+            setMoveHistory(gameRef.current.history())
+            setBoard(convertBoard(gameRef.current.board()))
+            socketService.sendMove(gameId, move, newFen, newPgn)
+            updateGameStatus(gameRef.current)
+          }
+        }
       } catch (error) {
         console.error('Error applying move, falling back to fen:', error);
         gameRef.current.load(data.fen);
@@ -280,45 +313,85 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
     const isPlayerTurn =
       (playerColor === 'white' && currentTurn === 'w') ||
         (playerColor === 'black' && currentTurn === 'b')
-    if (!isPlayerTurn) return
+    if (isPlayerTurn) {
+      if (!highlighted[rank][file]) {
+        if (board[rank][file]) {
+          setSelectedTile({ rank, file })
 
-    if (!highlighted[rank][file]) {
-      if (board[rank][file]) {
-        setSelectedTile({ rank, file })
+          const from = `${fileToLetter(file)}${8 - rank}` as Square
+          const moves = gameRef.current.moves({ square: from, verbose: true }) as Move[]
 
-        const from = `${fileToLetter(file)}${8 - rank}` as Square
-        const moves = gameRef.current.moves({ square: from, verbose: true }) as Move[]
+          const newHighlighted = Array.from({ length: 8 }).map(() =>
+            Array.from({ length: 8 }).map(() => false)
+          )
 
-        const newHighlighted = Array.from({ length: 8 }).map(() =>
+          moves.forEach(move => {
+            const { rank, file } = squareToCoord(move.to)
+            newHighlighted[rank][file] = true
+          })
+
+          setHighlighted(newHighlighted)
+        }
+      } else {
+        setSelectedTile(null)
+        setHighlighted(Array.from({ length: 8 }).map(() =>
           Array.from({ length: 8 }).map(() => false)
-        )
-
-        moves.forEach(move => {
-          const { rank, file } = squareToCoord(move.to)
-          newHighlighted[rank][file] = true
-        })
-
-        setHighlighted(newHighlighted)
+        ))
+        const from = `${fileToLetter(selectedTile!.file)}${8 - selectedTile!.rank}` as Square
+        const to = `${fileToLetter(file)}${8 - rank}` as Square
+        const move = gameRef.current.move({ from, to })
+        if (!move) return
+        const newFen = gameRef.current.fen()
+        const newPgn = gameRef.current.pgn()
+        setLastMove({ from: squareToCoord(move.from), to: squareToCoord(move.to) })
+        setFen(newFen)
+        setMoveHistory(gameRef.current.history())
+        setBoard(convertBoard(gameRef.current.board()))
+        socketService.sendMove(gameId, move, newFen, newPgn)
+        updateGameStatus(gameRef.current)
+        setSelectedTile(null)
+        setHighlighted(Array.from({ length: 8}).map(() => Array.from({ length: 8 }).map(() => false)))
       }
     } else {
-      setSelectedTile(null)
-      setHighlighted(Array.from({ length: 8 }).map(() =>
-        Array.from({ length: 8 }).map(() => false)
-      ))
-      const from = `${fileToLetter(selectedTile!.file)}${8 - selectedTile!.rank}` as Square
-      const to = `${fileToLetter(file)}${8 - rank}` as Square
-      const move = gameRef.current.move({ from, to })
-      if (!move) return
-      const newFen = gameRef.current.fen()
-      const newPgn = gameRef.current.pgn()
-      setLastMove({ from: squareToCoord(move.from), to: squareToCoord(move.to) })
-      setFen(newFen)
-      setMoveHistory(gameRef.current.history())
-      setBoard(convertBoard(gameRef.current.board()))
-      socketService.sendMove(gameId, move, newFen, newPgn)
-      updateGameStatus(gameRef.current)
-      setSelectedTile(null)
-      setHighlighted(Array.from({ length: 8}).map(() => Array.from({ length: 8 }).map(() => false)))
+      // Premove logic
+      if (selectedTile) {
+        // second click - add premove to queue
+        setPremoves(prev => [...prev, {
+          from: { rank: selectedTile.rank, file: selectedTile.file },
+          to: { rank, file }
+        }])
+        setSelectedTile(null)
+        setHighlighted(Array.from({ length: 8 }).map(() =>
+          Array.from({ length: 8 }).map(() => false)
+        ))
+      } else {
+        // first click - select piece and show premove targets
+        if (board[rank][file]) {
+          const piece = board[rank][file]!
+          // only allow selecting your own pieces
+          const isOwnPiece =
+            (playerColor === 'white' && piece[0] === 'w') ||
+            (playerColor === 'black' && piece[0] === 'b')
+          if (!isOwnPiece) return
+
+          setSelectedTile({ rank, file })
+          const targets = getPremoveTargets(piece, rank, file)
+          const newHighlighted = Array.from({ length: 8 }).map(() =>
+            Array.from({ length: 8 }).map(() => false)
+          )
+          targets.forEach(({ rank, file }) => {
+            newHighlighted[rank][file] = true
+          })
+          setHighlighted(newHighlighted)
+        } else {
+          // clicked empty tile - clear premoves
+          setPremoves([])
+          setSelectedTile(null)
+          setHighlighted(Array.from({ length: 8 }).map(() =>
+            Array.from({ length: 8 }).map(() => false)
+          ))
+        }
+      }
     }
   }
 
@@ -379,6 +452,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
           onDragStart={onPieceDragStart}
           playerColor={playerColor}
           lastMove={lastMove}
+          premoves={premoves}
         />
 
         {/* Your timer (bottom) */}
