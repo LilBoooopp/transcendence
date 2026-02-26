@@ -6,6 +6,8 @@ interface TileProps {
   rank: number
   file: number
   piece?: string
+  rankLabel?: string
+  fileLabel?: string
   isHighlighted: boolean
   theme: Record<string, string>
   onClick: () => void
@@ -54,6 +56,7 @@ const Tile = (props: TileProps) => {
       }}
     >
       {props.piece && <Piece type={props.piece} theme={props.theme} rank={rank} file={file} onDragStart={props.onDragStart}/>}
+      {/* Possible moves */}
       {props.isHighlighted && (
         <div
           style={{
@@ -65,6 +68,34 @@ const Tile = (props: TileProps) => {
             backgroundColor: 'rgba(0,0,0,0.2)',
             pointerEvents: 'none',
           }} />
+      )}
+      {props.rankLabel && (
+        <span style={{
+          position: 'absolute',
+          top: '2px',
+          left: '3px',
+          fontSize: '11px',
+          fontWeight: 'bold',
+          color: isLight ? '#b58863' : '#f0d9b5',
+          lineHeight: 1,
+          pointerEvents: 'none',
+        }}>
+          {props.rankLabel}
+        </span>
+      )}
+      {props.fileLabel && (
+        <span style={{
+          position: 'absolute',
+          bottom: '2px',
+          right: '3px',
+          fontSize: '11px',
+          fontWeight: 'bold',
+          color: isLight ? '#b58863' : '#f0d9b5',
+          lineHeight: 1,
+          pointerEvents: 'none',
+        }}>
+          {props.fileLabel}
+        </span>
       )}
     </div>
   )

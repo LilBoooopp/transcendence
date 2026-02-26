@@ -6,6 +6,7 @@ import { Chess } from './chess/src/Chess';
 import { Square, Move } from './chess/src/types'
 import { socketService } from '../services/socket.service';
 import { getPremoveTargets } from './chessgui/premoveTargets'
+import PromotionPopup from './chessgui/PromotionPopup'
 
 interface ChessGameProps {
   gameId: string;
@@ -25,12 +26,17 @@ const formatTime = (ms: number): string => {
 };
 
 const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSpectator = false, initialState = null, initialTimer = null }) => {
+  // board state
   const gameRef = useRef(new Chess());
   const [fen, setFen] = useState('start');
   const [board, setBoard] = useState(convertBoard(gameRef.current.board()))
   const [moveHistory, setMoveHistory] = useState<string[]>([]);
+
+  // for tile highlighting
   const [highlighted, setHighlighted] = useState<boolean[][]>(Array.from({ length: 8}).map(() => Array.from({ length: 8 }).map(() => false)))
   const [selectedTile, setSelectedTile] = useState<{ rank: number, file: number } | null>(null)
+  
+  // game status
   const [gameStatus, setGameStatus] = useState<string>('Playing');
   const [gameOver, setGameOver] = useState(false);
   
@@ -49,6 +55,35 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
   }[]>([])
   const premovesRef = useRef(premoves)
   useEffect(() => { premovesRef.current = premoves }, [premoves])
+
+  // promotion
+  const [promotionMove, setPromotionMove] = useState<{ from: string, to: string } | null>(null)
+  const isPawnPromotion = (from: string, to: string): boolean => {
+    const piece = gameRef.current.get(from as Square)
+    if (!piece || piece.type !== 'p') return (false)
+    const toRank = to[1]
+    return ((piece.color === 'w' && toRank === '8') ||
+      (piece.color === 'b' && toRank === '1'))
+  }
+
+  function completePromotion(piece: 'q' | 'r' | 'b' | 'n') {
+    if (!promotionMove) return
+    const move = gameRef.current.move({
+      from: promotionMove.from,
+      to: promotionMove.to,
+      promotion: piece
+    })
+    if (!move) return
+    const newFen = gameRef.current.fen()
+    const newPgn = gameRef.current.pgn()
+    setLastMove({ from: squareToCoord(move.from), to: squareToCoord(move.to) })
+    setFen(newFen)
+    setMoveHistory(gameRef.current.history())
+    setBoard(convertBoard(gameRef.current.board()))
+    socketService.sendMove(gameId, move, newFen, newPgn)
+    updateGameStatus(gameRef.current)
+    setPromotionMove(null)
+  }
 
   // Timer state
   const [whiteTimeMs, setWhiteTimeMs] = useState(10 * 60 * 1000);
@@ -82,6 +117,7 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
     }
   }, [initialState]);
 
+  // timer from initial state
   useEffect(() => {
     if (!initialTimer) return;
   console.log('Restoring timer from initial props:', initialTimer);
@@ -276,6 +312,10 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
       }
 
       try {
+        if (isPawnPromotion(sourceSquare, targetSquare)) {
+          setPromotionMove({ from: sourceSquare, to: targetSquare })
+          return (true)
+        }
         const move = game.move({
           from: sourceSquare,
           to: targetSquare,
@@ -386,6 +426,11 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
         ))
         const from = `${fileToLetter(selectedTile!.file)}${8 - selectedTile!.rank}` as Square
         const to = `${fileToLetter(file)}${8 - rank}` as Square
+        if (isPawnPromotion(from, to)) {
+          setPromotionMove({ from, to })
+          return // wait for player to chose promotion piece
+        }
+        // otherwise move normally
         const move = gameRef.current.move({ from, to })
         if (!move) return
         const newFen = gameRef.current.fen()
@@ -512,6 +557,13 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
             {formatTime(bottomTimeMs)}
           </span>
         </div>
+        {promotionMove && (
+          <PromotionPopup
+            color={playerColor}
+            theme={classicTheme}
+            onSelect={completePromotion}
+          />
+        )}
       </div>
 
       {/* Move history */}

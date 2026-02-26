@@ -111,7 +111,7 @@ const Board = (props: BoardProps) => {
   return (
     <DndProvider backend={HTML5Backend}>
       {/* Board div */}
-      <div style={{ position: 'relative', width: '100%', display: 'inline-block' }}>
+      <div style={{ position: 'relative', width: '100%', height: '100%', display: 'inline-block' }}>
         <div
           ref={boardRef}
           onMouseDown={(e) => { if (e.button === 0) setArrows([]) }}
@@ -126,6 +126,16 @@ const Board = (props: BoardProps) => {
                   rank={rankIndex}
                   file={fileIndex}
                   piece={piece ?? undefined}
+                  rankLabel={fileIndex === 0
+                    ? props.playerColor === 'black'
+                      ? `${rankIndex + 1}`
+                      : `${8 - rankIndex}`
+                    : undefined}
+                  fileLabel={rankIndex === 7
+                    ? props.playerColor === 'black'
+                      ? String.fromCharCode(97 + (7 - fileIndex))
+                      : String.fromCharCode(97 + fileIndex)
+                    : undefined}
                   theme={props.theme}
                   isHighlighted={displayHighlighted[rankIndex][fileIndex]}
                   onDrop={handleDrop}
