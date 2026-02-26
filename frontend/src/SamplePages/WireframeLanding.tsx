@@ -16,6 +16,17 @@ export default function WireframeLanding() {
 		{ id: '3', date: '2023-10-20', opponent: 'ChessBot', result: 'Draw', moves: 55 },
 	];
 
+	//USERSYL
+	const handleLogin = async () => {
+  const response = await fetch('/api/users/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: '...', username: '...', password: '...' })
+  });
+  const data = await response.json();
+  // gérer la réponse
+	};
+
 	const features = [
 	{
 		title: "Create Game",
@@ -85,6 +96,7 @@ export default function WireframeLanding() {
 					<div className="flex justify-center gap-4">
 						<Button variant="primary" onClick={() => console.log('Login clicked')}>Log In</Button>
 						<Button variant="secondary" onClick={() => console.log('Register clicked')}>Register</Button>
+						<Button variant="primary" onClick={() => window.location.href = '/user.html'}>Log In2</Button>
 					</div>
 				</div>
 			)}

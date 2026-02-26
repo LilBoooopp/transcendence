@@ -10,6 +10,7 @@ RUN npm install
 
 COPY prisma ./prisma/
 
+#a retirer... ou plus précis...
 COPY . .
 
 COPY script/entrypoint.sh /urs/local/bin/

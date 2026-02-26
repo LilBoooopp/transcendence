@@ -36,6 +36,7 @@ make
 
 ### 4. Access the Application
 Open: **https://localhost:4443**
+For frontend landing page: **https://localhost:4443/wireframe/landing**
 
 ⚠️ Click "Advanced" → "Proceed to localhost" when you see the SSL warning (this is expected with self-signed certificates).
 

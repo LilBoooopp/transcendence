@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Register</title>
+</head>
+<body>
+  <h2>Register</h2>
+  <form id="register">
+    <input id="email" placeholder="Email" /><br/>
+    <input id="username" placeholder="Username" /><br/>
+    <input id="password" type="password" placeholder="Password" /><br/>
+    <button type="submit">Create account</button>
+  </form>
+  <h2>login</h2>
+  <form id="loginForm">
+    <input id="loginUsername" placeholder="Username" /><br/>
+    <input id="loginPassword" type="password" placeholder="Password" /><br/>
+    <button type="submit">Login</button>
+  </form>
+  <h2>showusers</h2>
+		<button type="button" id="showUsersBtn">Show Users</button>
+  <p id="result"></p>
+  <script>
+	const result = document.getElementById('result');
+
+    document.getElementById('register').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const res = await fetch('/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: document.getElementById('email').value,
+          username: document.getElementById('username').value,
+          password: document.getElementById('password').value,
+        })
+      });
+      const data = await res.json();
+      document.getElementById('result').textContent = res.ok
+        ? 'Compte créé : ' + data.username
+        : 'Erreur : ' + data.message;
+    });
+	
+	document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const res = await fetch('/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: document.getElementById('loginUsername').value,
+          password: document.getElementById('loginPassword').value,
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      result.textContent = res.ok ? `Connecté : ${data.username || 'OK'}` : `Erreur : ${data.message || res.status}`;
+    });
+  </script>
+    <script>
+    document.getElementById('showUsersBtn').addEventListener('click', async (e) => {
+		console.log("clicked");
+      e.preventDefault();
+      const res = await fetch('/api/users/all', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const users = await res.json();
+      if (res.ok) {
+    const userList = users.map(u => `${u.username} (${u.email})`).join('<br/>');
+    document.getElementById('result').innerHTML = `<h3>Users:</h3>${userList}`;
+  } else {
+    document.getElementById('result').textContent = 'Erreur: ' + users.message;
+  }
+    });
+  </script>
+  
+
+
+</body>
+</html>
