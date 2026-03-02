@@ -16,7 +16,7 @@ export default function WireframeLanding() {
 		{ id: '3', date: '2023-10-20', opponent: 'ChessBot', result: 'Draw', moves: 55 },
 	];
 
-	//USERSYL
+/*	//USERSYL
 	const handleLogin = async () => {
   const response = await fetch('/api/users/register', {
     method: 'POST',
@@ -25,7 +25,8 @@ export default function WireframeLanding() {
   });
   const data = await response.json();
   // gérer la réponse
-	};
+	};*/
+
 
 	const features = [
 	{

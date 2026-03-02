@@ -1,5 +1,6 @@
 import { Injectable, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+//import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { IsEmail } from 'class-validator';
 
@@ -31,13 +32,14 @@ export class UserService {
       throw new ConflictException('Email ou username déjà utilisé');
     }
 
-    //const hashedPassword = await bcrypt.hash(data.password, 10);
+    const hashedPassword = await bcrypt.hash(data.password, 10);
 
-	const unvalidMail = 
+	//const unvalidMail = 
 
     return this.prisma.user.create({
       data: {
         email: data.email,
+	//	userId: ,
         username: data.username,
         password: hashedPassword,
         firstName: data.firstName,
@@ -73,6 +75,7 @@ export class UserService {
     });
   }
 
+  
   async getAllUsers() {
     return this.prisma.user.findMany({
       include: { statistics: true },

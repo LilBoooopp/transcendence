@@ -16,7 +16,10 @@
     <input id="loginUsername" placeholder="Username" /><br/>
     <input id="loginPassword" type="password" placeholder="Password" /><br/>
     <button type="submit">Login</button>
+	<button type="button" id="logoutBtn">Logout</button>
+	
   </form>
+  <button type="button" id="enterGameBtn">Enter Game</button>
   <h2>showusers</h2>
 		<button type="button" id="showUsersBtn">Show Users</button>
   <p id="result"></p>
@@ -39,10 +42,12 @@
         ? 'Compte créé : ' + data.username
         : 'Erreur : ' + data.message;
     });
-	
+	//LOGIN
 	document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const res = await fetch('/api/users/login', {
+	  console.log("enter login");
+	  //route pour login...
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -50,17 +55,63 @@
           password: document.getElementById('loginPassword').value,
         })
       });
-      const data = await res.json().catch(() => ({}));
-      result.textContent = res.ok ? `Connecté : ${data.username || 'OK'}` : `Erreur : ${data.message || res.status}`;
-    });
+	  ///verifier si c est bien du json
+      const data = await res.json().catch(() => ({ message: 'Erreur serveur'}));
+	  if (res.ok) {
+    // Changez access_token en accessToken
+    localStorage.setItem('authToken', data.accessToken);
+    result.textContent = `Connecté : ${data.username || 'OK'}`;
+  } else {
+    result.textContent = `Erreur : ${data.message || res.status}`;
+  }
+});
+	//LOGOUT
+	document.getElementById('logoutBtn').addEventListener('click', (e) => {
+  e.preventDefault();
+  
+  // Supprimer le token du localStorage
+  localStorage.removeItem('authToken');
+  
+  // Effacer le message de connexion
+  document.getElementById('result').textContent = 'Vous avez été déconnecté';
+  
+  // Optionnel: rediriger vers la page de login après 1 seconde
+ // setTimeout(() => {
+ //   window.location.href = '/'; // ou la page de login
+ // }, 1000);
+});
+	//ENTER GAME
+document.getElementById('enterGameBtn').addEventListener('click', async (e) => {
+  e.preventDefault();
+	console.log("you want to enter the game start");
+  // Vérifier si l'utilisateur est connecté (token existe)
+  const token = localStorage.getItem('authToken');
+  
+  if (!token) {
+    document.getElementById('result').textContent = 'Erreur: Vous devez être connecté pour accéder au jeu';
+    return;
+  }
+  console.log("you want to enter the game");
+  // Rediriger vers la page jeu
+  window.location.href = '/game';
+});
   </script>
     <script>
     document.getElementById('showUsersBtn').addEventListener('click', async (e) => {
 		console.log("clicked");
       e.preventDefault();
+	 const token = localStorage.getItem('authToken');
+  
+  if (!token) {
+    document.getElementById('result').textContent = 'Erreur: Vous devez être connecté';
+    return;
+  }
       const res = await fetch('/api/users/all', {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       });
       const users = await res.json();
       if (res.ok) {

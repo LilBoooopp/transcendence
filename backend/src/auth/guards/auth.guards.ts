@@ -1,0 +1,84 @@
+import {CanActivate, ExecutionContext, Injectable, UnauthorizedException} from '@nestjs/common'
+import { JwtService } from '@nestjs/jwt'
+import { Socket } from 'socket.io';
+import { JWT_SECRET } from '../configs/jwtsecret';
+// AUTH GARD
+//if it returns true, it means that the endpoint can be accessed. false we are refusing the access
+@Injectable()
+export class AuthGuard implements CanActivate {
+	constructor(private jwtService: JwtService){}
+	async canActivate(context: ExecutionContext) {
+		const request = context.switchToHttp().getRequest();
+		const authorization = request.headers.authorization; //Bearer <token> we are looking for the authorisation
+		    if (!authorization) {
+				throw new UnauthorizedException('No authorization header');
+    		}
+		const token = authorization?.split(' ')[1];// int the autorization, it is looking for the token. 
+		if(!token) {
+			throw new UnauthorizedException('No token provided'); //no token, so request rejected so 401 error status
+		}
+		try {
+			const tokenPayload = await this.jwtService.verifyAsync(token);
+			//we add a user object to the request
+			request.user = {
+				userid:tokenPayload.sub,
+				username: tokenPayload.username
+			}
+			return true;
+		}
+		catch (error) {
+			throw new UnauthorizedException('Invalid Token ge');
+		}
+	}
+}
+
+//to access the game
+@Injectable()
+export class WsAuthGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const client: Socket = context.switchToWs().getClient();
+    
+    if (!client.handshake.auth?.token) {
+		console.log("you should log in");
+      throw new UnauthorizedException('No authentication token');
+    }
+    
+    // Verify token here (add your JWT verification logic)
+    return true;
+  }
+}
+
+/*
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { JWT_SECRET } from '../configs/jwtsecret';
+
+@Injectable()
+export class AuthGuard implements CanActivate {
+  constructor(private jwtService: JwtService) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest();
+    const authHeader = request.headers.authorization;
+
+    if (!authHeader) {
+      throw new UnauthorizedException('No authorization header');
+    }
+
+    const token = authHeader.split(' ')[1];
+    
+    if (!token) {
+      throw new UnauthorizedException('No token provided');
+    }
+
+    try {
+      // Ne pas passer le secret ici - JwtService utilise déjà le secret de JwtModule
+      const decoded = this.jwtService.verify(token);
+      request.user = decoded;
+      return true;
+    } catch (error) {
+      console.error('Token verification error:', error.message); // LOG
+      throw new UnauthorizedException('Invalid token: ' + error.message);
+    }
+  }
+}*/

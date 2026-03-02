@@ -1,5 +1,6 @@
-import { Controller, Post, Get, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
+import { AuthGuard } from '../auth/guards/auth.guards';
 
 @Controller('users')
 export class UserController {
@@ -19,6 +20,7 @@ export class UserController {
     return userWithoutPassword;
   }
 
+  @UseGuards(AuthGuard)
   @Get('all')
   async getAllUsers() {
     return this.userService.getAllUsers();
