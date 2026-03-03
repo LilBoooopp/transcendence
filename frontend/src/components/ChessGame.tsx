@@ -1,7 +1,12 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Chessboard } from 'react-chessboard';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import Board from './chessgui/Board'
+import { convertBoard } from './chessgui/utils'
+import { classicTheme } from './chessgui/themes'
 import { Chess } from './chess/src/Chess';
+import { Square, Move } from './chess/src/types'
 import { socketService } from '../services/socket.service';
+import { getPremoveTargets } from './chessgui/premoveTargets'
+import PromotionPopup from './chessgui/PromotionPopup'
 
 interface ChessGameProps {
   gameId: string;
@@ -21,11 +26,64 @@ const formatTime = (ms: number): string => {
 };
 
 const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSpectator = false, initialState = null, initialTimer = null }) => {
+  // board state
   const gameRef = useRef(new Chess());
   const [fen, setFen] = useState('start');
+  const [board, setBoard] = useState(convertBoard(gameRef.current.board()))
   const [moveHistory, setMoveHistory] = useState<string[]>([]);
+
+  // for tile highlighting
+  const [highlighted, setHighlighted] = useState<boolean[][]>(Array.from({ length: 8}).map(() => Array.from({ length: 8 }).map(() => false)))
+  const [selectedTile, setSelectedTile] = useState<{ rank: number, file: number } | null>(null)
+  
+  // game status
   const [gameStatus, setGameStatus] = useState<string>('Playing');
   const [gameOver, setGameOver] = useState(false);
+  
+  // arrows
+  const [arrowStart, setArrowStart] = useState<{ rank: number, file: number } | null>(null)
+  const [arrowEnd, setArrowEnd] = useState<{ rank: number, file: number} | null>(null)
+  const [arrows, setArrows] = useState<{ start: { rank: number, file: number }, end: { rank: number, file: number } }[]>([])
+
+  // last move
+  const [lastMove, setLastMove] = useState<{ from: { rank: number, file: number }, to: { rank: number, file: number } } | null>(null)
+
+  //premoves
+  const [premoves, setPremoves] = useState<{
+    from: { rank: number, file: number },
+    to: { rank: number, file: number}
+  }[]>([])
+  const premovesRef = useRef(premoves)
+  useEffect(() => { premovesRef.current = premoves }, [premoves])
+
+  // promotion
+  const [promotionMove, setPromotionMove] = useState<{ from: string, to: string } | null>(null)
+  const isPawnPromotion = (from: string, to: string): boolean => {
+    const piece = gameRef.current.get(from as Square)
+    if (!piece || piece.type !== 'p') return (false)
+    const toRank = to[1]
+    return ((piece.color === 'w' && toRank === '8') ||
+      (piece.color === 'b' && toRank === '1'))
+  }
+
+  function completePromotion(piece: 'q' | 'r' | 'b' | 'n') {
+    if (!promotionMove) return
+    const move = gameRef.current.move({
+      from: promotionMove.from,
+      to: promotionMove.to,
+      promotion: piece
+    })
+    if (!move) return
+    const newFen = gameRef.current.fen()
+    const newPgn = gameRef.current.pgn()
+    setLastMove({ from: squareToCoord(move.from), to: squareToCoord(move.to) })
+    setFen(newFen)
+    setMoveHistory(gameRef.current.history())
+    setBoard(convertBoard(gameRef.current.board()))
+    socketService.sendMove(gameId, move, newFen, newPgn)
+    updateGameStatus(gameRef.current)
+    setPromotionMove(null)
+  }
 
   // Timer state
   const [whiteTimeMs, setWhiteTimeMs] = useState(10 * 60 * 1000);
@@ -44,14 +102,22 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
       } else if (initialState.fen && initialState.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
         gameRef.current.load(initialState.fen);
       }
+      // for last move if refresh
+      const history = gameRef.current.history({ verbose: true }) as Move[]
+      if (history.length > 0) {
+        const last = history[history.length - 1]
+        setLastMove({ from: squareToCoord(last.from), to: squareToCoord(last.to) })
+      }
       setFen(gameRef.current.fen());
       setMoveHistory(gameRef.current.history());
+      setBoard(convertBoard(gameRef.current.board()));
       updateGameStatus(gameRef.current);
     } catch (error) {
       console.error('Error restoring initial state:', error);
     }
   }, [initialState]);
 
+  // timer from initial state
   useEffect(() => {
     if (!initialTimer) return;
   console.log('Restoring timer from initial props:', initialTimer);
@@ -124,7 +190,33 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
 
         setFen(gameRef.current.fen());
         setMoveHistory(gameRef.current.history());
+        setBoard(convertBoard(gameRef.current.board()));
+        setLastMove({ from: squareToCoord(data.move.from), to: squareToCoord(data.move.to) })
         updateGameStatus(gameRef.current);
+
+        // Execute premove if any
+        if (premovesRef.current.length > 0) {
+          const nextPremove = premovesRef.current[0]
+          const fileToLetter = (f: number) => String.fromCharCode(f + 97)
+          const from = `${fileToLetter(nextPremove.from.file)}${8 - nextPremove.from.rank}`
+          const to = `${fileToLetter(nextPremove.to.file)}${8 - nextPremove.to.rank}` as Square
+          const move = gameRef.current.move({ from, to })
+          if (!move) {
+            // premove is illegal - clear all premoves
+            setPremoves([])
+          } else {
+            // premove succeeded - remove it from queue
+            setPremoves(prev => prev.slice(1))
+            const newFen = gameRef.current.fen()
+            const newPgn = gameRef.current.pgn()
+            setLastMove({ from: squareToCoord(move.from), to: squareToCoord(move.to) })
+            setFen(newFen)
+            setMoveHistory(gameRef.current.history())
+            setBoard(convertBoard(gameRef.current.board()))
+            socketService.sendMove(gameId, move, newFen, newPgn)
+            updateGameStatus(gameRef.current)
+          }
+        }
       } catch (error) {
         console.error('Error applying move, falling back to fen:', error);
         gameRef.current.load(data.fen);
@@ -167,6 +259,25 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
     }
   };
 
+
+  const premoveBoard = useMemo(() => {
+    const virtual = board.map(row => [...row])
+    premoves.forEach(({ from, to }) => {
+      virtual[to.rank][to.file] = virtual[from.rank][from.file]
+      virtual[from.rank][from.file] = null
+    })
+    return virtual
+  }, [board, premoves])
+
+
+  const premoveBoardRef = useRef(premoveBoard)
+  useEffect(() => { premoveBoardRef.current = premoveBoard }, [premoveBoard])
+
+  const squareToCoord = useCallback((square: string) => ({
+    file: square.charCodeAt(0) - 97,
+    rank: 8 - parseInt(square[1])
+  }), [])
+
   const onDrop = useCallback(
     (sourceSquare: string, targetSquare: string) => {
       if (isSpectator) {
@@ -181,26 +292,53 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
         (playerColor === 'black' && currentTurn === 'b');
 
       if (!isPlayerTurn) {
-        console.log('Not your turn!');
-        return (false);
+        // premove
+        const from = squareToCoord(sourceSquare)
+        const to = squareToCoord(targetSquare)
+        const piece = premoveBoardRef.current[from.rank][from.file]
+        if (!piece) return (false)
+      
+        const isOwnPiece =
+          (playerColor === 'white' && piece[0] === 'w') ||
+            (playerColor === 'black' && piece[0] === 'b')
+        if (!isOwnPiece) return (false)
+        
+        setPremoves(prev => [...prev, { from, to }])
+        setSelectedTile(null)
+        setHighlighted(Array.from({ length: 8 }).map(() =>
+          Array.from({ length: 8 }).map(() => false)
+        ))
+        return true
       }
 
       try {
+        if (isPawnPromotion(sourceSquare, targetSquare)) {
+          setPromotionMove({ from: sourceSquare, to: targetSquare })
+          setHighlighted(Array.from({ length: 8 }).map(() =>
+            Array.from({ length: 8 }).map(() => false)
+          ))
+          return (true)
+        }
         const move = game.move({
           from: sourceSquare,
           to: targetSquare,
-          promotion: 'q',
         });
 
         if (!move) {
           console.log('invalid move');
           return (false);
         }
+        setHighlighted(Array.from({ length: 8 }).map(() =>
+          Array.from({ length: 8 }).map(() => false)
+        ))
+
 
         const newFen = game.fen();
         const newPgn = game.pgn();
+        setLastMove({ from: squareToCoord(move.from), to: squareToCoord(move.to) })
         setFen(newFen);
         setMoveHistory(game.history());
+        setBoard(convertBoard(game.board()))
 
         console.log('Sending move to opponent:', move);
         socketService.sendMove(gameId, move, newFen, newPgn);
@@ -211,8 +349,145 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
         console.error('Invalid move:', error);
         return (false);
       }
-    }, [gameId, playerColor, isSpectator]
+    }, [gameId, playerColor, isSpectator, squareToCoord]
   );
+
+  // This is only because I want to be able to see the dots for possible moves when dragging...
+  function onPieceDragStart(rank: number, file: number) {
+    if (isSpectator) return
+    const currentTurn = gameRef.current.turn()
+    const isPlayerTurn =
+      (playerColor === 'white' && currentTurn === 'w') ||
+      (playerColor === 'black' && currentTurn === 'b')
+
+    if (isPlayerTurn) {
+      const fileToLetter = (f: number) => String.fromCharCode(f + 97)
+      const from = `${fileToLetter(file)}${8 - rank}` as Square
+      const moves = gameRef.current.moves({ square: from, verbose: true }) as Move[]
+      const newHighlighted = Array.from({ length: 8 }).map(() =>
+        Array.from({length: 8 }).map(() => false)
+      )
+      moves.forEach(move => {
+        const { rank, file } = squareToCoord(move.to)
+        newHighlighted[rank][file] = true
+      })
+      setHighlighted(newHighlighted)
+    } else {
+      // Premove target
+      const piece = board[rank][file]
+      if (!piece) return
+      const isOwnPiece =
+        (playerColor === 'white' && piece[0] === 'w') ||
+        (playerColor === 'black' && piece[0] === 'b')
+      if (!isOwnPiece) return
+
+      const targets = getPremoveTargets(piece, rank, file)
+      const newHighlighted = Array.from({ length: 8 }).map(() =>
+        Array.from({ length: 8 }).map(() => false)
+      )
+      targets.forEach(({ rank, file }) => {
+        newHighlighted[rank][file] = true
+      })
+      setHighlighted(newHighlighted)
+    }
+  }
+
+
+  function onTileClick(rank: number, file: number) {
+    const fileToLetter = (file: number) => String.fromCharCode(file + 97)
+
+    // Spectator and turn guards
+    if (isSpectator) return
+    const currentTurn = gameRef.current.turn()
+    const isPlayerTurn =
+      (playerColor === 'white' && currentTurn === 'w') ||
+        (playerColor === 'black' && currentTurn === 'b')
+    if (isPlayerTurn) {
+      if (!highlighted[rank][file]) {
+        if (board[rank][file]) {
+          setSelectedTile({ rank, file })
+
+          const from = `${fileToLetter(file)}${8 - rank}` as Square
+          const moves = gameRef.current.moves({ square: from, verbose: true }) as Move[]
+
+          const newHighlighted = Array.from({ length: 8 }).map(() =>
+            Array.from({ length: 8 }).map(() => false)
+          )
+
+          moves.forEach(move => {
+            const { rank, file } = squareToCoord(move.to)
+            newHighlighted[rank][file] = true
+          })
+
+          setHighlighted(newHighlighted)
+        }
+      } else {
+        setSelectedTile(null)
+        setHighlighted(Array.from({ length: 8 }).map(() =>
+          Array.from({ length: 8 }).map(() => false)
+        ))
+        const from = `${fileToLetter(selectedTile!.file)}${8 - selectedTile!.rank}` as Square
+        const to = `${fileToLetter(file)}${8 - rank}` as Square
+        if (isPawnPromotion(from, to)) {
+          setPromotionMove({ from, to })
+          return // wait for player to chose promotion piece
+        }
+        // otherwise move normally
+        const move = gameRef.current.move({ from, to })
+        if (!move) return
+        const newFen = gameRef.current.fen()
+        const newPgn = gameRef.current.pgn()
+        setLastMove({ from: squareToCoord(move.from), to: squareToCoord(move.to) })
+        setFen(newFen)
+        setMoveHistory(gameRef.current.history())
+        setBoard(convertBoard(gameRef.current.board()))
+        socketService.sendMove(gameId, move, newFen, newPgn)
+        updateGameStatus(gameRef.current)
+        setSelectedTile(null)
+        setHighlighted(Array.from({ length: 8}).map(() => Array.from({ length: 8 }).map(() => false)))
+      }
+    } else {
+      // Premove logic
+      if (selectedTile) {
+        // second click - add premove to queue
+        setPremoves(prev => [...prev, {
+          from: { rank: selectedTile.rank, file: selectedTile.file },
+          to: { rank, file }
+        }])
+        setSelectedTile(null)
+        setHighlighted(Array.from({ length: 8 }).map(() =>
+          Array.from({ length: 8 }).map(() => false)
+        ))
+      } else {
+        // first click - select piece and show premove targets
+        if (premoveBoardRef.current[rank][file]) {
+          const piece = premoveBoardRef.current[rank][file]!
+          // only allow selecting your own pieces
+          const isOwnPiece =
+            (playerColor === 'white' && piece[0] === 'w') ||
+            (playerColor === 'black' && piece[0] === 'b')
+          if (!isOwnPiece) return
+
+          setSelectedTile({ rank, file })
+          const targets = getPremoveTargets(piece, rank, file)
+          const newHighlighted = Array.from({ length: 8 }).map(() =>
+            Array.from({ length: 8 }).map(() => false)
+          )
+          targets.forEach(({ rank, file }) => {
+            newHighlighted[rank][file] = true
+          })
+          setHighlighted(newHighlighted)
+        } else {
+          // clicked empty tile - clear premoves
+          setPremoves([])
+          setSelectedTile(null)
+          setHighlighted(Array.from({ length: 8 }).map(() =>
+            Array.from({ length: 8 }).map(() => false)
+          ))
+        }
+      }
+    }
+  }
 
   const formatMoveHistory = () => {
     const formatted: JSX.Element[] = [];
@@ -261,15 +536,16 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
           </span>
         </div>
 
-        <Chessboard
-          position={fen}
-          onPieceDrop={onDrop}
-          boardOrientation={playerColor}
-          arePiecesDraggable={!isSpectator && !gameOver}
-          customBoardStyle={{
-            borderRadius: '4px',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.5)',
-          }}
+        <Board
+          board={premoveBoard}
+          theme={classicTheme}
+          highlighted={highlighted}
+          onTileClick={onTileClick}
+          onDrop={onDrop}
+          onDragStart={onPieceDragStart}
+          playerColor={playerColor}
+          lastMove={lastMove}
+          premoves={premoves}
         />
 
         {/* Your timer (bottom) */}
@@ -283,6 +559,13 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
             {formatTime(bottomTimeMs)}
           </span>
         </div>
+        {promotionMove && (
+          <PromotionPopup
+            color={playerColor}
+            theme={classicTheme}
+            onSelect={completePromotion}
+          />
+        )}
       </div>
 
       {/* Move history */}
