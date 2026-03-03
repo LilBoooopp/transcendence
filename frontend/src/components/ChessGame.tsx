@@ -314,12 +314,14 @@ const ChessGame: React.FC<ChessGameProps> = ({ gameId, userId, playerColor, isSp
       try {
         if (isPawnPromotion(sourceSquare, targetSquare)) {
           setPromotionMove({ from: sourceSquare, to: targetSquare })
+          setHighlighted(Array.from({ length: 8 }).map(() =>
+            Array.from({ length: 8 }).map(() => false)
+          ))
           return (true)
         }
         const move = game.move({
           from: sourceSquare,
           to: targetSquare,
-          promotion: 'q',
         });
 
         if (!move) {
