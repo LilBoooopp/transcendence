@@ -1,64 +1,75 @@
 import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import ChessGame from './chessgui';
+import type { ChessGameProps } from './chessgui';
 import { socketService } from '../services/socket.service';
 
-interface GameProps {
-  gameId: string;
+interface GamePageProps {
   userId: string;
 }
 
-const Game: React.FC<GameProps> = ({ gameId, userId }) => {
-  const [fen, setFen] = useState('start');
-  const [messages, setMessages] = useState<any[]>([]);
+const Game: React.FC<GamePageProps> = ({ userId }) => {
+  const { gameId } = useParams<{ gameId: string }>();
+  const [playerColor, setPlayerColor] = useState<'white' | 'black' | null>(null);
+  const [isSpectator, setIsSpectator] = useState(false);
+  const [initialState, setInitialState] = useState<ChessGameProps['initialState']>(null);
+  const [initialTimer, setInitialTimer] = useState<ChessGameProps['initialTimer']>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Connect to WebSocket
+    if (!gameId) return;
     socketService.connect(userId);
-
-    // Join the game room
     socketService.joinGame(gameId);
 
-    // Listen fro oppeonent moves
-    socketService.onMove((data) => {
-      console.log('Opponent moved:', data.move);
-      setFen(data.fen);
-    });
+    const unsubRole = socketService.on(
+      'game:player-joined',
+      (data: { color: 'white' | 'black' | 'spectator'; fen?: string; pgn?: string }) => {
+        if (data.color === 'spectator') {
+          setIsSpectator(true);
+          setPlayerColor('white');
+        } else {
+          setPlayerColor(data.color);
+        }
+        if (data.fen || data.pgn) {
+          setInitialState({ fen: data.fen ?? '', pgn: data.pgn ?? '' });
+        }
+        setIsReady(true);
+      }
+    );
 
-    // Listen for chat messages
-    socketService.onChatMessage((data) => {
-      setMessages((prev) => [...prev, data]);
-    });
+    const unsubTimer = socketService.on(
+      'game:timer',
+      (data: ChessGameProps['initialTimer']) => {
+        if (!isReady) setInitialTimer(data);
+      }
+    );
 
-    // Listen for game over
-    socketService.onGameOver((data) => {
-      console.log('Game over:', data);
-      alert(`Game Over! Winner: ${data.winner}`);
-    });
-
-    // Cleanup
     return () => {
-      socketService.leaveGame(gameId);
-      socketService.off('game:move');
-      socketService.off('chat:message');
-      socketService.off('game:over');
+      unsubRole?.();
+      unsubTimer?.();
+      socketService.leaveGame(gameId!);
     };
-
   }, [gameId, userId]);
 
-  const handleMove = (move: any) => {
-    // Send move to server
-    socketService.sendMove(gameId, move, fen, '');
-  };
+  if (!gameId) return (<div className="p-8 text-center text-stone-500">No game ID provided.</div>);
 
-  const handleSendMessage = (message: string) => {
-    socketService.sendChatMessage(message, userId, gameId);
-  };
+  if (!isReady || !playerColor) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-stone-50">
+        <p className="text-stone-400 text-sm animate-pulse">Connecting to game...</p>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <h1>Game: {gameId}</h1>
-      {/* Chessboard goes here */}
-      {/* chatbox goes here */}
-    </div>
+    <ChessGame
+      gameId={gameId}
+      userId={userId}
+      playerColor={playerColor}
+      isSpectator={isSpectator}
+      initialState={initialState}
+      initialTimer={initialTimer}
+    />
   );
 };
 
