@@ -40,6 +40,9 @@ export function useChessGame({
 
   const [promotionMove, setPromotionMove] = useState<{ from: string; to: string } | null>(null);
 
+  const [drawOffered, setDrawOffered] = useState(false);
+  const [drawOfferSent, setDrawOfferSent] = useState(false);
+
   const timer = useTimer(gameOver);
 
   // helpers
@@ -191,10 +194,20 @@ export function useChessGame({
       setGameOver(true);
     });
 
+    const unsubDrawOffered = socketService.on('game:draw-offered', () => {
+      setDrawOffered(true);
+    });
+
+    const unsubDrawDeclined = socketService.on('game:draw-declined', () => {
+      setDrawOfferSent(false);
+    });
+
     return () => {
       unsubTimer?.();
       unsubMove?.();
       unsubGameOver?.();
+      unsubDrawOffered?.();
+      unsubDrawDeclined?.();
     };
   }, [gameId, userId, gameStatus]);
 
@@ -336,6 +349,22 @@ export function useChessGame({
     setPromotionMove(null);
   }, [promotionMove, sendMove]);
 
+  const handleResign = useCallback(() => {
+    if (isSpectator || gameOver) return;
+    socketService.sendResign(gameId);
+  }, [gameId, isSpectator, gameOver]);
+
+  const handleDrawOffer = useCallback(() => {
+    if (isSpectator || gameOver || drawOfferSent) return;
+    setDrawOfferSent(true);
+    socketService.sendDrawOffer(gameId);
+  }, [gameId, isSpectator, gameOver, drawOfferSent])
+
+  const handleDrawResponse = useCallback((accepted: boolean) => {
+    setDrawOffered(false);
+    socketService.sendDrawResponse(gameId, accepted);
+  }, [gameId]);
+
   // api
 
   return {
@@ -356,5 +385,10 @@ export function useChessGame({
     onDrop,
     onDragStart: onPieceDragStart,
     completePromotion,
+    drawOffered,
+    drawOfferSent,
+    handleResign,
+    handleDrawOffer,
+    handleDrawResponse,
   };
 }

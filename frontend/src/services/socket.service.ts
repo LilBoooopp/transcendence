@@ -151,6 +151,18 @@ class SocketService {
   onTimer(callback: (data: { whiteTimeMs: number; blackTimeMs: number; currentTurn: string; timerRunning: boolean }) => void): void {
     this.on('game:timer', callback);
   }
+
+  sendResign(gameId: string): void {
+    this.emit('game:resign', { gameId });
+  }
+
+  sendDrawOffer(gameId: string): void {
+    this.emit('game:draw-offer', { gameId });
+  }
+
+  sendDrawResponse(gameId: string, accepted: boolean): void {
+    this.emit('game:draw-response', { gameId, accepted });
+  }
 }
 
 export const socketService = new SocketService();
