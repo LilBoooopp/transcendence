@@ -10,6 +10,7 @@ COMPOSE_CMD = docker compose
 all:$(CERT)
 	@printf "Launch configuration ${name}...\n"
 	@$(COMPOSE_CMD) up --build
+#	@printf "Server listening on ...https://localhost:4443 and frontend landing page https://localhost:4443/wireframe/landing\n"
 
 $(CERT):
 	mkdir -p $(SSL_DIR)
@@ -32,6 +33,6 @@ fclean: clean
 	@printf "Total clean of all configurations docker\n"
 	rm -f $(KEY) $(CERT)
 	rm -rf nginx/ssl
-	# @docker volume rm
+	@docker volume rm
 
 .PHONY: all down re clean fclean

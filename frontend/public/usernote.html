@@ -1,0 +1,59 @@
+// a effacer
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Register</title>
+</head>
+<body>
+  <h2>Register</h2>
+  //form = balise html qui sert à regrouper des champs de saisie pour envoyer des donneés
+  <form id="form">
+    <input id="email" placeholder="Email" /><br/>
+    <input id="username" placeholder="Username" /><br/>
+    <input id="password" type="password" placeholder="Password" /><br/>
+	//Comme il est dans un <form>, cliquer dessus déclenche un événement submit.
+    <button type="submit">Create account</button>
+  </form>
+  <p id="result"></p>
+
+  <script>
+	//Il écoute l’événement + Il exécute la fonction async
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();//preventDefault c est pour pas qu il reload la page
+	  //fetch il va aller chercher des info dans le backend. 
+      const res = await fetch('/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+		// il récupère les valeurs des champs et les transforme en json
+        body: JSON.stringify({
+          email: document.getElementById('email').value,
+          username: document.getElementById('username').value,
+          password: document.getElementById('password').value,
+        })
+      });
+	  //NEST.js reçoit le post. 
+	  //navigateur reçoit la réponse:
+      const data = await res.json();
+	  //navigateur met à jour le texte de l écran. 
+      document.getElementById('result').textContent = res.ok
+        ? 'Compte créé : ' + data.username
+        : 'Erreur : ' + data.message;
+    });
+  </script>
+</body>
+</html>
+
+/*
+JSON Javascript Object Notation
+{
+  "email": "sylvie@mail.com",
+  "username": "sylvie42",
+  "password": "123456",
+//  "sport": ["natation", "football"]
+}
+
+rappel: 
+Objets → { }
+Tableaux → [ ]
+Clés / valeurs
+*/

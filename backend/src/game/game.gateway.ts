@@ -11,6 +11,9 @@ import {
 import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
 import { PrismaService } from '../prisma/prisma.service';
+// add by syl
+import { UseGuards } from '@nestjs/common';
+import { WsAuthGuard } from '../auth/guards/auth.guards';
 
 @WebSocketGateway({
   cors: {
@@ -18,6 +21,8 @@ import { PrismaService } from '../prisma/prisma.service';
     credentials: true,
   },
 })
+//syl a ajoute un guard
+//@UseGuards(WsAuthGuard)
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
@@ -104,7 +109,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { success: true, userId: data.userId };
   }
 
-  // Join a room
+  // Join a room$
+  //@UseGuards(WsAuthGuard)
   @SubscribeMessage('game:join')
   handleJoinGame(
     @MessageBody() data: { gameId: string },
@@ -430,6 +436,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   // Spectator join game
+  
   @SubscribeMessage('spectator:join')
   handleSpectateJoin(
     @MessageBody() data: { gameId: string },
