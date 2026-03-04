@@ -81,7 +81,7 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
   const {
     board, moveHistory, highlighted, lastMove, premoves,
     gameStatus, gameOver,promotionMove, timer,
-    onTileClick, onDrop, onDragStart completePromotion,
+    onTileClick, onDrop, onDragStart, completePromotion,
   } = useChessGame(props);
 
   const { whiteTimeMs, blackTimeMs, currentTurn, timerRunning } = timer;
@@ -122,7 +122,7 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
             premoves={premoves}
           />
         </div>
-        <TimerPanel label={bottomeLabel} timeMs={bottomTimeMs} isActive={currentTurn === bottomColor && timerRunning} side="bottom" />
+        <TimerPanel label={bottomLabel} timeMs={bottomTimeMs} isActive={currentTurn === bottomColor && timerRunning} side="bottom" />
       </div>
 
       {moveHistory.length > 0 && (

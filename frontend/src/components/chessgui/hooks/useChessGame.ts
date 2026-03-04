@@ -35,7 +35,7 @@ export function useChessGame({
   const premovesRef = useRef(premoves);
   useEffect(() => { premovesRef.current = premoves; }, [premoves]);
 
-  const [arrows, setArrows] = useSate<{ start: Coord; end: Coord }[]>([]);
+  const [arrows, setArrows] = useState<{ start: Coord; end: Coord }[]>([]);
   const [arrowStart, setArrowStart] = useState<Coord | null>(null);
 
   const [promotionMove, setPromotionMove] = useState<{ from: string; to: string } | null>(null);
@@ -54,7 +54,7 @@ export function useChessGame({
   const isPawnPromotion = useCallback((from: string, to: string): boolean => {
     const piece = gameRef.current.get(from as Square);
     if (!piece || piece.type !== 'p') return (false);
-    return (piece.color === 'w' && to[1] === '8') || (piece.volor === 'b' && to[1] === '1');
+    return (piece.color === 'w' && to[1] === '8') || (piece.color === 'b' && to[1] === '1');
   }, []);
 
   const isOwnPiece = useCallback((piece: string) =>
@@ -70,7 +70,7 @@ export function useChessGame({
 
   // Sync board from engin
 
-  const syncBoardFromEngin = useCallback(() => {
+  const syncBoardFromEngine = useCallback(() => {
     setFen(gameRef.current.fen());
     setBoard(convertBoard(gameRef.current.board()));
     setMoveHistory(gameRef.current.history());
@@ -108,7 +108,7 @@ export function useChessGame({
     setLastMove({ from: squareToCoord(move.from), to: squareToCoord(move.to) });
     socketService.sendMove(gameId, move, newFen, newPgn);
     updateGameStatus(gameRef.current);
-  }, [gameId, squareToCoord, syncBoardFromEnginE, updateGameStatus]);
+  }, [gameId, squareToCoord, syncBoardFromEngine, updateGameStatus]);
 
   // Restore on (re)join
 
@@ -128,14 +128,14 @@ export function useChessGame({
       syncBoardFromEngine();
       updateGameStatus(gameRef.current);
     } catch (err) {
-      console.error('Failed to restore initial state:' err);
+      console.error('Failed to restore initial state:', err);
     }
   }, [initialState]);
 
   useEffect(() => {
     if (!initialTimer) return;
     timer.syncTimer(initialTimer);
-    if (initialTimer.timerRunning) setGameStatue('Playing');
+    if (initialTimer.timerRunning) setGameStatus('Playing');
   }, [initialTimer]);
 
   // socket listening
@@ -216,7 +216,7 @@ export function useChessGame({
 
   const highlightMovesFrom = useCallback((square: Square) => {
     const moves = gameRef.current.moves({ square, verbose: true }) as Move[];
-    const newHL = emptyHighlights(0;
+    const newHL = emptyHighlights();
     moves.forEach(m => {
       const coord = squareToCoord(m.to);
       newHL[coord.rank][coord.file] = true;
@@ -241,7 +241,7 @@ export function useChessGame({
           return;
         }
 
-        const move = gameRef.current.move({ from. to });
+        const move = gameRef.current.move({ from, to });
         if (!move) {
           const piece = board[rank][file];
           if (piece && isOwnPiece(piece)) {
@@ -263,7 +263,7 @@ export function useChessGame({
     } else {
       // Premove
       if (selectedTile) {
-        setPremoves(prev => [...[prev], {
+        setPremoves(prev => [...prev, {
           from: { rank: selectedTile.rank, file: selectedTile.file },
           to: { rank, file },
         }]);

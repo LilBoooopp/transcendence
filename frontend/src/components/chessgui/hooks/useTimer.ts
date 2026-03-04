@@ -1,7 +1,7 @@
-import { useSate, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { TimerState } from '../types';
 
-const DEFAULT_TIME_MS 10 * 60 * 1000;
+const DEFAULT_TIME_MS = 10 * 60 * 1000;
 
 /**
  * Manages chess clock for both players.
@@ -24,9 +24,9 @@ export function useTimer(gameOver: boolean) {
 
     intervalRef.current = setInterval(() => {
       if (currentTurn === 'w') {
-        setWhiteTimeMs(prev: number => Math.max(0, prev - 100));
+        setWhiteTimeMs((prev: number) => Math.max(0, prev - 100));
       } else {
-        setBlackTimeMs(prev: number => Math.max(0, prev - 100));
+        setBlackTimeMs((prev: number) => Math.max(0, prev - 100));
       }
     }, 100);
 
