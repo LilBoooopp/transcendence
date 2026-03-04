@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import Board from './Board';
 import PromotionPopup from './PromotionPopup';
 import { classicTheme } from './themes';
@@ -13,61 +13,149 @@ const formatTime = (ms: number): string => {
   return (`${minutes}:${seconds.toString().padStart(2, '0')}`);
 };
 
-const formatMoveHistory = (history: string[]): React.ReactElement[] => {
-  const pairs: React.ReactElement[] = [];
-  for (let i = 0; i < history.length; i += 2) {
-    const n = Math.floor(i / 2) + 1;
-    pairs.push(
-      <span key={i} className="inline-flex items-center gap-1 text-sm font-mono">
-        <span className="text-gray-400 w-5 text-right">{n}.</span>
-        <span className="bg-white rounded px-1.5 py-0.5 shadow-sm">{history[i]}</span>
-        {history[i + 1] && (
-          <span className="bg-white rounded px-1.5 py-0.5 shadow-sm">{history[i + 1]}</span>
-        )}
-      </span>
-    );
-  }
-  return (pairs);
-};
-
-const statusColor = (status: string, gameOver: boolean): string => {
-  if (gameOver) return ('bg-red-100 text-red-700 border-red-200');
-  if (status === 'Check!') return ('bg-amber-100 text-amber-700 border-amber-200');
-  if (status === 'Playing') return ('bg-emerald-100 text-emerald-700 border-emerald-200');
-  return ('bg-gray-100 text-gray-600 border-gray-200');
-};
-
-interface TimerPanelProps {
+// player bar
+interface PlayerBarProps {
   label: string;
-  timeMs: number;
-  isActive: boolean;
-  side: 'top' | 'bottom';
+  isBottom?: boolean;
 }
 
-const TimerPanel: React.FC<TimerPanelProps> = ({ label, timeMs, isActive, side }) => {
-  const isCritical = timeMs < 60_000 && timeMs > 0;
+const PlayerBar: React.FC<PlayerBarProps> = ({ label, isBottom }) => ( 
+  <div className={`flex items-center gap-2 py-1.5 ${isBottom ? 'mt-1': 'mb-1'}`}>
+    <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-text-default text-xs font-heading">
+      ♟
+    </div>
+    <span className="font-body font-semibold text-sm text-text-dark">{label}</span>
+  </div>
+);
+
+// clocks
+interface ClockProps {
+  timeMs: number;
+  label: string;
+  isActive: boolean;
+}
+
+const Clock: React.FC<ClockProps> = ({ timeMs, label, isActive }) => {
+  const isCritical = timeMs < 30_000 && timeMs > 0;
   return (
     <div
       className={[
-        'flex justify-between items-center px-4 py-2.5 rounded-lg transition-all duration-300',
-        side === 'bottom' ? 'mt-2' : 'mb-2',
-        isActive ? 'bg-stone-800 text-white shadow-lg' : 'bg-stone-100 text-stone-500',
+        'flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200',
+        isActive
+          ? 'bg-primary text-text-default shadow-md'
+          : 'bg-accent/30 text-text-dark',
       ].join(' ')}
     >
-      <span className={`text-sm font-semibold tracking-wide uppercase ${isActive ? 'text-stone-300' : ''}`}>
+      <span className={`text-xs font-body font-medium uppercase tracking-wider ${isActive ? 'text-accent' : 'text-text-dark/50'}`}>
         {label}
       </span>
       <span
         className={[
-          'text-2xl font-mono font-bold tabular-nums tracking-tight',
-          isCritical ? 'text-red-400' : isActive ? 'text-white' : 'text-stone-400',
+          'text-xl font-mono font-bold tabular-nums tracking-tight',
+          isCritical ? 'text-red-500' : '',
         ].join(' ')}
-      >
+        >
         {formatTime(timeMs)}
       </span>
     </div>
   );
 };
+
+interface MoveHistoryProps {
+  history: string[];
+  currentMoveIndex?: number;
+}
+
+const MoveHistory: React.FC<MoveHistoryProps> = ({ history }) => {
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [history]);
+
+  const pairs: { n: number; white: string; black?: string }[] = [];
+  for (let i = 0; i < history.length; i += 2) {
+    pairs.push({ n: Math.floor(i / 2) + 1, white: history[i], black: history[i + 1] });
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto min-h-0">
+      {pairs.length === 0 ? (
+        <div className="flex items-center justify-center h-full text-text-dark/30 text-sm font-body italic">
+          No moves yet
+        </div>
+      ) : (
+        <table className="w-full text-sm font-mono">
+          <tbody>
+              {pairs.map(({ n, white, black }) => (
+                <tr
+                  key={n}
+                  className="group hover:bg-accent/20 transition-colors duration-100"
+                >
+                  <td className="w-8 pl-3 py-0.5 text-text-dark/40 font-body text-xs select-none">
+                    {n}
+                  </td>
+                  <td className="w-1/2 py-0.5 pr-3 font-semibold text-text-dark cursor-pointer hover:text-primary transition-colors">
+                    {white}
+                  </td>
+                  <td className="w-1/2 py-0.5 pr-3 font-semibold text-text-dark cursor-pointer hover:text-primary transition-colors">
+                    {black ?? ''}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+        </table>
+      )}
+      <div ref={bottomRef} />
+    </div>
+  );
+};
+
+// game controls
+
+interface GameControlsProps {
+  isSpectator: boolean;
+  gameOver: boolean;
+}
+
+const GameControls: React.FC<GameControlsProps> = ({ isSpectator, gameOver }) => {
+  if (isSpectator || gameOver) return (null);
+  return (
+    <div className="flex gap-2 pt-2 border-t border-accent/30">
+      <button
+        className="flex-1 py-1.5 rounded-lg text-xs font-body font-semibold bg-primary/10 hover:bg-primary/20 text-primary transition-colors duration-150"
+        title="Offer Draw"
+      >
+        ½ Draw
+      </button>
+      <button
+        className="flex-1 py-1.5 rounded-lg text-xs font-body font-semibold bg-red-50 hover:bg-red-100 text-red-600 transition-colors duration-150"
+        title="Resign"
+      >
+        ⚑ Resign
+      </button>
+    </div>
+  );
+};
+
+// Status badge
+
+const StatusBadge: React.FC<{ status: string, gameOver: boolean}> = ({ status, gameOver }) => {
+  const colors = gameOver
+    ? 'bg-red-100 text-red-700 boarder-red-200'
+    : status === 'Check!'
+    ? 'bg-amber-100 text-amber-700 border-amber-200'
+    : status === 'Playing'
+    ? 'bg-accent/40 text-secondary border-accent'
+    : 'bg-primary/10 text-primary border-primary/20';
+
+  return (
+    <span className={`text-xs font-body font-semibold px-2.5 py-0.5 rounded-full border ${colors}`}>
+      {status}
+    </span>
+  );
+};
+
 
 /**
  * Dropin multiplayer chess component
@@ -94,22 +182,13 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
   const bottomTimeMs = bottomColor === 'w' ? whiteTimeMs : blackTimeMs;
 
   return (
-    <div className="flex flex-col items-center gap-4 p-4 min-h-screen bg-stone-50">
-      <div className="w-full max-w-[600px] flex items.center justify-between">
-        <p className="text-sm text-stone-500 font-medium">
-          {isSpectator
-            ? 'Spectator'
-            : <React.Fragment>Playing as <span className="font-bold capitalize text-stone-800">{playerColor}</span></React.Fragment>
-          }
-        </p>
-        <span className={`text-xs font-semibold px-3 py-1 rounded-full border ${statusColor(gameStatus, gameOver)}`}>
-          {gameStatus}
-        </span>
-      </div>
+    <div className="flex items-start justify-center gap-3 p-4 min-h-screen bg-background-light font-body">
 
-      <div className="w-full max-w-[600px]">
-        <TimerPanel label={topLabel} timeMs={topTimeMs} isActive={currentTurn === topColor && timerRunning} side="top" />
-        <div className="rounded-lg overflow-hidden shadow-2xl shadow-stone-900/40">
+      {/* Left = board + player bars */}
+      <div className="flex flex-col">
+        <PlayerBar label={topLabel} />
+
+        <div className="rounded-lg overflow-hidden shadow-xl">
           <Board
             board={board}
             theme={classicTheme}
@@ -122,22 +201,63 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
             premoves={premoves}
           />
         </div>
-        <TimerPanel label={bottomLabel} timeMs={bottomTimeMs} isActive={currentTurn === bottomColor && timerRunning} side="bottom" />
+
+        <PlayerBar label={bottomLabel} isBottom />
       </div>
 
-      {moveHistory.length > 0 && (
-        <div className="w-fullmax-w-[600px] bg-white rounded-xl border border-stone-200 shadow-sm">
-          <div className="px-4 py-3 border-b border-stone-100">
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-stone-400">Move History</h3>
-          </div>
-          <div className="px-4 py-3 flex flex-wrap gap-2 max-h-36 overflow-y-auto">
-            {formatMoveHistory(moveHistory)}
-          </div>
+      {/* Right panel */}
+      <div
+        className="flex flex-col gap-2 rounded-xl border border-accent/40 bg-white shadow-md overflow-hidden"
+        style={{ width: '200px', height: '100%', alignSelf: 'stretch' }}
+      >
+        {/* Opponent clock */}
+        <div className="px-2 pt-2">
+          <Clock
+            timeMs={topTimeMs}
+            label={topLabel}
+            isActive={currentTurn === topColor && timerRunning}
+          />
         </div>
-      )}
 
+        {/* Status */}
+        <div className="flex items-center justify-center px-2">
+          <StatusBadge status={gameStatus} gameOver={gameOver} />
+        </div>
+
+        {/* Move history */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden border-t border-b border-accent/30">
+          <div className="px-3 py-1.5 bg-accent/20 flex items-center justify-between">
+            <span className="text-xs font-heading text-primary font-semibold uppercase tracking-wider">
+              Moves
+            </span>
+            <span className="text-xs font-body text-text-dark/40">
+              {Math.ceil(moveHistory.length / 2)} / —
+            </span>
+          </div>
+          <MoveHistory history={moveHistory} />
+        </div>
+        {/* your clock */}
+        <div className="px-2">
+          <Clock
+            timeMs={bottomTimeMs}
+            label={bottomLabel}
+            isActive={currentTurn === bottomColor && timerRunning}
+          />
+        </div>
+
+        {/* Game Controls */}
+        <div className="px-2 pb-2">
+          <GameControls isSpectator={isSpectator} gameOver={gameOver} />
+        </div>
+      </div>
+
+      {/* promotion popup */}
       {promotionMove && (
-        <PromotionPopup color={playerColor} theme={classicTheme} onSelect={completePromotion} />
+        <PromotionPopup
+          color={playerColor}
+          theme={classicTheme}
+          onSelect={completePromotion}
+        />
       )}
     </div>
   );
