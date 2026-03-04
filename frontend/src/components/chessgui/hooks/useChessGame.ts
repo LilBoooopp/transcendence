@@ -30,6 +30,9 @@ export function useChessGame({
 
   const [gameStatus, setGameStatus] = useState<string>('Playing');
   const [gameOver, setGameOver] = useState(false);
+
+  const gameOverRef = useRef(gameOver);
+  useEffect(() => { gameOverRef.current = gameOver; }, [gameOver]);
   
   const [premoves, setPremoves] = useState<Premove[]>([]);
   const premovesRef = useRef(premoves);
@@ -82,6 +85,7 @@ export function useChessGame({
   // Game status
 
   const updateGameStatus = useCallback((game: Chess) => {
+    if (gameOver) return;
     if (game.isCheckmate()) {
       const winner = game.turn() === 'w' ? 'Black' : 'White';
       setGameStatus(`Checkmate - ${winner} wins`);
@@ -100,7 +104,7 @@ export function useChessGame({
     } else {
       setGameStatus('Playing');
     }
-  }, [gameId]);
+  }, [gameId, gameOver]);
 
   // Send move
 
@@ -239,8 +243,8 @@ export function useChessGame({
 
   // Tile click
   const onTileClick = useCallback((rank: number, file: number) => {
-    if (isSpectator) return;
-  setArrows([]);
+    if (isSpectator || gameOver) return;
+    setArrows([]);
 
     if (isPlayerTurn()) {
       if (selectedTile) {
@@ -294,12 +298,12 @@ export function useChessGame({
       }
     }
   }, [isSpectator, isPlayerTurn, selectedTile, board, clearHighlights,
-      isPawnPromotion, isOwnPiece, highlightMovesFrom, sendMove]);
+      isPawnPromotion, isOwnPiece, highlightMovesFrom, sendMove, gameOver]);
 
   // Drag handling
 
   const onPieceDragStart = useCallback((rank: number, file: number) => {
-    if (isSpectator) return;
+    if (isSpectator || gameOverRef.current) return;
     setSelectedTile({ rank, file });
     const piece = board[rank][file];
     if (!piece || !isPlayerTurn()) return;
@@ -308,7 +312,7 @@ export function useChessGame({
   }, [isSpectator, board, isPlayerTurn, highlightMovesFrom]);
 
   const onDrop = useCallback((sourceSquare: string, targetSquare: string): boolean => {
-    if (isSpectator) return (false);
+    if (isSpectator || gameOverRef.current) return (false);
     
     if (!isPlayerTurn()) {
       const from = squareToCoord(sourceSquare);
