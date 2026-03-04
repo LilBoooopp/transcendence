@@ -178,10 +178,10 @@ model Tournament {
 enum TournamentStatus {
   REGISTRATION  // Players can join
   IN_PROGRESS   // Tournament started
-  COMPLETED     // TouGame Arnament finished
+  COMPLETED     // TouGame A)rnament finished
   CANCELLED     // Tournament cancelled
 }
- 
+
 model TournamentParticipant {
   id            String    @id @default(uuid())
   tournamentId  String

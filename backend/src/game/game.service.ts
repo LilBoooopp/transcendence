@@ -38,7 +38,7 @@ export class GameService {
       return (null);
     }
   }
-
+  //USERSYL EXEMPLE POUR JEUX
   async getOrCreateGame(gameId: string) {
     let game = await this.prisma.game.findUnique({
       where: { id: gameId },

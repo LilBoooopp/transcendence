@@ -11,6 +11,9 @@ import {
 import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
 import { PrismaService } from '../prisma/prisma.service';
+// add by syl
+import { UseGuards } from '@nestjs/common';
+import { WsAuthGuard } from '../auth/guards/auth.guards';
 
 @WebSocketGateway({
   cors: {
@@ -18,6 +21,8 @@ import { PrismaService } from '../prisma/prisma.service';
     credentials: true,
   },
 })
+//syl a ajoute un guard
+//@UseGuards(WsAuthGuard)
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
@@ -104,7 +109,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { success: true, userId: data.userId };
   }
 
-  // Join a room
+  // Join a room$
+  //@UseGuards(WsAuthGuard)
   @SubscribeMessage('game:join')
   handleJoinGame(
     @MessageBody() data: { gameId: string },
@@ -404,6 +410,68 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { success: true };
   }
 
+  @SubscribeMessage('game:resign')
+  handleResign(
+    @MessageBody() data: { gameId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const gameRoom = this.activeGames.get(data.gameId);
+    if (!gameRoom) return ({ success: false });
+
+    const resigningColor = gameRoom.white === client.id ? 'White' : 'Black';
+    const winner = resigningColor === 'White' ? 'Black' : 'White';
+
+    gameRoom.timerRunning = false;
+    this.clearGameTimer(data.gameId);
+
+    this.server.to(`game:${data.gameId}`).emit('game:over', {
+      winner,
+      result: `${resigningColor} resigned - ${winner} wins`,
+    });
+
+    return ({ success: true });
+  }
+
+  @SubscribeMessage('game:draw-offer')
+  handleDrawOffer(
+    @MessageBody() data: { gameId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const gameRoom = this.activeGames.get(data.gameId);
+    if (!gameRoom) return ({ success: false});
+
+    // forward only to opponent
+    client.to(`game:${data.gameId}`).emit('game:draw-offered', {
+      gameId: data.gameId,
+    });
+
+    return ({ success: true });
+  }
+
+  @SubscribeMessage('game:draw-response')
+  handleDrawResponse(
+    @MessageBody() data: { gameId: string; accepted: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const gameRoom = this.activeGames.get(data.gameId);
+    if (!gameRoom) return ({ success: false });
+
+    if (data.accepted) {
+      gameRoom.timerRunning = false;
+
+      this.server.to(`game:${data.gameId}`).emit('game:over', {
+        winner: 'Draw',
+        result: 'Draw by agreement',
+      });
+    } else {
+      client.to(`game:${data.gameId}`).emit('game:draw-declined', {
+        gameId: data.gameId,
+      });
+    }
+
+    return ({ success: true });
+  }
+
   // Message
   @SubscribeMessage('chat:message')
   handleChatMessage(
@@ -430,6 +498,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   // Spectator join game
+  
   @SubscribeMessage('spectator:join')
   handleSpectateJoin(
     @MessageBody() data: { gameId: string },
