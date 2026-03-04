@@ -13,6 +13,10 @@ const formatTime = (ms: number): string => {
   return (`${minutes}:${seconds.toString().padStart(2, '0')}`);
 };
 
+const BOARD_SIZE = 'min(calc(100vw - 2rem), 80vh, 600px)';
+const PLAYER_BAR_H = 48;
+const PANEL_WIDTH = 200;
+
 // player bar
 interface PlayerBarProps {
   label: string;
@@ -182,13 +186,16 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
   const bottomTimeMs = bottomColor === 'w' ? whiteTimeMs : blackTimeMs;
 
   return (
-    <div className="flex items-start justify-center gap-3 p-4 min-h-screen bg-background-light font-body">
+    <div className="flex flex-wrap justify-center items-start gap-3 p-4 bg-background-light min-h-screen font-body">
 
       {/* Left = board + player bars */}
-      <div className="flex flex-col">
+      <div className="flex flex-col flex-shrink-0">
         <PlayerBar label={topLabel} />
 
-        <div className="rounded-lg overflow-hidden shadow-xl">
+        <div
+          style={{ width: BOARD_SIZE, height: BOARD_SIZE }}
+          className="rounded-lg overflow-hidden shadow-xl flex-shrink-0"
+        >
           <Board
             board={board}
             theme={classicTheme}
@@ -207,11 +214,15 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 
       {/* Right panel */}
       <div
-        className="flex flex-col gap-2 rounded-xl border border-accent/40 bg-white shadow-md overflow-hidden"
-        style={{ width: '200px', height: '100%', alignSelf: 'stretch' }}
+        className="flex flex-col gap-2 rounded-xl border border-accent/40 bg-white shadow-md overflow-hidden flex-shrink-0"
+        style={{
+          width: `${PANEL_WIDTH}px`,
+          height: BOARD_SIZE,
+          marginTop: `${PLAYER_BAR_H}px`,
+        }}
       >
         {/* Opponent clock */}
-        <div className="px-2 pt-2">
+        <div className="px-2 pt-2 flex-shrink-0">
           <Clock
             timeMs={topTimeMs}
             label={topLabel}
@@ -220,24 +231,21 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
         </div>
 
         {/* Status */}
-        <div className="flex items-center justify-center px-2">
+        <div className="flex items-center justify-center px-2 flex-shrink-0">
           <StatusBadge status={gameStatus} gameOver={gameOver} />
         </div>
 
         {/* Move history */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden border-t border-b border-accent/30">
-          <div className="px-3 py-1.5 bg-accent/20 flex items-center justify-between">
-            <span className="text-xs font-heading text-primary font-semibold uppercase tracking-wider">
-              Moves
-            </span>
-            <span className="text-xs font-body text-text-dark/40">
-              {Math.ceil(moveHistory.length / 2)} / —
-            </span>
+        <div className="flex flex-col min-h-0 flex-1 overflow-hidden border-t border-b border-accent/30">
+          <div className="px-3 py-1.5 bg-accent/20 flex items-center justify-between flex-shrink-0">
+            <span className="text-xs font-heading text-primary font-semibold uppercase tracking-wider">Move</span>
+            <span className="text-xs font-body text-text-dark/40">{Math.ceil(moveHistory.length / 2)} / —</span>
           </div>
           <MoveHistory history={moveHistory} />
         </div>
+
         {/* your clock */}
-        <div className="px-2">
+        <div className="px-2 flex-shrink-0">
           <Clock
             timeMs={bottomTimeMs}
             label={bottomLabel}
@@ -246,7 +254,7 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
         </div>
 
         {/* Game Controls */}
-        <div className="px-2 pb-2">
+        <div className="px-2 pb-2 flex-shrink-0">
           <GameControls isSpectator={isSpectator} gameOver={gameOver} />
         </div>
       </div>
