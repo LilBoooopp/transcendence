@@ -1,6 +1,6 @@
 FROM node:22-alpine
 
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl stockfish
 
 WORKDIR /app
 

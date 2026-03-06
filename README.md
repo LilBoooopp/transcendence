@@ -52,7 +52,7 @@ chess-platform/
 ### Gaming (7 points)
 - ✅ Major: Web-based chess game (2pts)
 - ✅ Major: Remote players (2pts)
-- Major: AI opponent (Stockfish) (2pts)
+- ✅ Major: AI opponent (Stockfish) (2pts)
 - Minor: Tournament system (1pt)
 
 ### User Interaction (2 points)
