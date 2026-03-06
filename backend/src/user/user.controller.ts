@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthGuard } from '../auth/guards/auth.guards';
 
@@ -24,6 +24,14 @@ export class UserController {
   @Get('all')
   async getAllUsers() {
     return this.userService.getAllUsers();
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('isConnected')
+  async isConnected(@Req() req: any) {
+	console.log('in is connected 1');
+	const result = await this.userService.isConnected(req.user.userId);
+	return result;
   }
 
   @Get('email/:email')

@@ -1,0 +1,25 @@
+auth:
+login 
+a changer en POST '/api/auth/login' :)
+
+logout
+POST /logout ok :)
+
+user:
+register
+POST /users
+
+modification (put replace the entire ressource)
+PATCH /users/123 TO DO!
+
+get user info
+GET /users/123 TO DO!
+
+delete user
+DELETE /user/123 TO DO!
+
+game:
+start/create game
+join game
+watch game?
+register game?

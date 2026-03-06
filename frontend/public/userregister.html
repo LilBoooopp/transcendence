@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Base User</title>
+</head>
+<body>
+  <h2>Register</h2>
+  <form id="register">
+    <input id="email" placeholder="Email" /><br/>
+    <input id="username" placeholder="Username" /><br/>
+    <input id="password" type="password" placeholder="Password" /><br/>
+    <button type="submit">Create account</button>
+  </form>
+
+  </form>
+  <button type="button" id="enterGameBtn">Enter Game</button>
+	<button type="button" id="IsConnected">Is Connected?</button>
+
+  <p id="result"></p>
+  <script>
+	//register
+	const result = document.getElementById('result');
+
+    document.getElementById('register').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const res = await fetch('/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: document.getElementById('email').value,
+          username: document.getElementById('username').value,
+          password: document.getElementById('password').value,
+        })
+      });
+      const data = await res.json();
+      document.getElementById('result').textContent = res.ok
+        ? 'Compte créé : ' + data.username
+        : 'Erreur : ' + data.message;
+    });
+	//ENTER GAME
+document.getElementById('enterGameBtn').addEventListener('click', async (e) => {
+  e.preventDefault();
+	console.log("you want to enter the game start");
+  // Vérifier si l'utilisateur est connecté (token existe)
+  const token = localStorage.getItem('authToken');
+  
+  if (!token) {
+    document.getElementById('result').textContent = 'Erreur: Vous devez être connecté pour accéder au jeu';
+    return;
+  }
+  console.log("you want to enter the game");
+  // Rediriger vers la page jeu
+  window.location.href = '/game';
+});
+	////ISCONNECTED?
+	document.getElementById('IsConnected').addEventListener('click', async (e) => {
+	console.log('is connected clicked');
+	e.preventDefault();
+	const token = localStorage.getItem('authToken');
+	if (!token){
+		document.getElementById('result').textContent = 'Not connected. No Token';
+		return;
+	}
+	const res = await fetch('/api/users/isConnected', {
+		method: 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${token}`
+		}
+	});	////ISCONNECTED?
+	document.getElementById('IsConnected').addEventListener('click', async (e) => {
+	console.log('is connected clicked');
+	e.preventDefault();
+	const token = localStorage.getItem('authToken');
+	if (!token){
+		document.getElementById('result').textContent = 'Not connected. No Token';
+		return;
+	}
+	const res = await fetch('/api/users/isConnected', {
+		method: 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${token}`
+		}
+	});
+	const data = await res.json().catch(() => ({ message: 'Erreur serveur'}));
+	if (res.ok && data.isConnected){
+		document.getElementById('result').textContent = `You are connected as : ${data.username}`;
+	}
+	else {
+		document.getElementById('result').textContent = 'You have a token but are not connected';
+	}
+	});
+	const data = await res.json().catch(() => ({ message: 'Erreur serveur'}));
+	if (res.ok && data.isConnected){
+		document.getElementById('result').textContent = `You are connected as : ${data.username}`;
+	}
+	else {
+		document.getElementById('result').textContent = 'You have a token but are not connected';
+	}
+	});
+  </script>
+</body>
+</html>

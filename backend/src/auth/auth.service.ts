@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UserService} from 'src/user/user.service'
 import { JwtService} from '@nestjs/jwt'
 import * as bcrypt from 'bcrypt';
+import { PrismaService } from '../prisma/prisma.service';
 
 type AuthInput = {username: string; password: string};
 type SignInData = {userId: string; username: string}; //nerver return the password
@@ -14,6 +15,7 @@ export class AuthService {
 	constructor(
 		private usersService: UserService,
 		private jwtService: JwtService,
+		private prisma: PrismaService,
 	) {}
 
 	//this method will return an authentication result object
@@ -25,9 +27,13 @@ export class AuthService {
 			throw new UnauthorizedException();
 		}
 		//if user is valid
+		await this.prisma.user.update({
+			where: { id: user.userId},
+			data: { isOnline: true}
+		});
 		return this.signIn(user)
-
 	}
+
 
 /*  async findByUsername(username: string) {
     return this.prisma.user.findUnique({
@@ -59,6 +65,16 @@ export class AuthService {
 		const accessToken = await this.jwtService.signAsync(tokenPayload);
 		return {accessToken, username: user.username, userId: user.userId};
 	}
+
+	async logout(userId:string){
+		console.log('In new logout');
+		await this.prisma.user.update({
+			where: { id : userId},
+			data: { isOnline: false}
+		});
+		return true;///??
+	}
+
 }
 
-
+	

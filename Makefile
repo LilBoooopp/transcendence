@@ -21,7 +21,7 @@ $(CERT):
 
 down:
 	@printf "Stopping configuration ${name}...\n"
-	@$(COMPOSE_CMD) down
+	@$(COMPOSE_CMD) down -v
 
 re: down all
 

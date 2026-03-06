@@ -71,13 +71,31 @@ export class UserService {
   async findByUsername(username: string) {
     return this.prisma.user.findUnique({
       where: { username },
+	  //inclu les statistics dans le retour
       include: { statistics: true },
     });
   }
 
-  
-  async getAllUsers() {
-    return this.prisma.user.findMany({
+  async isConnected(userId: string): Promise<{ isConnected: boolean; username: string}>
+  {
+	console.log('in is connected');
+	const user = await this.prisma.user.findUnique({
+		where: { id: userId },
+		//retourne uniquement isOnline
+		select: { username:true, isOnline: true },
+	})
+	if (!user){
+		console.log('no user');
+		return { isConnected: false, username: ' ' };
+	}
+	console.log('it is a user');
+	return {
+		isConnected: user.isOnline,
+		username: user.username,
+	};
+  }
+	async getAllUsers() {
+		return this.prisma.user.findMany({
       include: { statistics: true },
     });
   }
