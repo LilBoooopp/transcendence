@@ -33,6 +33,6 @@ fclean: clean
 	@printf "Total clean of all configurations docker\n"
 	rm -f $(KEY) $(CERT)
 	rm -rf nginx/ssl
-	@docker volume rm
+#	@docker volume rm
 
 .PHONY: all down re clean fclean

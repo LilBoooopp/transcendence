@@ -34,14 +34,6 @@ export class AuthService {
 		return this.signIn(user)
 	}
 
-
-/*  async findByUsername(username: string) {
-    return this.prisma.user.findUnique({
-      where: { username },
-      include: { statistics: true },
-    });
-  }*/
-
 	async validateUser(input: AuthInput): Promise<SignInData | null>{
 		const user = await this.usersService.findByUsername(input.username);
 

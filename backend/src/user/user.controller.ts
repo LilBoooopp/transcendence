@@ -21,10 +21,16 @@ export class UserController {
   }
 
   @UseGuards(AuthGuard)
-  @Get('all')
+  @Get()
   async getAllUsers() {
     return this.userService.getAllUsers();
   }
+
+/*  @UseGuards(AuthGuard)
+  @Get('all')
+  async getAllUsers() {
+    return this.userService.getAllUsers();
+  }*/
 
   @UseGuards(AuthGuard)
   @Get('isConnected')
@@ -34,13 +40,14 @@ export class UserController {
 	return result;
   }
 
+  @UseGuards(AuthGuard)
   @Get('email/:email')
   async getUserByEmail(@Param('email') email: string) {
     const user = await this.userService.findByEmail(email);
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
-
+ @UseGuards(AuthGuard)
   @Get('username/:username')
   async getUserByUsername(@Param('username') username: string) {
     const user = await this.userService.findByUsername(username);
@@ -48,6 +55,7 @@ export class UserController {
     return userWithoutPassword;
   }
 
+  @UseGuards(AuthGuard)
   @Get(':id')
   async getUserById(@Param('id') id: string) {
     const user = await this.userService.findById(id);

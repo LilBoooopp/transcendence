@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Base User</title>
+  <title>auth</title>
 </head>
 <body>
   <h2>login</h2>
@@ -12,6 +12,7 @@
 	<button type="button" id="logoutBtn">Logout</button>
 	</form>
 	<a href="./userregister.html">Register</a>
+	<a href="./userpage.html">User Page</a>
 
 	<h2>showusers</h2>
 	<button type="button" id="enterGameBtn">Enter Game</button>
@@ -102,7 +103,7 @@
     document.getElementById('result').textContent = 'Error: you have to be connected to see the players';
     return;
 	}
-      const res = await fetch('/api/users/all', {
+      const res = await fetch('/api/users', {
         method: 'GET',
         headers: {
         'Content-Type': 'application/json',
