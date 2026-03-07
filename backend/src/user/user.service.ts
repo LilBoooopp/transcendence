@@ -76,6 +76,7 @@ export class UserService {
     });
   }
 
+  /*
   async isConnected(userId: string): Promise<{ isConnected: boolean; username: string}>
   {
 	console.log('in is connected');
@@ -93,7 +94,7 @@ export class UserService {
 		isConnected: user.isOnline,
 		username: user.username,
 	};
-  }
+  }*/
 	async getAllUsers() {
 		return this.prisma.user.findMany({
       include: { statistics: true },

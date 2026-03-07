@@ -32,13 +32,14 @@ export class UserController {
     return this.userService.getAllUsers();
   }*/
 
+	/*
   @UseGuards(AuthGuard)
   @Get('isConnected')
   async isConnected(@Req() req: any) {
 	console.log('in is connected 1');
 	const result = await this.userService.isConnected(req.user.userId);
 	return result;
-  }
+  }*/
 
   @UseGuards(AuthGuard)
   @Get('email/:email')

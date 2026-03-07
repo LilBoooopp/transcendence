@@ -95,7 +95,7 @@ export default function WireframeLanding() {
 						Log in to view your match history, analyze past games, and track your rating improvement over time.
 					</p>
 					<div className="flex justify-center gap-4">
-						<Button variant="primary" onClick={() => window.location.href = '/userlogin.html'}>Log In</Button>
+						<Button variant="primary" onClick={() => window.location.href = '/basepage.html'}>Log In</Button>
 						<Button variant="secondary" onClick={() => console.log('Register clicked')}>Register</Button>
 					</div>
 				</div>

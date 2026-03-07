@@ -20,6 +20,14 @@ export class AuthController {
 	}
 
 	@UseGuards(AuthGuard)
+	@Get('isConnected')
+	async isConnected(@Req() req: any){
+		console.log('in auth/isConnected');
+		const result = await this.authService.isConnected(req.user.userId);
+		return result;
+	}
+
+	@UseGuards(AuthGuard)
 	@Post('logout')
 	logout(@Req() req: any) {
 		console.log('Beginning of logout');

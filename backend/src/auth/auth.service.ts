@@ -67,6 +67,25 @@ export class AuthService {
 		return true;///??
 	}
 
+	async isConnected(userId: string): Promise<{ isConnected: boolean; username: string}>
+	{
+		console.log('in service auth/isConnected');
+		const user = await this.prisma.user.findUnique({
+			where: {id: userId},
+			//return only isOnline
+			select: { username: true, isOnline: true},
+		})
+		if (!user){
+			console.log('no user');
+			return {isConnected: false, username: ' '};
+		}
+		console.log('it is an user');
+		return {
+			isConnected: user.isOnline,
+			username: user.username,
+		}
+	}
+
 }
 
 	
