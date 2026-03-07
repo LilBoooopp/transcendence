@@ -10,8 +10,8 @@
   <br><br><br>
   <button id="loginBtn">Login</button>
   <button type="button" id="logoutBtn">Logout</button><br>
-  <button id="registerBtn">Register</button>
-  
+  <button id="registerBtn">Register</button><br>
+  <button id="UserPage">User Page</button>
   	<h2>showusers</h2>
   <button type="button" id="showUsersBtn">Show Users</button>
   <p id="result"></p>
@@ -25,7 +25,7 @@
 			return false;
 		} 
 	try {
-		const res = await fetch('/api/auth/isConnected', {
+		const res = await fetch('/api/auth/me', {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
@@ -66,7 +66,6 @@
 	})
 	//LOGOUT
 	document.getElementById('logoutBtn').addEventListener('click', logout);
-
 	async function logout(e){
 		e.preventDefault();
 		if (!await isUserConnected()){
@@ -97,6 +96,21 @@
 	}
 };
 
+
+	//ENTER USER DETAIL PAGE
+	document.getElementById('UserPage').addEventListener('click', async (e) => {
+	e.preventDefault();
+	console.log("you want to enter the user page");
+	//demande au backend de vérifier si le user est bien connecté
+	if (!await isUserConnected()){
+			//result.textContent = 'You are not connected';
+			openPopup('/login.html', 'Login');
+			return;
+		}
+  console.log("you are entering the user page");
+  // Rediriger vers la page jeu
+  window.location.href = './user.html';
+});
 
 	//ENTER GAME BIEN :)
 	document.getElementById('enterGameBtn').addEventListener('click', async (e) => {
@@ -149,12 +163,13 @@
 	//SHOW AUTOMATICALLY IF CONNECTED AND NAME :)
 	async function showConnectionStatus() {
 try {
-		const token = localStorage.getItem('authToken');
-		if (!token){
+	if (!await isUserConnected())
+		{
 			result.textContent = 'You are  not connected yet';
-			return ;
-		} 
-		const res = await fetch('/api/auth/isConnected', {
+			return;
+		}
+		const token = localStorage.getItem('authToken');
+		const res = await fetch('/api/auth/me', {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
@@ -194,7 +209,7 @@ try {
 			result.textContent = 'You are  not connected and have no token';
 			return ;
 		} 
-		const res = await fetch('/api/auth/isConnected', {
+		const res = await fetch('/api/auth/me', {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',

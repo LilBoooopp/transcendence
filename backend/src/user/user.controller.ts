@@ -6,7 +6,7 @@ import { AuthGuard } from '../auth/guards/auth.guards';
 export class UserController {
   constructor(private userService: UserService) {}
 	//ici recoit les infos de user.html
-  @Post('register')
+/*  @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() body: {
     email: string;
@@ -18,7 +18,7 @@ export class UserController {
     const user = await this.userService.createUser(body);
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
-  }
+  }*/
 
   @UseGuards(AuthGuard)
   @Get()
@@ -40,6 +40,13 @@ export class UserController {
 	const result = await this.userService.isConnected(req.user.userId);
 	return result;
   }*/
+
+ @UseGuards(AuthGuard)
+  @Get('me')
+  async getUserProfile(@Req() req: any){
+	console.log('in users/me');
+	return this.userService.getUserProfile(req.user.userId);
+  }
 
   @UseGuards(AuthGuard)
   @Get('email/:email')

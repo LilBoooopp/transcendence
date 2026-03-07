@@ -1,8 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { UserService} from 'src/user/user.service'
 import { JwtService} from '@nestjs/jwt'
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
+import { IsEmail } from 'class-validator';
 
 type AuthInput = {username: string; password: string};
 type SignInData = {userId: string; username: string}; //nerver return the password
@@ -17,6 +18,57 @@ export class AuthService {
 		private jwtService: JwtService,
 		private prisma: PrismaService,
 	) {}
+
+	async createUser(data: {
+    email: string;
+    username: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+  })
+  
+  {
+    if (!data.email || !data.username || !data.password) {
+      throw new BadRequestException('Email, username et password sont requis');
+    }
+
+    const existingUser = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: data.email },
+          { username: data.username }
+        ]
+      }
+    });
+
+    if (existingUser) {
+      throw new ConflictException('Email ou username déjà utilisé');
+    }
+
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+	//const unvalidMail = 
+
+    return this.prisma.user.create({
+      data: {
+        email: data.email,
+	//	userId: ,
+        username: data.username,
+        password: hashedPassword,
+        firstName: data.firstName,
+        lastName: data.lastName,
+		avatarUrl: "../backend/src/uploads/defaultAvatar.png",
+		bio: 'Basic bio',
+		isOnline: true,
+        statistics: {
+          create: {},
+        },
+      },
+      include: {
+        statistics: true,
+      },
+    });
+  }
 
 	//this method will return an authentication result object
 	async authenticate(input: AuthInput): Promise<AuthResult>{

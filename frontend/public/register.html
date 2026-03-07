@@ -20,7 +20,7 @@
 
     document.getElementById('register').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const res = await fetch('/api/users/register', {
+      const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -30,9 +30,16 @@
         })
       });
       const data = await res.json();
-      document.getElementById('result').textContent = res.ok
-        ? 'Compte créé : ' + data.username
-        : 'Erreur : ' + data.message;
+	  if (res.ok){
+		localStorage.setItem('authToken', data.accessToken);
+		document.getElementById('register').reset();		
+		window.opener.location.href = '/basepage.html';
+		window.close();
+}
+	  //return these data??
+      //document.getElementById('result').textContent = res.ok
+       // ? 'Compte créé : ' + data.username
+       // : 'Erreur : ' + data.message;
     });
   </script>
 </body>

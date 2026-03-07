@@ -12,7 +12,7 @@ POST /api/auth/logout :)
 voir si l'utilisateur est connecté (Bonjour...)
 GET /api/users/isConnected
 doit devenir:
-GET  /api/auth/me :(
+GET  /api/auth/me :)
 
 
 USERS gérer les utilisateurs (lire, modifier, supprimer)
@@ -22,6 +22,8 @@ PATCH /users/123 TO DO! :(
 
 get user info (voir profil)
 GET /users/123 TO DO! :(?'
+
+GET /api/users/me
 
 Get all users
 GET /api/users :)'

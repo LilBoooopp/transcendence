@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>User Page</title>
+</head>
+<body>
+  <h2>User Page</h2>
+  <p>to do:
+	show info
+	show friends
+	modify info
+	see stats
+	delete user
+	
+
+
+	info users:
+	id 
+	mail
+	username
+
+	modif:
+	password
+	avatar
+	first name
+	lase Name
+	bio
+
+  </p>
+  <p id="result"></p>
+  <script>
+		async function isUserConnected(){
+		const token = localStorage.getItem('authToken');
+		if (!token){
+			console.log('no token');
+			return false;
+		} 
+	try {
+		const res = await fetch('/api/auth/me', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${token}`
+			}
+		});
+		if (!res.ok)
+		{
+			localStorage.removeItem('authToken');
+			return false;
+		}
+		const data = await res.json();
+		//!! retourne value en vrai booleen. 
+		return !!data.isConnected;
+	} catch (error){
+		return false;
+	}
+	}
+
+
+	const result = document.getElementById('result');
+	async function showMyProfile(){
+		try {
+			if (!await isUserConnected())
+			{
+				result.textContent = 'You are  not connected yet';
+				window.opener.location.href = '/basepage.html';
+				return;
+			}
+			console.log('user is connected');
+			const token = localStorage.getItem('authToken');
+			const res = await fetch('/api/users/me', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${token}`
+				}
+			})
+			console.log('user is connected after');
+			const users = await res.json();
+			if (res.ok){
+
+		//result.textContent = 'Done get /api/user/me';
+
+		result.innerHTML = `Hey ${users.username}<br> id: ${users.id} <br> Bio: ${users.bio} image : ${users.avatarUrl} <br>  `;
+		if (users.avatarUrl) {
+
+    const img = document.createElement('img');
+    //img.src = users.avatarUrl;
+	img.src = "defaultAvatar.png";
+  // img.src = "../../backend/src/uploads/defaultAvatar.png" ;
+    img.alt = 'Profile picture';
+    img.width = 200;
+    result.appendChild(img);
+}
+		}
+		else {
+			result.textContent = 'Not ok /api/user/me';
+		}
+	}
+	catch(error)
+	{
+		result.textContent = 'Error on get /api/user/me';
+	}
+	//result.textContent = 'Done 3 get /api/user/me';
+	
+	}
+	document.addEventListener('DOMContentLoaded', showMyProfile);
+  </script>
+</body>
+

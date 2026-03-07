@@ -1,14 +1,16 @@
 import { Injectable, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 //import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
-import { IsEmail } from 'class-validator';
+//import * as bcrypt from 'bcrypt';
+//import { IsEmail } from 'class-validator';
 
+type UserProfile = { username: string, id: string, bio: string | null, isOnline: boolean, avatarUrl: string | null };
+//type UserProfile = { username: string };
 @Injectable()
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
-  async createUser(data: {
+/*  async createUser(data: {
     email: string;
     username: string;
     password: string;
@@ -52,7 +54,7 @@ export class UserService {
         statistics: true,
       },
     });
-  }
+  }*/
 
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({
@@ -76,28 +78,18 @@ export class UserService {
     });
   }
 
-  /*
-  async isConnected(userId: string): Promise<{ isConnected: boolean; username: string}>
-  {
-	console.log('in is connected');
-	const user = await this.prisma.user.findUnique({
-		where: { id: userId },
-		//retourne uniquement isOnline
-		select: { username:true, isOnline: true },
-	})
-	if (!user){
-		console.log('no user');
-		return { isConnected: false, username: ' ' };
-	}
-	console.log('it is a user');
-	return {
-		isConnected: user.isOnline,
-		username: user.username,
-	};
-  }*/
 	async getAllUsers() {
 		return this.prisma.user.findMany({
       include: { statistics: true },
     });
   }
+
+  async getUserProfile(id: string): Promise<UserProfile | null > {
+	return this.prisma.user.findUnique({
+		where: { id },
+		//select: { username: true},
+		select: { username: true, id: true, bio: true, isOnline: true, avatarUrl: true},  
+	});
+}
+
 }
