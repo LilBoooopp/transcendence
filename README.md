@@ -38,13 +38,12 @@ chess-platform/
 └── nginx/             # HTTPS reverse proxy
 ```
 
-## Modules (18 Points)
+## Modules (12 Points)
 
 ### Web (5 points)
 - ✅ Major: Frontend + Backend frameworks (2pts)
 - ✅ Major: Real-time WebSocket features (2pts)
 - ✅ Minor: ORM (Prisma) (1pt)
-- Minor: Custom made design (1pt)
 
 ### User Management (3 points)
 - Major: Standard user management (2pts)
@@ -53,7 +52,7 @@ chess-platform/
 ### Gaming (7 points)
 - ✅ Major: Web-based chess game (2pts)
 - ✅ Major: Remote players (2pts)
-- ✅ Major: AI opponent (Stockfish) (2pts)
+- Major: AI opponent (Stockfish) (2pts)
 - Minor: Tournament system (1pt)
 
 ### User Interaction (2 points)
@@ -62,7 +61,7 @@ chess-platform/
 ### Spectator Mode (1 point)
 - ✅ Minor: Watch live games (1pt)
 
-**Total: 12 Points**
+**Total: 18 Points** (4 points bonus)
 
 ## Installation
 
