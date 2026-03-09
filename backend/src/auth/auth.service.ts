@@ -57,7 +57,7 @@ export class AuthService {
         password: hashedPassword,
         firstName: data.firstName,
         lastName: data.lastName,
-		avatarUrl: "../backend/src/uploads/defaultAvatar.png",
+		avatarUrl: "defaultAvatar.png",
 		bio: 'Basic bio',
 		isOnline: true,
         statistics: {

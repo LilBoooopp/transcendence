@@ -1,24 +1,10 @@
-import { Controller, Post, Get, Body, Param, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Patch, Get, Body, Param, Delete, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthGuard } from '../auth/guards/auth.guards';
 
 @Controller('users')
 export class UserController {
   constructor(private userService: UserService) {}
-	//ici recoit les infos de user.html
-/*  @Post('register')
-  @HttpCode(HttpStatus.CREATED)
-  async register(@Body() body: {
-    email: string;
-    username: string;
-    password: string;
-    firstName?: string;
-    lastName?: string;
-  }) {
-    const user = await this.userService.createUser(body);
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
-  }*/
 
   @UseGuards(AuthGuard)
   @Get()
@@ -26,20 +12,21 @@ export class UserController {
     return this.userService.getAllUsers();
   }
 
-/*  @UseGuards(AuthGuard)
-  @Get('all')
-  async getAllUsers() {
-    return this.userService.getAllUsers();
-  }*/
-
-	/*
   @UseGuards(AuthGuard)
-  @Get('isConnected')
-  async isConnected(@Req() req: any) {
-	console.log('in is connected 1');
-	const result = await this.userService.isConnected(req.user.userId);
-	return result;
-  }*/
+  @Delete()
+  async deleteUser(@Req() req: any)
+  {
+	console.log('Delete User');
+	return this.userService.deleteUser(req.user.userId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch()
+  async modifyUser(@Req() req: any, @Body() body)
+  {
+	console.log('In patch/user/');
+	return this.userService.modifyUser(req.user.userId, body.bio);
+  }
 
  @UseGuards(AuthGuard)
   @Get('me')

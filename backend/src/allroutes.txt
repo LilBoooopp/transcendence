@@ -18,7 +18,7 @@ GET  /api/auth/me :)
 USERS gérer les utilisateurs (lire, modifier, supprimer)
 
 modification (put replace the entire ressource)
-PATCH /users/123 TO DO! :(
+PATCH /users/123 TO DO! :( a faire plus
 
 get user info (voir profil)
 GET /users/123 TO DO! :(?'
@@ -29,7 +29,7 @@ Get all users
 GET /api/users :)'
 
 delete user
-DELETE /user/123 TO DO! :(
+DELETE /user/123 TO DO! :)
 
 
 game:

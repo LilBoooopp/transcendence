@@ -5,8 +5,17 @@
 </head>
 <body>
   <h2>User Page</h2>
-  <p>to do:
-	show info
+   <p id="UserInfo"></p>
+   <form id=ModifyUserInfo>
+	<input id="bio" placeholder="bio" /><br/>
+	<button id="modifyUser">Modify user info</button><br>
+   </form>
+	<button id="deleteUser">Delete User</button><br>
+   <p id="result"></p>
+  <p>
+	
+	to do:
+	show info :)
 	show friends
 	modify info
 	see stats
@@ -27,7 +36,7 @@
 	bio
 
   </p>
-  <p id="result"></p>
+ 
   <script>
 		async function isUserConnected(){
 		const token = localStorage.getItem('authToken');
@@ -56,14 +65,14 @@
 	}
 	}
 
-
-	const result = document.getElementById('result');
+	//// SHOW PROFILE INFO
+	const UserInfo = document.getElementById('UserInfo');
 	async function showMyProfile(){
 		try {
 			if (!await isUserConnected())
 			{
-				result.textContent = 'You are  not connected yet';
-				window.opener.location.href = '/basepage.html';
+				UserInfo.textContent = 'You are  not connected yet';
+				window.location.href = '/basepage.html';
 				return;
 			}
 			console.log('user is connected');
@@ -79,32 +88,92 @@
 			const users = await res.json();
 			if (res.ok){
 
-		//result.textContent = 'Done get /api/user/me';
-
-		result.innerHTML = `Hey ${users.username}<br> id: ${users.id} <br> Bio: ${users.bio} image : ${users.avatarUrl} <br>  `;
+		UserInfo.innerHTML = `Hey ${users.username}<br> id: ${users.id} <br> Bio: ${users.bio} <br>`;
 		if (users.avatarUrl) {
-
-    const img = document.createElement('img');
-    //img.src = users.avatarUrl;
-	img.src = "defaultAvatar.png";
-  // img.src = "../../backend/src/uploads/defaultAvatar.png" ;
-    img.alt = 'Profile picture';
-    img.width = 200;
-    result.appendChild(img);
-}
+			const img = document.createElement('img');
+			img.src = `/api/uploads/${users.avatarUrl}`;
+			img.alt = 'Profile picture';
+			img.width = 200;
+			UserInfo.appendChild(img);
+			}
 		}
 		else {
-			result.textContent = 'Not ok /api/user/me';
+			UserInfo.textContent = 'Not ok /api/user/me';
 		}
 	}
 	catch(error)
 	{
-		result.textContent = 'Error on get /api/user/me';
+		UserInfo.textContent = 'Error on get /api/user/me or you are not connected';
 	}
-	//result.textContent = 'Done 3 get /api/user/me';
-	
 	}
 	document.addEventListener('DOMContentLoaded', showMyProfile);
+
+	///MODIFY BIO PATCH /users/123 TO DO! :(
+	document.getElementById('modifyUser').addEventListener('click', ModifyUserInfo);
+	async function ModifyUserInfo(e) {
+		e.preventDefault();
+		if (!await isUserConnected())
+			{
+				result.textContent = 'You are  not connected yet';
+				window.location.href = '/basepage.html';
+				return;
+			}
+		try {
+			console.log('begin Patch');
+			const token = localStorage.getItem('authToken');
+			const res = await fetch('/api/users', {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${token}`,
+				},
+				body: JSON.stringify ({
+					bio: document.getElementById('bio').value,
+				})
+		});
+		if (res.ok){
+			result.textContent = 'Information modifieds';
+			showMyProfile();
+		}
+		else{
+			result.textContent = 'Info not modified';
+		}
+		}
+		catch (error)
+		{
+			result.textContent = "Error on PATCH /users/inConnected ";
+		}
+	}
+	//DELETE USER
+	document.getElementById('deleteUser').addEventListener('click', DeleteUser);
+	async function DeleteUser(e){
+		e.preventDefault();
+		if (!await isUserConnected())
+			{
+				result.textContent = 'You are  not connected yet';
+				window.location.href = '/basepage.html';
+				return;
+			}
+		try {
+			console.log('begin Delete');
+			const token = localStorage.getItem('authToken');
+			const res = await fetch('/api/users', {
+				method: 'DELETE',
+				headers:{
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${token}`,
+				},
+			});
+			if (res.ok){
+				localStorage.removeItem('authToken');
+				window.location.href = '/basepage.html';
+				return;
+			}
+		}
+		catch (error) {
+			result.textContent = 'Failed to delete user';
+		}
+	}
   </script>
 </body>
 

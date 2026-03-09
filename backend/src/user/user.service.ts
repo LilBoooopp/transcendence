@@ -10,52 +10,6 @@ type UserProfile = { username: string, id: string, bio: string | null, isOnline:
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
-/*  async createUser(data: {
-    email: string;
-    username: string;
-    password: string;
-    firstName?: string;
-    lastName?: string;
-  }) {
-    if (!data.email || !data.username || !data.password) {
-      throw new BadRequestException('Email, username et password sont requis');
-    }
-
-    const existingUser = await this.prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: data.email },
-          { username: data.username }
-        ]
-      }
-    });
-
-    if (existingUser) {
-      throw new ConflictException('Email ou username déjà utilisé');
-    }
-
-    const hashedPassword = await bcrypt.hash(data.password, 10);
-
-	//const unvalidMail = 
-
-    return this.prisma.user.create({
-      data: {
-        email: data.email,
-	//	userId: ,
-        username: data.username,
-        password: hashedPassword,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        statistics: {
-          create: {},
-        },
-      },
-      include: {
-        statistics: true,
-      },
-    });
-  }*/
-
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({
       where: { email },
@@ -91,5 +45,20 @@ export class UserService {
 		select: { username: true, id: true, bio: true, isOnline: true, avatarUrl: true},  
 	});
 }
+	async modifyUser(id: string, newBio: string){
+		return await this.prisma.user.update({
+		where: {id},
+		data: {
+			bio: newBio
+		}
+		});
+
+	}
+	async deleteUser(id: string){
+		return await this.prisma.user.delete({
+			where: {id}
+		});
+	}
+
 
 }
