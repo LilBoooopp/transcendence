@@ -8,9 +8,11 @@
    <p id="UserInfo"></p>
    <form id=ModifyUserInfo>
 	<input id="bio" placeholder="bio" /><br/>
+	<input id="firstName" placeholder ="firstName"/><br/>
 	<button id="modifyUser">Modify user info</button><br>
    </form>
 	<button id="deleteUser">Delete User</button><br>
+	<a href="./basepage.html">Base Page</a>
    <p id="result"></p>
   <p>
 	
@@ -32,7 +34,7 @@
 	password
 	avatar
 	first name
-	lase Name
+	lase Names
 	bio
 
   </p>
@@ -88,7 +90,11 @@
 			const users = await res.json();
 			if (res.ok){
 
-		UserInfo.innerHTML = `Hey ${users.username}<br> id: ${users.id} <br> Bio: ${users.bio} <br>`;
+		UserInfo.innerHTML = `Hey ${users.username} <br> id: ${users.id} <br> Bio: ${users.bio} <br>`;
+		if (users.firstName)
+		{
+			UserInfo.innerHTML += `First Name ${users.firstName} <br>`;
+		}
 		if (users.avatarUrl) {
 			const img = document.createElement('img');
 			img.src = `/api/uploads/${users.avatarUrl}`;
@@ -108,7 +114,7 @@
 	}
 	document.addEventListener('DOMContentLoaded', showMyProfile);
 
-	///MODIFY BIO PATCH /users/123 TO DO! :(
+	///MODIFY BIO PATCH /users/123
 	document.getElementById('modifyUser').addEventListener('click', ModifyUserInfo);
 	async function ModifyUserInfo(e) {
 		e.preventDefault();
@@ -127,8 +133,10 @@
 					'Content-Type': 'application/json',
 					'Authorization': `Bearer ${token}`,
 				},
+				//verification to do
 				body: JSON.stringify ({
 					bio: document.getElementById('bio').value,
+					firstName: document.getElementById('firstName').value,
 				})
 		});
 		if (res.ok){

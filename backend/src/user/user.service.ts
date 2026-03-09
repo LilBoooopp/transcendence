@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 //import * as bcrypt from 'bcrypt';
 //import { IsEmail } from 'class-validator';
 
-type UserProfile = { username: string, id: string, bio: string | null, isOnline: boolean, avatarUrl: string | null };
+type UserProfile = { username: string, id: string, firstName: string | null, bio: string | null, isOnline: boolean, avatarUrl: string | null };
 //type UserProfile = { username: string };
 @Injectable()
 export class UserService {
@@ -42,16 +42,31 @@ export class UserService {
 	return this.prisma.user.findUnique({
 		where: { id },
 		//select: { username: true},
-		select: { username: true, id: true, bio: true, isOnline: true, avatarUrl: true},  
+    select: { username: true, id: true, firstName: true, bio: true, isOnline: true, avatarUrl: true},  
 	});
 }
-	async modifyUser(id: string, newBio: string){
-		return await this.prisma.user.update({
+	async modifyUser(id: string, newBio: string, newFirstName: string){
+		const data: any = {};
+
+if (newBio !== undefined && newBio !== null && newBio !== '') {
+  data.bio = newBio;
+}
+
+if (newFirstName !== undefined && newFirstName !== null && newFirstName !== '') {
+  data.firstName = newFirstName;
+}
+
+return this.prisma.user.update({
+  where: { id },
+  data,
+});
+/*		return await this.prisma.user.update({
 		where: {id},
 		data: {
-			bio: newBio
+			bio: newBio,
+			firstName: newFirstName,
 		}
-		});
+		});*/
 
 	}
 	async deleteUser(id: string){
