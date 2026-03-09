@@ -157,13 +157,15 @@ export function useChessGame({
 
     const unsubMove = socketService.on('game:move', (data: { move: any; fen: string; pgn: string }) => {
       try {
-        const currentFen = gameRef.current.fen();
-        if (data.move?.from && data.move?.to && data.move.before === currentFen) {
-          gameRef.current.move({
+        if (data.move?.from && data.move?.to) {
+          const result = gameRef.current.move({
             from: data.move.from,
             to: data.move.to,
             promotion: data.move.promotion || 'q',
           });
+          if (!result) {
+            gameRef.current.load(data.fen);
+          }
         } else {
           gameRef.current.load(data.fen);
         }
