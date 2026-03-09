@@ -44,6 +44,7 @@ class SocketService {
     }
   }
 
+  	//STARTGAME JOIN GAME
   identifyUser(userId: string): void {
     this.emit('user:identify', { userId });
   }
