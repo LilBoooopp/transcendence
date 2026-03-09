@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Base User</title>
+</head>
+<body>
+  <h2>Register</h2>
+  <form id="register">
+    <input id="email" placeholder="Email" /><br/>
+    <input id="username" placeholder="Username" /><br/>
+    <input id="password" type="password" placeholder="Password" /><br/>
+    <button type="submit">Create account</button>
+  </form>
+
+  </form>
+  <p id="result"></p>
+  <script>
+	//register
+	const result = document.getElementById('result');
+
+    document.getElementById('register').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: document.getElementById('email').value,
+          username: document.getElementById('username').value,
+          password: document.getElementById('password').value,
+        })
+      });
+      const data = await res.json();
+	  if (res.ok){
+		localStorage.setItem('authToken', data.accessToken);
+		document.getElementById('register').reset();		
+		window.opener.location.href = '/basepage.html';
+		window.close();
+}
+	  //return these data??
+      //document.getElementById('result').textContent = res.ok
+       // ? 'Compte créé : ' + data.username
+       // : 'Erreur : ' + data.message;
+    });
+  </script>
+</body>
+</html>

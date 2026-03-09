@@ -1,129 +1,187 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Register</title>
+  <title>User Page</title>
 </head>
 <body>
-  <h2>Register</h2>
-  <form id="register">
-    <input id="email" placeholder="Email" /><br/>
-    <input id="username" placeholder="Username" /><br/>
-    <input id="password" type="password" placeholder="Password" /><br/>
-    <button type="submit">Create account</button>
-  </form>
-  <h2>login</h2>
-  <form id="loginForm">
-    <input id="loginUsername" placeholder="Username" /><br/>
-    <input id="loginPassword" type="password" placeholder="Password" /><br/>
-    <button type="submit">Login</button>
-	<button type="button" id="logoutBtn">Logout</button>
+  <h2>User Page</h2>
+   <p id="UserInfo"></p>
+   <form id=ModifyUserInfo>
+	<input id="bio" placeholder="bio" /><br/>
+	<input id="firstName" placeholder ="firstName"/><br/>
+	<button id="modifyUser">Modify user info</button><br>
+   </form>
+	<button id="deleteUser">Delete User</button><br>
+	<a href="./basepage.html">Base Page</a>
+   <p id="result"></p>
+  <p>
 	
-  </form>
-  <button type="button" id="enterGameBtn">Enter Game</button>
-  <h2>showusers</h2>
-		<button type="button" id="showUsersBtn">Show Users</button>
-  <p id="result"></p>
+	to do:
+	show info :)
+	show friends
+	modify info
+	see stats
+	delete user
+	
+
+
+	info users:
+	id 
+	mail
+	username
+
+	modif:
+	password
+	avatar
+	first name
+	lase Names
+	bio
+
+  </p>
+ 
   <script>
-	const result = document.getElementById('result');
+		async function isUserConnected(){
+		const token = localStorage.getItem('authToken');
+		if (!token){
+			console.log('no token');
+			return false;
+		} 
+	try {
+		const res = await fetch('/api/auth/me', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${token}`
+			}
+		});
+		if (!res.ok)
+		{
+			localStorage.removeItem('authToken');
+			return false;
+		}
+		const data = await res.json();
+		//!! retourne value en vrai booleen. 
+		return !!data.isConnected;
+	} catch (error){
+		return false;
+	}
+	}
 
-    document.getElementById('register').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const res = await fetch('/api/users/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: document.getElementById('email').value,
-          username: document.getElementById('username').value,
-          password: document.getElementById('password').value,
-        })
-      });
-      const data = await res.json();
-      document.getElementById('result').textContent = res.ok
-        ? 'Compte créé : ' + data.username
-        : 'Erreur : ' + data.message;
-    });
-	//LOGIN
-	document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-	  console.log("enter login");
-	  //route pour login...
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: document.getElementById('loginUsername').value,
-          password: document.getElementById('loginPassword').value,
-        })
-      });
-	  ///verifier si c est bien du json
-      const data = await res.json().catch(() => ({ message: 'Erreur serveur'}));
-	  if (res.ok) {
-    // Changez access_token en accessToken
-    localStorage.setItem('authToken', data.accessToken);
-    result.textContent = `Connecté : ${data.username || 'OK'}`;
-  } else {
-    result.textContent = `Erreur : ${data.message || res.status}`;
-  }
-});
-	//LOGOUT
-	document.getElementById('logoutBtn').addEventListener('click', (e) => {
-  e.preventDefault();
-  
-  // Supprimer le token du localStorage
-  localStorage.removeItem('authToken');
-  
-  // Effacer le message de connexion
-  document.getElementById('result').textContent = 'Vous avez été déconnecté';
-  
-  // Optionnel: rediriger vers la page de login après 1 seconde
- // setTimeout(() => {
- //   window.location.href = '/'; // ou la page de login
- // }, 1000);
-});
-	//ENTER GAME
-document.getElementById('enterGameBtn').addEventListener('click', async (e) => {
-  e.preventDefault();
-	console.log("you want to enter the game start");
-  // Vérifier si l'utilisateur est connecté (token existe)
-  const token = localStorage.getItem('authToken');
-  
-  if (!token) {
-    document.getElementById('result').textContent = 'Erreur: Vous devez être connecté pour accéder au jeu';
-    return;
-  }
-  console.log("you want to enter the game");
-  // Rediriger vers la page jeu
-  window.location.href = '/game';
-});
+	//// SHOW PROFILE INFO
+	const UserInfo = document.getElementById('UserInfo');
+	async function showMyProfile(){
+		try {
+			if (!await isUserConnected())
+			{
+				UserInfo.textContent = 'You are  not connected yet';
+				window.location.href = '/basepage.html';
+				return;
+			}
+			console.log('user is connected');
+			const token = localStorage.getItem('authToken');
+			const res = await fetch('/api/users/me', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${token}`
+				}
+			})
+			console.log('user is connected after');
+			const users = await res.json();
+			if (res.ok){
+
+		UserInfo.innerHTML = `Hey ${users.username} <br> id: ${users.id} <br> Bio: ${users.bio} <br>`;
+		if (users.firstName)
+		{
+			UserInfo.innerHTML += `First Name ${users.firstName} <br>`;
+		}
+		if (users.avatarUrl) {
+			const img = document.createElement('img');
+			img.src = `/api/uploads/${users.avatarUrl}`;
+			img.alt = 'Profile picture';
+			img.width = 200;
+			UserInfo.appendChild(img);
+			}
+		}
+		else {
+			UserInfo.textContent = 'Not ok /api/user/me';
+		}
+	}
+	catch(error)
+	{
+		UserInfo.textContent = 'Error on get /api/user/me or you are not connected';
+	}
+	}
+	document.addEventListener('DOMContentLoaded', showMyProfile);
+
+	///MODIFY BIO PATCH /users/123
+	document.getElementById('modifyUser').addEventListener('click', ModifyUserInfo);
+	async function ModifyUserInfo(e) {
+		e.preventDefault();
+		if (!await isUserConnected())
+			{
+				result.textContent = 'You are  not connected yet';
+				window.location.href = '/basepage.html';
+				return;
+			}
+		try {
+			console.log('begin Patch');
+			const token = localStorage.getItem('authToken');
+			const res = await fetch('/api/users', {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${token}`,
+				},
+				//verification to do
+				body: JSON.stringify ({
+					bio: document.getElementById('bio').value,
+					firstName: document.getElementById('firstName').value,
+				})
+		});
+		if (res.ok){
+			result.textContent = 'Information modifieds';
+			showMyProfile();
+		}
+		else{
+			result.textContent = 'Info not modified';
+		}
+		}
+		catch (error)
+		{
+			result.textContent = "Error on PATCH /users/inConnected ";
+		}
+	}
+	//DELETE USER
+	document.getElementById('deleteUser').addEventListener('click', DeleteUser);
+	async function DeleteUser(e){
+		e.preventDefault();
+		if (!await isUserConnected())
+			{
+				result.textContent = 'You are  not connected yet';
+				window.location.href = '/basepage.html';
+				return;
+			}
+		try {
+			console.log('begin Delete');
+			const token = localStorage.getItem('authToken');
+			const res = await fetch('/api/users', {
+				method: 'DELETE',
+				headers:{
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${token}`,
+				},
+			});
+			if (res.ok){
+				localStorage.removeItem('authToken');
+				window.location.href = '/basepage.html';
+				return;
+			}
+		}
+		catch (error) {
+			result.textContent = 'Failed to delete user';
+		}
+	}
   </script>
-    <script>
-    document.getElementById('showUsersBtn').addEventListener('click', async (e) => {
-		console.log("clicked");
-      e.preventDefault();
-	 const token = localStorage.getItem('authToken');
-  
-  if (!token) {
-    document.getElementById('result').textContent = 'Erreur: Vous devez être connecté';
-    return;
-  }
-      const res = await fetch('/api/users/all', {
-        method: 'GET',
-        headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      });
-      const users = await res.json();
-      if (res.ok) {
-    const userList = users.map(u => `${u.username} (${u.email})`).join('<br/>');
-    document.getElementById('result').innerHTML = `<h3>Users:</h3>${userList}`;
-  } else {
-    document.getElementById('result').textContent = 'Erreur: ' + users.message;
-  }
-    });
-  </script>
-  
-
-
 </body>
-</html>
+

@@ -49,6 +49,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  // START GAME. OK TO PUT IT HERE
   // Store connectionsa
   private activeUsers = new Map<string, string>();
 
@@ -104,6 +105,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  	//START GAME
   // User authentication/identificaition
   @SubscribeMessage('user:identify')
   handleUserIdentify(
