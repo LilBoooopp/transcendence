@@ -1,6 +1,6 @@
-FROM node:22-alpine
+FROM node:22-slim
 
-RUN apk add --no-cache openssl stockfish
+RUN apt-get update && apt-get install -y openssl stockfish --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -13,8 +13,8 @@ COPY prisma ./prisma/
 #a retirer... ou plus précis...
 COPY . .
 
-COPY script/entrypoint.sh /urs/local/bin/
-RUN chmod +x /urs/local/bin/entrypoint.sh
+COPY script/entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["script/entrypoint.sh"]
 

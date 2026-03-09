@@ -9,12 +9,12 @@ interface DifficultyConfig {
 }
 
 export const DIFFICULTY_CONFIG: Record<BotDifficulty, DifficultyConfig> = {
-  easy: { skillLevel: 2, moveTimeMs: 200 },
+  easy: { skillLevel: 1, moveTimeMs: 20 },
   medium: { skillLevel: 10, moveTimeMs: 1000 },
   hard: { skillLevel: 20, moveTimeMs: 3000 },
 };
 
-interface EgnineInstance {
+interface EngineInstance {
   process: ChildProcessWithoutNullStreams;
   difficulty: BotDifficulty;
   lineBuffer: string;
@@ -25,14 +25,14 @@ interface EgnineInstance {
 @Injectable()
 export class StockfishService implements OnModuleDestroy {
   private readonly logger = new Logger(StockfishService.name);
-  private engines = new Map<string, EgnineInstance>();
+  private engines = new Map<string, EngineInstance>();
 
   async startEngine(gameId: string, difficulty: BotDifficulty): Promise<void> {
-    if (this.engines.had(gameId)) {
+    if (this.engines.has(gameId)) {
       this.stopEngine(gameId);
     }
 
-    const proc = spawn('stockfish');
+    const proc = spawn('/usr/games/stockfish');
 
     const instance: EngineInstance = {
       process: proc,
@@ -61,6 +61,16 @@ export class StockfishService implements OnModuleDestroy {
 
     proc.stderr.on('data', (chunk: Buffer) => {
       this.logger.warn(`Stockfish stderr [${gameId}]: ${chunk.toString().trim()}`);
+    });
+
+    proc.on('error', (err) => {
+      this.logger.error(`Stockfish process error [${gameId}]: ${err.message}`);
+      for (const reject of instance.pendingRejecters) {
+        reject(err);
+      }
+      instance.pendingResolvers.length = 0;
+      instance.pendingRejecters.length = 0;
+      this.engines.delete(gameId);
     });
 
     proc.on('close', (code) => {
@@ -97,8 +107,8 @@ export class StockfishService implements OnModuleDestroy {
       instance.pendingResolvers.push(resolve);
       instance.pendingRejecters.push(reject);
 
-      instance.progress.stdin.write(`position fen ${fen}\n`);
-      instance.process.stdin.write(`go movetime ${moveTimeMs} \n`);
+      instance.process.stdin.write(`position fen ${fen}\n`);
+      instance.process.stdin.write(`go movetime ${moveTimeMs}\n`);
     }));
   }
 
@@ -116,8 +126,8 @@ export class StockfishService implements OnModuleDestroy {
     this.logger.log(`Engine stopped [${gameId}]`);
   }
 
-  OnModuleDestroy(): void {
-    for (const gameId of this.engines.keys()) {
+  onModuleDestroy(): void {
+    for (const gameId of [...this.engines.keys()]) {
       this.stopEngine(gameId);
     }
   }

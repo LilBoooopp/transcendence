@@ -44,6 +44,7 @@ chess-platform/
 - ✅ Major: Frontend + Backend frameworks (2pts)
 - ✅ Major: Real-time WebSocket features (2pts)
 - ✅ Minor: ORM (Prisma) (1pt)
+- Minor: Custom made design (1pt)
 
 ### User Management (3 points)
 - Major: Standard user management (2pts)
@@ -61,7 +62,7 @@ chess-platform/
 ### Spectator Mode (1 point)
 - ✅ Minor: Watch live games (1pt)
 
-**Total: 18 Points** (4 points bonus)
+**Total: 12 Points**
 
 ## Installation
 
