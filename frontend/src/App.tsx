@@ -11,6 +11,7 @@ import { socketService } from './services/socket.service';
 import WireframeLayout from './SamplePages/WireframeLayout';
 import WireframeDashboard from './SamplePages/WireframeDashboard';
 import WireframeLanding from './SamplePages/WireframeLanding';
+import WireframeGameMode from './SamplePages/WireframeGameMode';
 
 
 
@@ -174,6 +175,16 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+		<Route path="/wireframe/landing" element={
+			<WireframeLayout>
+				<WireframeLanding />
+			</WireframeLayout>
+		} />
+		<Route path="/wireframe/gamemode" element={
+			<WireframeLayout>
+				<WireframeGameMode />
+			</WireframeLayout>
+		} />
         <Route path="/wireframe" element={
           <WireframeLayout>
             <WireframeDashboard />
