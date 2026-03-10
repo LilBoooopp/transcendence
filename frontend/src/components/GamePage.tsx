@@ -9,6 +9,7 @@ interface LocationState {
   userId?: string;
   role?: 'white' | 'black';
   tcKey?: string;
+  initialTimer?: TimerState;
 }
 
 const GamePage: React.FC = () => {
@@ -23,7 +24,7 @@ const GamePage: React.FC = () => {
 
   const [role, setRole] = useState<'white' | 'black' | 'spectator' | null>(state.role ?? null);
   const [initialState, setInitialState] = useState<{ fen: string; pgn: string } | null>(null);
-  const [initialTimer, setInitialTimer] = useState<TimerState | null>(null);
+  const [initialTimer, setInitialTimer] = useState<TimerState | null>(state.initialTimer ?? null);
   const [waiting, setWaiting] = useState(!state.role);
 
   const hasConnected = useRef(false);

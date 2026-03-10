@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom'; // 1. Import Router
 
 // Wireframe Imports pages Bastian
@@ -6,8 +5,10 @@ import WireframeLayout from './SamplePages/WireframeLayout';
 import WireframeDashboard from './SamplePages/WireframeDashboard';
 import WireframeLanding from './SamplePages/WireframeLanding';
 import WireframeGameMode from './SamplePages/WireframeGameMode';
+import WireframeBotMode from './SamplePages/WireframeBotMode';
 
 import MatchmakingWaiting from './components/MatchmakingWaiting';
+import BotGameLauncher from './components/BotGameLauncher';
 import GamePage from './components/GamePage';
 
 function App() {
@@ -29,6 +30,9 @@ function App() {
             <WireframeGameMode />
           </WireframeLayout>
         } />
+        <Route path="/botmode" element={
+          <WireframeLayout><WireframeBotMode /></WireframeLayout>
+        } />
         <Route path="/dashboard" element={
           <WireframeLayout>
             <WireframeDashboard />
@@ -43,6 +47,7 @@ function App() {
         */}
         <Route path="/play" element={<MatchmakingWaiting />} />
 
+        <Route path="/bot-launch" element={<BotGameLauncher />} />
         {/*
           /game/:gameId
           chess game set by matchmaking
