@@ -1,4 +1,4 @@
-import {CanActivate, ExecutionContext, Injectable, UnauthorizedException} from '@nestjs/common'
+import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { Socket } from 'socket.io';
 import { JWT_SECRET } from '../configs/jwtsecret';
@@ -6,22 +6,22 @@ import { JWT_SECRET } from '../configs/jwtsecret';
 //if it returns true, it means that the endpoint can be accessed. false we are refusing the access
 @Injectable()
 export class AuthGuard implements CanActivate {
-	constructor(private jwtService: JwtService){}
+	constructor(private jwtService: JwtService) { }
 	async canActivate(context: ExecutionContext) {
 		const request = context.switchToHttp().getRequest();
 		const authorization = request.headers.authorization; //Bearer <token> we are looking for the authorisation
-		    if (!authorization) {
-				throw new UnauthorizedException('No authorization header');
-    		}
+		if (!authorization) {
+			throw new UnauthorizedException('No authorization header');
+		}
 		const token = authorization?.split(' ')[1];// int the autorization, it is looking for the token. 
-		if(!token) {
+		if (!token) {
 			throw new UnauthorizedException('No token provided'); //no token, so request rejected so 401 error status
 		}
 		try {
 			const tokenPayload = await this.jwtService.verifyAsync(token);
 			//we add a user object to the request
 			request.user = {
-        		userId: tokenPayload.sub,
+				userId: tokenPayload.sub,
 				username: tokenPayload.username
 			}
 			return true;
@@ -35,15 +35,23 @@ export class AuthGuard implements CanActivate {
 //to access the game
 @Injectable()
 export class WsAuthGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
-    const client: Socket = context.switchToWs().getClient();
-    
-    if (!client.handshake.auth?.token) {
-		console.log("you should log in");
-      throw new UnauthorizedException('No authentication token');
-    }
-    
-    // Verify token here (add your JWT verification logic)
-    return true;
-  }
+	constructor(private jwtService: JwtService) { }
+
+	canActivate(context: ExecutionContext): Promise<boolean> {
+		const client: Socket = context.switchToWs().getClient();
+		const token = client.handshake.auth?.token;
+
+		if (!token) {
+			throw new UnauthorizedException('No authentication token');
+		}
+
+		try {
+			const payload = await this.jwtService.verifyAsync(token, { secret: JWT_SECRET });
+			client.data.userId = payload.sub;
+			client.data.uername = payload.username;
+			return (true);
+		} catch {
+			throw new UnauthorizedException('Invalid token');
+		}
+	}
 }
