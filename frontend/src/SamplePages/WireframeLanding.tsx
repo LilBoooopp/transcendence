@@ -1,13 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Tile from '../components/Tile';
 import LoginTile from '../components/LoginTile';
 import GameHistoryList, { GameHistoryItem } from '../components/GameHistoryList';
 import * as Icons from 'lucide-react';
+import { isLoggedIn } from '../services/auth.service';
+import Button from '@/components/Button';
 
 export default function WireframeLanding() {
-	const navigate = useNavigate();
-	const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const navigate = useNavigate();
+    const [loggedIn, setLoggedIn] = useState(false);
+
+    const checkAuth = () => {
+        isLoggedIn().then(({ connected }) => {
+            setLoggedIn(connected);
+			console.log("User is logged in:", connected);
+        });
+    };
+
+    useEffect(() => {
+        checkAuth();
+    }, []);
 
 	// Dummy data for the history list
 	const history: GameHistoryItem[] = [
@@ -74,27 +87,42 @@ export default function WireframeLanding() {
 		))}
 		</div>
 
-		{/* HISTORY / LOGIN SECTION */}
-		<div className="w-full mt-12">
-			{/* Dev Toggle: Remove this when real auth is implemented */}
-			<div className="flex justify-center mb-4">
-				<button 
-					onClick={() => setIsLoggedIn(!isLoggedIn)} 
-					className="text-xs text-gray-400 hover:text-gray-600 underline"
-				>
-					[Dev: Toggle Login State]
-				</button>
-			</div>
 
-			{isLoggedIn ? (
-				<GameHistoryList history={history} />
-			) : (
-				<LoginTile 
-					onLogin={() => console.log('Login clicked')} 
-					onRegister={() => console.log('Register clicked')} 
-				/>
-			)}
-		</div>
+        {/* HISTORY / LOGIN SECTION */}
+        <div className="w-full mt-12">
+
+            {loggedIn ? (
+                <>
+                    <GameHistoryList history={history} />
+					{/*Test button to logout (waiting for bastian to add a clean one)*/}
+                    <button
+                        className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
+                        onClick={async () => {
+                            try {
+                                await fetch('/api/auth/logout', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                                    },
+                                });
+                                localStorage.removeItem('token');
+                                setLoggedIn(false);
+                            } catch (error) {
+                                console.error('Logout failed', error);
+                            }
+                        }}
+                    >
+                        Logout
+                    </button>
+                </>
+            ) : (
+                <LoginTile 
+                    onLogin={() => console.log('Login clicked')} 
+                    onRegister={() => console.log('Register clicked')}
+					onLoginSuccess={checkAuth}
+                />
+            )}
+        </div>
 
 	</div>
 	);
