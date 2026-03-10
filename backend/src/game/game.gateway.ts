@@ -1,22 +1,24 @@
-import { WsException } from '@nestjs/websockets'; 
 import {
   WebSocketGateway,
   WebSocketServer,
   SubscribeMessage,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
   MessageBody,
   ConnectedSocket,
+  OnGatewayDisconnect,
+  WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Chess } from '../chess/src/Chess';
+import { StockfishService } from './stockfish.service';
 import { PieceSymbol } from '../chess/src/types';
+import { v4 as uuidv4 } from 'uuid';
 // add by syl
 import { UseGuards } from '@nestjs/common';
 import { WsAuthGuard } from '../auth/guards/auth.guards';
-import { StockfishService, BotDifficulty } from './stockfish.service';
+
+type BotDifficulty = 'easy' | 'medium' | 'hard';
 
 interface GameRoom {
   players: Set<string>;
@@ -28,57 +30,85 @@ interface GameRoom {
   gameStarted: boolean;
   whiteTimeMs: number;
   blackTimeMs: number;
-  currentTurn: 'w' | 'b';
+  incrementMs: number;
+  currentTurn: string;
   lastMoveAt: number | null;
   timerRunning: boolean;
-  timerInterval: NodeJS.Timeout | null;
+  timerInterval: ReturnType<typeof setInterval> | null;
   isBot: boolean;
   botColor: 'w' | 'b' | null;
   botDifficulty: BotDifficulty | null;
 }
 
-@WebSocketGateway({
-  cors: {
-    origin: '*', // need to specify URL
-    credentials: true,
-  },
-})
+interface MatchmakingEntry {
+  clientId: string;
+  userId: string;
+}
+
+const DEFAULT_TIME_KEY = '600+0';
+const DEFAULT_TIME_MS = 10 * 60 * 1000;
+const DEFAULT_INCREMENT_MS = 0;
+
+function parseTc(key?: string): { initialMs: number; incrementMs: number } {
+  if (!key) return ({ initialMs: DEFAULT_TIME_MS, incrementMs: DEFAULT_INCREMENT_MS });
+  const parts = (key ?? '').split('+').map(Number);
+  if (parts.length !== 2 || parts.some(isNaN)) {
+    return ({ initialMs: DEFAULT_TIME_MS, incrementMs: parts[1] * 1_000 });
+  }
+  return ({ initialMs: parts[0] * 1_000, incrementMs: parts[1] * 1_000 });
+}
+
+function defaultRoom(timeControlKey?: string): Omit<GameRoom, 'players' | 'white' | 'black' | 'isBot' | 'botColor' | 'botDifficulty'> {
+  const { initialMs, incrementMs } = parseTc(timeControlKey);
+  return {
+    spectators: new Set(),
+    fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+    pgn: '',
+    gameStarted: false,
+    whiteTimeMs: initialMs,
+    blackTimeMs: initialMs,
+    incrementMs,
+    currentTurn: 'w',
+    lastMoveAt: null,
+    timerRunning: false,
+    timerInterval: null,
+  };
+}
+
+@WebSocketGateway({ cors: { origin: '*' } })
 //syl a ajoute un guard
 //@UseGuards(WsAuthGuard)
-export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  @WebSocketServer()
-  server: Server;
+export class GameGateway implements OnGatewayDisconnect {
+  @WebSocketServer() server: Server;
 
   // START GAME. OK TO PUT IT HERE
-  // Store connectionsa
-  private activeUsers = new Map<string, string>();
 
   //Store games
   private activeGames = new Map<string, GameRoom>();
+  // Store connectionsa
+  private activeUsers = new Map<string, string>();
 
-  private readonly DEFAULT_TIME_MS = 10 * 60 * 1000;
+  /**
+  * Matchmaking queues based on time control (eg. "600+0")
+  * Each queue holds at most one player at a time,
+  * second player joins means they are paired.
+  */
+  private matchmakingQueues = new Map<string, MatchmakingEntry>();
 
   constructor(
     private readonly gameService: GameService,
     private readonly prisma: PrismaService,
     private readonly stockfishService: StockfishService,
-  ) {}
-
-  //new connection
-  handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
-  }
+  ) { }
 
   //disconnections
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
 
-    // Remove from active user
-    for (const [userId, socketId] of this.activeUsers.entries()) {
-      if (socketId === client.id) {
-        this.activeUsers.delete(userId);
-        // Broadcast user offline
-        this.server.emit('user:status', { userId, isOnline: false});
+    // remove from matchmaking
+    for (const [tcKey, entry] of this.matchmakingQueues.entries()) {
+      if (entry.clientId === client.id) {
+        this.matchmakingQueues.delete(tcKey);
         break;
       }
     }
@@ -99,13 +129,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         }
 
         if (gameRoom.players.size === 0) {
+          this.clearGameTimer(gameId);
+          if (gameRoom.isBot)
+            this.stockfishService.stopEngine(gameId);
           this.activeGames.delete(gameId);
         }
       }
     }
   }
 
-  	//START GAME
+  //START GAME
   // User authentication/identificaition
   @SubscribeMessage('user:identify')
   handleUserIdentify(
@@ -120,17 +153,105 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { success: true, userId: data.userId };
   }
 
+  @SubscribeMessage('matchmaking:join')
+  async handleMatchmakingJoin(
+    @MessageBody() data: { timeControlKey: string; userId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const tcKey = data.timeControlKey ?? DEFAULT_TIME_KEY;
+    const waiting = this.matchmakingQueues.get(tcKey);
+
+    if (waiting && waiting.clientId !== client.id) {
+      // match found
+      this.matchmakingQueues.delete(tcKey);
+
+      const gameId = uuidv4();
+      const { initialMs, incrementMs } = parseTc(tcKey);
+
+      // assign colors
+      const [whiteEntry, blackEntry] =
+        Math.random() < 0.5
+          ? [waiting, { clientId: client.id, userId: data.userId }]
+          : [{ clientId: client.id, userId: data.userId }, waiting];
+
+      const gameRoom: GameRoom = {
+        players: new Set(),
+        white: whiteEntry.clientId,
+        black: blackEntry.clientId,
+        spectators: new Set(),
+        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        pgn: '',
+        gameStarted: false,
+        whiteTimeMs: initialMs,
+        blackTimeMs: initialMs,
+        incrementMs,
+        currentTurn: 'w',
+        lastMoveAt: null,
+        timerRunning: false,
+        timerInterval: null,
+        isBot: false,
+        botColor: null,
+        botDifficulty: null,
+      };
+
+      this.activeGames.set(gameId, gameRoom);
+
+      // notify players of game
+      this.server.to(whiteEntry.clientId).emit('matchmaking:found', {
+        gameId,
+        role: 'white',
+        timeControlKey: tcKey,
+      });
+      this.server.to(blackEntry.clientId).emit('matchmaking:found', {
+        gameId,
+        role: 'black',
+        timeControlKey: tcKey,
+      });
+
+      console.log(`Matchmaking [${tcKey}]: paired ${whiteEntry.clientId} (W) vs ${blackEntry.clientId} (B) -> game ${gameId}`);
+
+      // try {
+      //   await this.gameService.createGame({
+      //     timeControl: tcKey,
+      //     isRanked: true,
+      //   });
+      // } catch (e) {
+      //   console.warn('Could not persist matchmade game to DB (non-fatal):', e.message);
+      // }
+    } else {
+      this.matchmakingQueues.set(tcKey, { clientId: client.id, userId: data.userId });
+      client.emit('matchmaking:waiting', { timeControlKey: tcKey });
+      console.log(`Matchmaking [${tcKey}]: ${client.id} is waiting`);
+    }
+
+    return ({ success: true });
+  }
+
+  @SubscribeMessage('matchmaking:cancel')
+  handleMatchmakingCancel(@ConnectedSocket() client: Socket) {
+    for (const [tcKey, entry] of this.matchmakingQueues.entries()) {
+      if (entry.clientId == client.id) {
+        this.matchmakingQueues.delete(tcKey);
+        console.log(`Matchmaking: ${client.id} cancelled`);
+        break;
+      }
+    }
+    client.emit('matchmaking:cancelled', {});
+    return ({ success: true });
+  }
+
   // Join a room$
   //@UseGuards(WsAuthGuard)
   @SubscribeMessage('game:join')
   handleJoinGame(
-    @MessageBody() data: { gameId: string },
+    @MessageBody() data: { gameId: string; timeControlKey?: string },
     @ConnectedSocket() client: Socket,
   ) {
     const roomName = `game:${data.gameId}`;
     client.join(roomName);
 
     if (!this.activeGames.has(data.gameId)) {
+      const { initialMs, incrementMs } = parseTc(data.timeControlKey);
       this.activeGames.set(data.gameId, {
         players: new Set(),
         white: null,
@@ -139,8 +260,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         pgn: '',
         gameStarted: false,
-        whiteTimeMs: this.DEFAULT_TIME_MS,
-        blackTimeMs: this.DEFAULT_TIME_MS,
+        whiteTimeMs: initialMs,
+        blackTimeMs: initialMs,
+        incrementMs,
         currentTurn: 'w',
         lastMoveAt: null,
         timerRunning: false,
@@ -156,12 +278,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     let assignedRole: 'white' | 'black' | 'spectator';
 
-    if (gameRoom.gameStarted) {
+    if (gameRoom.white === client.id) {
+      assignedRole = 'white';
+    } else if (gameRoom.black === client.id) {
+      assignedRole = 'black';
+    } else if (gameRoom.gameStarted) {
       assignedRole = 'spectator';
       gameRoom.spectators.add(client.id);
-    }
-
-    if (gameRoom.white === null && gameRoom.black === null) {
+    } else if (gameRoom.white === null && gameRoom.black === null) {
       assignedRole = Math.random() < 0.5 ? 'white' : 'black';
       if (assignedRole === 'white') {
         gameRoom.white = client.id;
@@ -171,19 +295,24 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } else if (gameRoom.white === null) {
       assignedRole = 'white'
       gameRoom.white = client.id;
-      gameRoom.gameStarted = true;
-      this.startGameTimer(data.gameId, gameRoom);
     } else if (gameRoom.black === null) {
       assignedRole = 'black';
       gameRoom.black = client.id;
-      gameRoom.gameStarted = true;
-      this.startGameTimer(data.gameId, gameRoom);
     } else {
       assignedRole = 'spectator';
       gameRoom.spectators.add(client.id);
     }
 
     console.log(`Client ${client.id} joined game ${data.gameId} as ${assignedRole}`);
+
+    if (assignedRole !== 'spectator' && !gameRoom.gameStarted) {
+      const whiteReady = gameRoom.white !== null && gameRoom.players.has(gameRoom.white);
+      const blackReady = gameRoom.black !== null && gameRoom.players.has(gameRoom.black);
+      if (whiteReady && blackReady) {
+        gameRoom.gameStarted = true;
+        this.startGameTimer(data.gameId, gameRoom);
+      }
+    }
 
     // tell the client what role they got
     client.emit('game:role-assigned', {
@@ -211,6 +340,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       blackTimeMs: this.getActiveTime(gameRoom, 'b'),
       currentTurn: gameRoom.currentTurn,
       timerRunning: gameRoom.timerRunning,
+      incrementMs: gameRoom.incrementMs,
     });
 
     return { success: true, gameId: data.gameId, role: assignedRole };
@@ -218,11 +348,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('game:bot-join')
   async handleBotJoin(
-    @MessageBody() data: { gameId: string; difficulty: BotDifficulty },
+    @MessageBody() data: { gameId: string; difficulty: BotDifficulty, timeControlKey?: string },
     @ConnectedSocket() client: Socket,
   ) {
     const roomName = `game:${data.gameId}`;
     client.join(roomName);
+
+    const { initialMs, incrementMs } = parseTc(data.timeControlKey);
+
 
     const humanColor: 'white' | 'black' = Math.random() < 0.5 ? 'white' : 'black';
     const botColor: 'w' | 'b' = humanColor === 'white' ? 'b' : 'w';
@@ -235,8 +368,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
       pgn: '',
       gameStarted: true,
-      whiteTimeMs: this.DEFAULT_TIME_MS,
-      blackTimeMs: this.DEFAULT_TIME_MS,
+      whiteTimeMs: initialMs,
+      blackTimeMs: initialMs,
+      incrementMs,
       currentTurn: 'w',
       lastMoveAt: null,
       timerRunning: false,
@@ -268,137 +402,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     return { success: true, role: humanColor };
-  }
-
-  private getActiveTime(gameRoom: any, color: 'w' | 'b'): number {
-    if (!gameRoom.timerRunning || !gameRoom.lastMoveAt) {
-      return (color === 'w' ? gameRoom.whiteTimeMs : gameRoom.blackTimeMs);
-    }
-    const stored = color === 'w' ? gameRoom.whiteTimeMs : gameRoom.blackTimeMs;
-    if (gameRoom.currentTurn === color) {
-      const elapsed = Date.now() - gameRoom.lastMoveAt;
-      return (Math.max(0, stored - elapsed));
-    }
-    return (stored);
-  }
-
-  private startGameTimer(gameId: string, gameRoom: any) {
-    gameRoom.timerRunning = true;
-    gameRoom.lastMoveAt = Date.now();
-
-    console.log(`Game ${gameId} started - timers running (${this.DEFAULT_TIME_MS / 1000}s per player)`);
-
-    this.server.to(`game:${gameId}`).emit('game:timer', {
-      whiteTimeMs: gameRoom.whiteTimeMs,
-      blackTimeMs: gameRoom.blackTimeMs,
-      currentTurn: gameRoom.currentTurn,
-      timerRunning: true,
-    });
-
-    gameRoom.timerInterval = setInterval(() => {
-      if (!gameRoom.timerRunning) return;
-      
-      const activeTime = this.getActiveTime(gameRoom, gameRoom.currentTurn);
-
-      if (activeTime <= 0) {
-        const winner = gameRoom.currentTurn === 'w' ? 'Black' : 'White';
-        const loser = gameRoom.currentTurn === 'b' ? 'White' : 'Black';
-
-        console.log(`Game ${gameId}: ${loser} ran out of time - ${winner} wins`);
-
-        gameRoom.timerRunning = false;
-        if (gameRoom.currentTurn === 'w') {
-          gameRoom.whiteTimeMs = 0;
-        } else {
-          gameRoom.blackTimeMs = 0;
-        }
-
-
-        this.server.to(`game:${gameId}`).emit('game:over', {
-          winner: winner,
-          result: `${loser} ran out of time - ${winner} wins`,
-        });
-
-        this.server.to(`game:${gameId}`).emit('game:timer', {
-          whiteTimeMs: gameRoom.whiteTimeMs,
-          blackTimeMs: gameRoom.blackTimeMs,
-          currentTurn: gameRoom.currentTurn,
-          timerRunning: false,
-        });
-
-        clearInterval(gameRoom.timerInterval);
-        gameRoom.timerInterval = null;
-      }
-    }, 1000);
-  }
-
-  private clearGameTimer(gameId: string) {
-    const gameRoom = this.activeGames.get(gameId);
-    if (gameRoom?.timerInterval) {
-      clearInterval(gameRoom.timerInterval);
-      gameRoom.timerInterval = null;
-    }
-  }
-
-  private scheduleBotMove(gameId: string, gameRoom: GameRoom): void {
-    setImmediate(async () => {
-      try {
-        const fenBeforeMove = gameRoom.fen;
-        const uciMove = await this.stockfishService.getBestMove(gameId, gameRoom.fen);
-        const parsed = this.parseUciMove(uciMove);
-
-        const chess = new Chess(fenBeforeMove);
-        const moveResult = chess.move({
-          from: parsed.from,
-          to: parsed.to,
-          promotion: parsed.promotion,
-        });
-
-        if (!moveResult) {
-          console.error(`Bot move ${uciMove} was illegal in postion ${fenBeforeMove}`);
-          return;
-        }
-
-        const newFen = chess.fen();
-        const newPgn = chess.pgn();
-
-        gameRoom.fen = newFen;
-        gameRoom.pgn = newPgn;
-        gameRoom.currentTurn = gameRoom.currentTurn === 'w' ? 'b' : 'w';
-
-        if (gameRoom.timerRunning && gameRoom.lastMoveAt) {
-          const elapsed = Date.now() - gameRoom.lastMoveAt;
-          if (gameRoom.botColor === 'b') {
-            gameRoom.blackTimeMs = Math.max(0, gameRoom.blackTimeMs - elapsed);
-          } else {
-            gameRoom.whiteTimeMs = Math.max(0, gameRoom.whiteTimeMs - elapsed);
-          }
-          gameRoom.lastMoveAt = Date.now();
-        }
-
-        this.server.to(`game:${gameId}`).emit('game:move', {
-          move: parsed,
-          fen: newFen,
-          pgn: newPgn,
-        });
-
-        this.server.to(`game:${gameId}`).emit('game:timer', {
-          whiteTimeMs: gameRoom.whiteTimeMs,
-          blackTimeMs: gameRoom.blackTimeMs,
-          currentTurn: gameRoom.currentTurn,
-          timerRunning: gameRoom.timerRunning,
-        });
-      } catch (err) {
-        console.error(`Bot move failed for game ${gameId}:`, err.message);
-      }
-    });
-  }
-
-  private parseUciMove(uci: string): { from: string, to: string; promotion?: PieceSymbol } {
-    const from = uci.slice(0, 2);
-    const to = uci.slice(2, 4);
-    const promotion = uci.length === 5 ? uci[4] as PieceSymbol : undefined;
-    return (promotion ? { from, to, promotion } : { from, to });
   }
 
   // Leave a game
@@ -446,21 +449,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(`Game: ${data.gameId}`);
     console.log(`Move:`, data.move);
 
-    const room = this.server.sockets.adapter.rooms.get(roomName);
-    const roomMembers = Array.from(room || []);
-    console.log(`Room "${roomName}" members (${room?.size || 0})"`, roomMembers);
-
-    const recipients = roomMembers.filter(id => id !== client.id);
-    console.log(`Recipients (excluding sender):`, recipients);
-
     try {
       if (!data.gameId || !data.move || !data.fen) {
         throw new WsException('Invalid move data');
       }
 
-      const user = client.data.user;
       const gameRoom = this.activeGames.get(data.gameId);
-
       if (!gameRoom || !gameRoom.players.has(client.id)) {
         throw new WsException('You are not in this game');
       }
@@ -474,21 +468,20 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         move: data.move,
         fen: data.fen,
         pgn: data.pgn,
-      });  
+      });
 
-      if (gameRoom) {
-        gameRoom.fen = data.fen;
-        gameRoom.pgn = data.pgn;
-      }
+      gameRoom.fen = data.fen;
+      gameRoom.pgn = data.pgn;
 
+      const movedColor = gameRoom.currentTurn;
       gameRoom.currentTurn = gameRoom.currentTurn === 'w' ? 'b' : 'w';
 
-      if (gameRoom.timerRunning && gameRoom.lastMoveAt) {
+      if (gameRoom.timerRunning && gameRoom.lastMoveAt !== null) {
         const elapsed = Date.now() - gameRoom.lastMoveAt;
-        if (gameRoom.currentTurn === 'b') {
-          gameRoom.whiteTimeMs = Math.max(0, gameRoom.whiteTimeMs - elapsed);
+        if (movedColor === 'w') {
+          gameRoom.whiteTimeMs = Math.max(0, gameRoom.whiteTimeMs - elapsed + gameRoom.incrementMs);
         } else {
-          gameRoom.blackTimeMs = Math.max(0, gameRoom.blackTimeMs - elapsed);
+          gameRoom.blackTimeMs = Math.max(0, gameRoom.blackTimeMs - elapsed + gameRoom.incrementMs);
         }
 
         gameRoom.lastMoveAt = Date.now();
@@ -498,6 +491,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           blackTimeMs: gameRoom.blackTimeMs,
           currentTurn: gameRoom.currentTurn,
           timerRunning: true,
+          incrementMs: gameRoom.incrementMs,
         });
       }
       console.log(`Move in game ${data.gameId}:`, data.move);
@@ -506,8 +500,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         fen: data.fen,
         moves: data.pgn,
       }).catch((err) => {
-          console.log('Failed to save game state to DB (non-fatal):', err.message);
-     });
+        console.log('Failed to save game state to DB (non-fatal):', err.message);
+      });
 
       if (gameRoom.isBot && gameRoom.currentTurn === gameRoom.botColor) {
         this.scheduleBotMove(data.gameId, gameRoom);
@@ -518,13 +512,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       console.error('Error handling move:', error);
 
       client.emit('error', {
-        message: error.message || 'failed to process move',
+        message: error.message ?? 'failed to process move',
       });
 
       return { success: false, error: error.message };
     }
   }
- 
+
 
   @SubscribeMessage('game:over')
   handleGameOver(
@@ -577,7 +571,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const gameRoom = this.activeGames.get(data.gameId);
-    if (!gameRoom) return ({ success: false});
+    if (!gameRoom) return ({ success: false });
 
     // forward only to opponent
     client.to(`game:${data.gameId}`).emit('game:draw-offered', {
@@ -637,7 +631,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   // Spectator join game
-  
+
   @SubscribeMessage('spectator:join')
   handleSpectateJoin(
     @MessageBody() data: { gameId: string },
@@ -648,7 +642,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Notify players that spectator count increased
     this.server.to(`game:${data.gameId}`).emit('spectate:count', {
       gameId: data.gameId,
-      count: this.activeGames.get(data.gameId)?.spectators.size || 0,
+      count: this.activeGames.get(data.gameId)?.spectators.size ?? 0,
     });
 
     return { success: true };
@@ -662,23 +656,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     };
   }
 
-  @SubscribeMessage('matchmaking:find')
-  async handleFindMatch(
-    @ConnectedSocket() client: Socket,
-  ) {
-    const user = client.data.user;
-    const gameId = await this.gameService.findOpponent(user.userId, client.id);
-
-    if (gameId) {
-      client.emit('matchmaking:found', { gameId, color: 'black' });
-    } else {
-      client.emit('matchmaking:waiting');
-    }
-  }
-
   @SubscribeMessage('game:load')
   async handleLoadGame(
-    @MessageBody() data: { gameId: string},
+    @MessageBody() data: { gameId: string },
     @ConnectedSocket() client: Socket,
   ) {
     try {
@@ -697,4 +677,140 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new WsException('Game not found');
     }
   }
+
+  private getActiveTime(gameRoom: any, color: 'w' | 'b'): number {
+    if (!gameRoom.timerRunning || !gameRoom.lastMoveAt) {
+      return (color === 'w' ? gameRoom.whiteTimeMs : gameRoom.blackTimeMs);
+    }
+    const stored = color === 'w' ? gameRoom.whiteTimeMs : gameRoom.blackTimeMs;
+    if (gameRoom.currentTurn === color) {
+      return (Math.max(0, stored - (Date.now() - gameRoom.lastMoveAt)));
+    }
+    return (stored);
+  }
+
+  private startGameTimer(gameId: string, gameRoom: any) {
+    gameRoom.timerRunning = true;
+    gameRoom.lastMoveAt = Date.now();
+
+    const inc = gameRoom.incrementMs;
+    console.log(`Game ${gameId} started - timers running (${gameRoom.whiteTimeMs / 1000}s + ${inc / 1000}s increment`);
+
+    this.server.to(`game:${gameId}`).emit('game:timer', {
+      whiteTimeMs: gameRoom.whiteTimeMs,
+      blackTimeMs: gameRoom.blackTimeMs,
+      currentTurn: gameRoom.currentTurn,
+      timerRunning: true,
+      incrementMs: inc,
+    });
+
+    gameRoom.timerInterval = setInterval(() => {
+      if (!gameRoom.timerRunning) return;
+
+      const activeTime = this.getActiveTime(gameRoom, gameRoom.currentTurn as 'w' | 'b');
+      if (activeTime > 0) return;
+
+      const winner = gameRoom.currentTurn === 'w' ? 'Black' : 'White';
+      const loser = gameRoom.currentTurn === 'b' ? 'White' : 'Black';
+
+      console.log(`Game ${gameId}: ${loser} ran out of time - ${winner} wins`);
+
+      gameRoom.timerRunning = false;
+      if (gameRoom.currentTurn === 'w') {
+        gameRoom.whiteTimeMs = 0;
+      } else {
+        gameRoom.blackTimeMs = 0;
+      }
+
+
+      this.server.to(`game:${gameId}`).emit('game:over', {
+        winner,
+        result: `${loser} ran out of time - ${winner} wins`,
+      });
+
+      this.server.to(`game:${gameId}`).emit('game:timer', {
+        whiteTimeMs: gameRoom.whiteTimeMs,
+        blackTimeMs: gameRoom.blackTimeMs,
+        currentTurn: gameRoom.currentTurn,
+        timerRunning: false,
+        incrementMs: gameRoom.incrementMs,
+      });
+
+      clearInterval(gameRoom.timerInterval);
+      gameRoom.timerInterval = null;
+    }, 1000);
+  }
+
+  private clearGameTimer(gameId: string) {
+    const gameRoom = this.activeGames.get(gameId);
+    if (gameRoom?.timerInterval) {
+      clearInterval(gameRoom.timerInterval);
+      gameRoom.timerInterval = null;
+    }
+  }
+
+  private scheduleBotMove(gameId: string, gameRoom: GameRoom): void {
+    setImmediate(async () => {
+      try {
+        const fenBeforeMove = gameRoom.fen;
+        const uciMove = await this.stockfishService.getBestMove(gameId, gameRoom.fen);
+        const parsed = this.parseUciMove(uciMove);
+
+        const chess = new Chess(fenBeforeMove);
+        const moveResult = chess.move({
+          from: parsed.from,
+          to: parsed.to,
+          promotion: parsed.promotion,
+        });
+
+        if (!moveResult) {
+          console.error(`Bot move ${uciMove} was illegal in postion ${fenBeforeMove}`);
+          return;
+        }
+
+        const newFen = chess.fen();
+        const newPgn = chess.pgn();
+
+        gameRoom.fen = newFen;
+        gameRoom.pgn = newPgn;
+
+        const movedColor = gameRoom.currentTurn as 'w' | 'b';
+        gameRoom.currentTurn = movedColor === 'w' ? 'b' : 'w';
+
+        if (gameRoom.timerRunning && gameRoom.lastMoveAt !== null) {
+          const elapsed = Date.now() - gameRoom.lastMoveAt;
+          if (movedColor === 'w') {
+            gameRoom.whiteTimeMs = Math.max(0, gameRoom.whiteTimeMs - elapsed + gameRoom.incrementMs);
+          } else {
+            gameRoom.blackTimeMs = Math.max(0, gameRoom.blackTimeMs - elapsed + gameRoom.incrementMs);
+          }
+          gameRoom.lastMoveAt = Date.now();
+        }
+
+        this.server.to(`game:${gameId}`).emit('game:move', {
+          move: parsed,
+          fen: newFen,
+          pgn: newPgn,
+        });
+
+        this.server.to(`game:${gameId}`).emit('game:timer', {
+          whiteTimeMs: gameRoom.whiteTimeMs,
+          blackTimeMs: gameRoom.blackTimeMs,
+          currentTurn: gameRoom.currentTurn,
+          timerRunning: gameRoom.timerRunning,
+          incrementMs: gameRoom.incrementMs,
+        });
+      } catch (err) {
+        console.error(`Bot move failed for game ${gameId}:`, err.message);
+      }
+    });
+  }
+
+  private parseUciMove(uci: string): { from: string, to: string; promotion?: PieceSymbol } {
+    const from = uci.slice(0, 2);
+    const to = uci.slice(2, 4);
+    const promotion = uci.length === 5 ? uci[4] as PieceSymbol : undefined;
+    return (promotion ? { from, to, promotion } : { from, to });
+  }
+
 }

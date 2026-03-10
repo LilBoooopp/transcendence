@@ -23,6 +23,7 @@ const GamePage: React.FC = () => {
 
   const [role, setRole] = useState<'white' | 'black' | 'spectator' | null>(state.role ?? null);
   const [initialState, setInitialState] = useState<{ fen: string; pgn: string } | null>(null);
+  const [initialTimer, setInitialTimer] = useState<TimerState | null>(null);
   const [waiting, setWaiting] = useState(!state.role);
 
   const hasConnected = useRef(false);
@@ -34,7 +35,7 @@ const GamePage: React.FC = () => {
     socketService.connect(userId);
 
     const doJoin = () => {
-      socketService.on('game:role-assigned', (data: { gameId: string; role: 'white' | 'black' | 'specator' }) => {
+      socketService.on('game:role-assigned', (data: { gameId: string; role: 'white' | 'black' | 'spectator' }) => {
         setRole(data.role);
         setWaiting(false);
       });

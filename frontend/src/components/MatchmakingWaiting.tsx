@@ -34,7 +34,7 @@ const MatchmakingWaiting: React.FC = () => {
       socketService.joinMatchmaking(tcKey, userId);
     };
 
-    if (socket.isConnected()) {
+    if (socketService.isConnected()) {
       doMatchmaking();
     } else {
       socketService.on('connect', doMatchmaking);
@@ -46,6 +46,11 @@ const MatchmakingWaiting: React.FC = () => {
       socketService.cancelMatchmaking();
     };
   }, [userId, tcKey, navigate]);
+
+  const handleCancel = () => {
+    socketService.cancelMatchmaking();
+    navigate('/gamemode');
+  };
 
   return (
     <div className="min-h-screen bg-background-light flex items-center justify-center font-body">
