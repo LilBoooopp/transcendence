@@ -38,7 +38,7 @@ chess-platform/
 └── nginx/             # HTTPS reverse proxy
 ```
 
-## Modules (18 Points)
+## Modules (12 Points)
 
 ### Web (5 points)
 - ✅ Major: Frontend + Backend frameworks (2pts)

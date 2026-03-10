@@ -1,0 +1,9 @@
+[submodule "frontend/src/components/chess"]
+	path = frontend/src/components/chess
+	url = git@github.com:LilBoooopp/chess.ts.git
+[submodule "frontend/src/chess"]
+	path = frontend/src/chess
+	url = https://github.com/LilBoooopp/chess.ts.git
+[submodule "backend/src/chess"]
+	path = backend/src/chess
+	url = https://github.com/LilBoooopp/chess.ts.git

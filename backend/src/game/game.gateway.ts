@@ -11,6 +11,31 @@ import {
 import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { Chess } from '../chess/src/Chess';
+import { PieceSymbol } from '../chess/src/types';
+// add by syl
+import { UseGuards } from '@nestjs/common';
+import { WsAuthGuard } from '../auth/guards/auth.guards';
+import { StockfishService, BotDifficulty } from './stockfish.service';
+
+interface GameRoom {
+  players: Set<string>;
+  white: string | null;
+  black: string | null;
+  spectators: Set<string>;
+  fen: string;
+  pgn: string;
+  gameStarted: boolean;
+  whiteTimeMs: number;
+  blackTimeMs: number;
+  currentTurn: 'w' | 'b';
+  lastMoveAt: number | null;
+  timerRunning: boolean;
+  timerInterval: NodeJS.Timeout | null;
+  isBot: boolean;
+  botColor: 'w' | 'b' | null;
+  botDifficulty: BotDifficulty | null;
+}
 
 @WebSocketGateway({
   cors: {
@@ -18,35 +43,25 @@ import { PrismaService } from '../prisma/prisma.service';
     credentials: true,
   },
 })
+//syl a ajoute un guard
+//@UseGuards(WsAuthGuard)
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  // START GAME. OK TO PUT IT HERE
   // Store connectionsa
   private activeUsers = new Map<string, string>();
 
   //Store games
-  private activeGames = new Map<string, {
-    players: Set<string>; // All socket IDs
-    white: string | null; // white players socket ID
-    black: string | null; // black plaeyrs socket ID
-    spectators: Set<string>; // spectator socket ID // spectator socket ID
-    fen: string;
-    pgn: string;
-    gameStarted: boolean;
-    whiteTimeMs: number;
-    blackTimeMs: number;
-    currentTurn: 'w' | 'b';
-    lastMoveAt: number | null;
-    timerRunning: boolean;
-    timerInterval: ReturnType<typeof setInterval> | null;
-  }>();
+  private activeGames = new Map<string, GameRoom>();
 
   private readonly DEFAULT_TIME_MS = 10 * 60 * 1000;
 
   constructor(
     private readonly gameService: GameService,
     private readonly prisma: PrismaService,
+    private readonly stockfishService: StockfishService,
   ) {}
 
   //new connection
@@ -90,6 +105,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  	//START GAME
   // User authentication/identificaition
   @SubscribeMessage('user:identify')
   handleUserIdentify(
@@ -104,7 +120,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { success: true, userId: data.userId };
   }
 
-  // Join a room
+  // Join a room$
+  //@UseGuards(WsAuthGuard)
   @SubscribeMessage('game:join')
   handleJoinGame(
     @MessageBody() data: { gameId: string },
@@ -128,6 +145,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         lastMoveAt: null,
         timerRunning: false,
         timerInterval: null,
+        isBot: false,
+        botColor: null,
+        botDifficulty: null,
       });
     }
 
@@ -194,6 +214,60 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
 
     return { success: true, gameId: data.gameId, role: assignedRole };
+  }
+
+  @SubscribeMessage('game:bot-join')
+  async handleBotJoin(
+    @MessageBody() data: { gameId: string; difficulty: BotDifficulty },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const roomName = `game:${data.gameId}`;
+    client.join(roomName);
+
+    const humanColor: 'white' | 'black' = Math.random() < 0.5 ? 'white' : 'black';
+    const botColor: 'w' | 'b' = humanColor === 'white' ? 'b' : 'w';
+
+    const gameRoom: GameRoom = {
+      players: new Set([client.id]),
+      white: humanColor === 'white' ? client.id : null,
+      black: humanColor === 'black' ? client.id : null,
+      spectators: new Set(),
+      fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      pgn: '',
+      gameStarted: true,
+      whiteTimeMs: this.DEFAULT_TIME_MS,
+      blackTimeMs: this.DEFAULT_TIME_MS,
+      currentTurn: 'w',
+      lastMoveAt: null,
+      timerRunning: false,
+      timerInterval: null,
+      isBot: true,
+      botColor,
+      botDifficulty: data.difficulty,
+    };
+
+    this.activeGames.set(data.gameId, gameRoom);
+
+    await this.stockfishService.startEngine(data.gameId, data.difficulty);
+
+    client.emit('game:role-assigned', {
+      gameId: data.gameId,
+      role: humanColor,
+    });
+
+    client.emit('game:state', {
+      gameId: data.gameId,
+      fen: gameRoom.fen,
+      pgn: gameRoom.pgn,
+    });
+
+    this.startGameTimer(data.gameId, gameRoom);
+
+    if (botColor === 'w') {
+      this.scheduleBotMove(data.gameId, gameRoom);
+    }
+
+    return { success: true, role: humanColor };
   }
 
   private getActiveTime(gameRoom: any, color: 'w' | 'b'): number {
@@ -266,6 +340,67 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  private scheduleBotMove(gameId: string, gameRoom: GameRoom): void {
+    setImmediate(async () => {
+      try {
+        const fenBeforeMove = gameRoom.fen;
+        const uciMove = await this.stockfishService.getBestMove(gameId, gameRoom.fen);
+        const parsed = this.parseUciMove(uciMove);
+
+        const chess = new Chess(fenBeforeMove);
+        const moveResult = chess.move({
+          from: parsed.from,
+          to: parsed.to,
+          promotion: parsed.promotion,
+        });
+
+        if (!moveResult) {
+          console.error(`Bot move ${uciMove} was illegal in postion ${fenBeforeMove}`);
+          return;
+        }
+
+        const newFen = chess.fen();
+        const newPgn = chess.pgn();
+
+        gameRoom.fen = newFen;
+        gameRoom.pgn = newPgn;
+        gameRoom.currentTurn = gameRoom.currentTurn === 'w' ? 'b' : 'w';
+
+        if (gameRoom.timerRunning && gameRoom.lastMoveAt) {
+          const elapsed = Date.now() - gameRoom.lastMoveAt;
+          if (gameRoom.botColor === 'b') {
+            gameRoom.blackTimeMs = Math.max(0, gameRoom.blackTimeMs - elapsed);
+          } else {
+            gameRoom.whiteTimeMs = Math.max(0, gameRoom.whiteTimeMs - elapsed);
+          }
+          gameRoom.lastMoveAt = Date.now();
+        }
+
+        this.server.to(`game:${gameId}`).emit('game:move', {
+          move: parsed,
+          fen: newFen,
+          pgn: newPgn,
+        });
+
+        this.server.to(`game:${gameId}`).emit('game:timer', {
+          whiteTimeMs: gameRoom.whiteTimeMs,
+          blackTimeMs: gameRoom.blackTimeMs,
+          currentTurn: gameRoom.currentTurn,
+          timerRunning: gameRoom.timerRunning,
+        });
+      } catch (err) {
+        console.error(`Bot move failed for game ${gameId}:`, err.message);
+      }
+    });
+  }
+
+  private parseUciMove(uci: string): { from: string, to: string; promotion?: PieceSymbol } {
+    const from = uci.slice(0, 2);
+    const to = uci.slice(2, 4);
+    const promotion = uci.length === 5 ? uci[4] as PieceSymbol : undefined;
+    return (promotion ? { from, to, promotion } : { from, to });
+  }
+
   // Leave a game
   @SubscribeMessage('game:leave')
   handleLeaveGame(
@@ -290,6 +425,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       if (gameRoom.players.size === 0) {
         this.clearGameTimer(data.gameId);
+        if (gameRoom.isBot) {
+          this.stockfishService.stopEngine(data.gameId);
+        }
         this.activeGames.delete(data.gameId);
       }
     }
@@ -343,15 +481,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         gameRoom.pgn = data.pgn;
       }
 
+      gameRoom.currentTurn = gameRoom.currentTurn === 'w' ? 'b' : 'w';
+
       if (gameRoom.timerRunning && gameRoom.lastMoveAt) {
         const elapsed = Date.now() - gameRoom.lastMoveAt;
-        if (gameRoom.currentTurn === 'w') {
+        if (gameRoom.currentTurn === 'b') {
           gameRoom.whiteTimeMs = Math.max(0, gameRoom.whiteTimeMs - elapsed);
         } else {
           gameRoom.blackTimeMs = Math.max(0, gameRoom.blackTimeMs - elapsed);
         }
 
-        gameRoom.currentTurn = gameRoom.currentTurn === 'w' ? 'b' : 'w';
         gameRoom.lastMoveAt = Date.now();
 
         this.server.to(roomName).emit('game:timer', {
@@ -369,6 +508,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }).catch((err) => {
           console.log('Failed to save game state to DB (non-fatal):', err.message);
      });
+
+      if (gameRoom.isBot && gameRoom.currentTurn === gameRoom.botColor) {
+        this.scheduleBotMove(data.gameId, gameRoom);
+      }
 
       return { success: true };
     } catch (error) {
@@ -392,6 +535,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (gameRoom) {
       gameRoom.timerRunning = false;
       this.clearGameTimer(data.gameId);
+      if (gameRoom.isBot) {
+        this.stockfishService.stopEngine(data.gameId);
+      }
     }
 
     // Broadcast gameover to all players
@@ -401,6 +547,68 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
 
     return { success: true };
+  }
+
+  @SubscribeMessage('game:resign')
+  handleResign(
+    @MessageBody() data: { gameId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const gameRoom = this.activeGames.get(data.gameId);
+    if (!gameRoom) return ({ success: false });
+
+    const resigningColor = gameRoom.white === client.id ? 'White' : 'Black';
+    const winner = resigningColor === 'White' ? 'Black' : 'White';
+
+    gameRoom.timerRunning = false;
+    this.clearGameTimer(data.gameId);
+
+    this.server.to(`game:${data.gameId}`).emit('game:over', {
+      winner,
+      result: `${resigningColor} resigned - ${winner} wins`,
+    });
+
+    return ({ success: true });
+  }
+
+  @SubscribeMessage('game:draw-offer')
+  handleDrawOffer(
+    @MessageBody() data: { gameId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const gameRoom = this.activeGames.get(data.gameId);
+    if (!gameRoom) return ({ success: false});
+
+    // forward only to opponent
+    client.to(`game:${data.gameId}`).emit('game:draw-offered', {
+      gameId: data.gameId,
+    });
+
+    return ({ success: true });
+  }
+
+  @SubscribeMessage('game:draw-response')
+  handleDrawResponse(
+    @MessageBody() data: { gameId: string; accepted: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const gameRoom = this.activeGames.get(data.gameId);
+    if (!gameRoom) return ({ success: false });
+
+    if (data.accepted) {
+      gameRoom.timerRunning = false;
+
+      this.server.to(`game:${data.gameId}`).emit('game:over', {
+        winner: 'Draw',
+        result: 'Draw by agreement',
+      });
+    } else {
+      client.to(`game:${data.gameId}`).emit('game:draw-declined', {
+        gameId: data.gameId,
+      });
+    }
+
+    return ({ success: true });
   }
 
   // Message
@@ -429,6 +637,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   // Spectator join game
+  
   @SubscribeMessage('spectator:join')
   handleSpectateJoin(
     @MessageBody() data: { gameId: string },

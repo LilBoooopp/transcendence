@@ -16,6 +16,18 @@ export default function WireframeLanding() {
 		{ id: '3', date: '2023-10-20', opponent: 'ChessBot', result: 'Draw', moves: 55, mode: 'Rapid', accuracy: 92 },
 	];
 
+/*	//USERSYL
+	const handleLogin = async () => {
+  const response = await fetch('/api/users/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: '...', username: '...', password: '...' })
+  });
+  const data = await response.json();
+  // gérer la réponse
+	};*/
+
+
 	const features = [
 	{
 		title: "Create Game",

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>User Page</title>
+</head>
+<body>
+  <h2>User Page</h2>
+   <p id="UserInfo"></p>
+   <form id=ModifyUserInfo>
+	<input id="bio" placeholder="bio" /><br/>
+	<input id="firstName" placeholder ="firstName"/><br/>
+	<button id="modifyUser">Modify user info</button><br>
+   </form>
+	<button id="deleteUser">Delete User</button><br>
+	<a href="./basepage.html">Base Page</a>
+   <p id="result"></p>
+  <p>
+	
+	to do:
+	show info :)
+	show friends
+	modify info
+	see stats
+	delete user
+	
+
+
+	info users:
+	id 
+	mail
+	username
+
+	modif:
+	password
+	avatar
+	first name
+	lase Names
+	bio
+
+  </p>
+ 
+  <script>
+		async function isUserConnected(){
+		const token = localStorage.getItem('authToken');
+		if (!token){
+			console.log('no token');
+			return false;
+		} 
+	try {
+		const res = await fetch('/api/auth/me', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${token}`
+			}
+		});
+		if (!res.ok)
+		{
+			localStorage.removeItem('authToken');
+			return false;
+		}
+		const data = await res.json();
+		//!! retourne value en vrai booleen. 
+		return !!data.isConnected;
+	} catch (error){
+		return false;
+	}
+	}
+
+	//// SHOW PROFILE INFO
+	const UserInfo = document.getElementById('UserInfo');
+	async function showMyProfile(){
+		try {
+			if (!await isUserConnected())
+			{
+				UserInfo.textContent = 'You are  not connected yet';
+				window.location.href = '/basepage.html';
+				return;
+			}
+			console.log('user is connected');
+			const token = localStorage.getItem('authToken');
+			const res = await fetch('/api/users/me', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${token}`
+				}
+			})
+			console.log('user is connected after');
+			const users = await res.json();
+			if (res.ok){
+
+		UserInfo.innerHTML = `Hey ${users.username} <br> id: ${users.id} <br> Bio: ${users.bio} <br>`;
+		if (users.firstName)
+		{
+			UserInfo.innerHTML += `First Name ${users.firstName} <br>`;
+		}
+		if (users.avatarUrl) {
+			const img = document.createElement('img');
+			img.src = `/api/uploads/${users.avatarUrl}`;
+			img.alt = 'Profile picture';
+			img.width = 200;
+			UserInfo.appendChild(img);
+			}
+		}
+		else {
+			UserInfo.textContent = 'Not ok /api/user/me';
+		}
+	}
+	catch(error)
+	{
+		UserInfo.textContent = 'Error on get /api/user/me or you are not connected';
+	}
+	}
+	document.addEventListener('DOMContentLoaded', showMyProfile);
+
+	///MODIFY BIO PATCH /users/123
+	document.getElementById('modifyUser').addEventListener('click', ModifyUserInfo);
+	async function ModifyUserInfo(e) {
+		e.preventDefault();
+		if (!await isUserConnected())
+			{
+				result.textContent = 'You are  not connected yet';
+				window.location.href = '/basepage.html';
+				return;
+			}
+		try {
+			console.log('begin Patch');
+			const token = localStorage.getItem('authToken');
+			const res = await fetch('/api/users', {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${token}`,
+				},
+				//verification to do
+				body: JSON.stringify ({
+					bio: document.getElementById('bio').value,
+					firstName: document.getElementById('firstName').value,
+				})
+		});
+		if (res.ok){
+			result.textContent = 'Information modifieds';
+			showMyProfile();
+		}
+		else{
+			result.textContent = 'Info not modified';
+		}
+		}
+		catch (error)
+		{
+			result.textContent = "Error on PATCH /users/inConnected ";
+		}
+	}
+	//DELETE USER
+	document.getElementById('deleteUser').addEventListener('click', DeleteUser);
+	async function DeleteUser(e){
+		e.preventDefault();
+		if (!await isUserConnected())
+			{
+				result.textContent = 'You are  not connected yet';
+				window.location.href = '/basepage.html';
+				return;
+			}
+		try {
+			console.log('begin Delete');
+			const token = localStorage.getItem('authToken');
+			const res = await fetch('/api/users', {
+				method: 'DELETE',
+				headers:{
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${token}`,
+				},
+			});
+			if (res.ok){
+				localStorage.removeItem('authToken');
+				window.location.href = '/basepage.html';
+				return;
+			}
+		}
+		catch (error) {
+			result.textContent = 'Failed to delete user';
+		}
+	}
+  </script>
+</body>
+

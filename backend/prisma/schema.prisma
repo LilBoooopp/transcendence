@@ -1,5 +1,6 @@
 // Prisma Schema for Chess Platform
 // This file defines the database structure
+//this file was the first one
 
 generator client {
   provider = "prisma-client-js"
@@ -16,7 +17,7 @@ model User {
   email         String    @unique
   username      String    @unique
   password      String    // Hashed
-  avatar        String?   // avatar URL
+  avatarUrl        String?   // avatar URL? yes
   
   firstName     String?
   lastName      String?
@@ -177,10 +178,10 @@ model Tournament {
 enum TournamentStatus {
   REGISTRATION  // Players can join
   IN_PROGRESS   // Tournament started
-  COMPLETED     // TouGame A)rnament finished
+  COMPLETED     // TouGame Arnament finished
   CANCELLED     // Tournament cancelled
 }
-
+ 
 model TournamentParticipant {
   id            String    @id @default(uuid())
   tournamentId  String

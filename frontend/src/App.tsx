@@ -6,18 +6,24 @@ import ChessGame from './components/ChessGame';
 import HomePage from './components/HomePage';
 import { socketService } from './services/socket.service';
 
-// Wireframe Imports
+// USERSYL
+// Wireframe Imports pages Bastian
 import WireframeLayout from './SamplePages/WireframeLayout';
 import WireframeDashboard from './SamplePages/WireframeDashboard';
 import WireframeLanding from './SamplePages/WireframeLanding';
 import WireframeGameMode from './SamplePages/WireframeGameMode';
 
+
+
 // --- TYPE DEFINITIONS (From your original file) ---
 type GameRole = 'white' | 'black' | 'spectator' | null;
+
 interface GameState {
   fen: string;
   pgn: string;
 }
+
+type Difficulty = 'easy' | 'medium' | 'hard';
 
 // --- ORIGINAL APP LOGIC (Renamed) ---
 // I just wrapped your entire old App component in this function
@@ -39,12 +45,29 @@ function CurrentGameLogic() {
     currentTurn: string;
     timerRunning: boolean;
   } | null>(null);
+  const [isBot, setIsBot] = useState(false);
+  const [botDifficulty, setBotDifficulty] = useState<Difficulty>('easy');
   const hasConnected = useRef(false);
+  const isBotRef = useRef(false);
+  const difficultyRef = useRef<Difficulty>('easy');
 
   const handleJoinGame = (gameName: string) =>  {
     window.location.hash = gameName;
+    isBotRef.current = false;
+    setIsBot(false);
     setWaiting(true);
     setGameId(gameName);
+  };
+
+  const handleJoinBotGame = (difficulty: Difficulty) => {
+    const id = `bot-${Math.random().toString(36).substr(2, 9)}`;
+    window.location.hash = id;
+    isBotRef.current = true;
+    difficultyRef.current = difficulty;
+    setIsBot(true);
+    setBotDifficulty(difficulty);
+    setWaiting(true);
+    setGameId(id);
   };
 
   useEffect(() => {
@@ -69,7 +92,11 @@ function CurrentGameLogic() {
         setInitialTimer(data);
       });
 
-      socketService.joinGame(gameId);
+      if (isBotRef.current) {
+        socketService.joinBotGame(gameId, difficultyRef.current);
+      } else {
+        socketService.joinGame(gameId);
+      }
     });
 
     return () => {
@@ -80,15 +107,26 @@ function CurrentGameLogic() {
   }, [gameId, userId]);
 
   if (!gameId) {
-    return <HomePage onJoinGame={handleJoinGame} />;
+    return (
+      <HomePage
+        onJoinGame={handleJoinGame}
+        onJoinBotGame={handleJoinBotGame}
+      />
+    );
   }
 
   if (waiting || role === null) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-md text-center">
-          <h2 className="text-2xl font-bold mb-4">Joining game: {gameId}</h2>
-          <p className="text-gray-600">Waiting for role assignment...</p>
+          <h2 className="text-2xl font-bold mb-4">
+            {isBot ? 'Starting bot game...' : `Joining game: ${gameId}`}
+          </h2>
+          <p className="text-gray-600">
+            {isBot
+              ? `Setting up ${botDifficulty} difficulty opponent...`
+              : 'Waiting for role assignment...'}
+          </p>
         </div>
       </div>
     );
@@ -152,12 +190,16 @@ function App() {
             <WireframeDashboard />
           </WireframeLayout>
         } />
-
         {/* 2. The Default URL (Your existing game logic) */}
-        <Route path="*" element={<CurrentGameLogic />} />
+        <Route path="/" element={
+		    	<WireframeLayout>
+		    		<WireframeLanding />
+		    	</WireframeLayout>
+		    } />
       </Routes>
     </BrowserRouter>
   );
 }
 
 export default App;
+
