@@ -44,6 +44,7 @@ class SocketService {
     }
   }
 
+  	//STARTGAME JOIN GAME
   identifyUser(userId: string): void {
     this.emit('user:identify', { userId });
   }
@@ -162,6 +163,11 @@ class SocketService {
 
   sendDrawResponse(gameId: string, accepted: boolean): void {
     this.emit('game:draw-response', { gameId, accepted });
+  }
+
+  joinBotGame(gameId: string, difficulty: 'easy' | 'medium' | 'hard'): void {
+    console.log(`Joining bot game: ${gameId} (${difficulty})`);
+    this.emit('game:bot-join', { gameId, difficulty });
   }
 }
 
