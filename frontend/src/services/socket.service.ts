@@ -14,7 +14,7 @@ class SocketService {
     }
 
     console.log('Connecting to Websocket via current origin...');
-    
+
     this.socket = io({
       transports: ['polling', 'websocket'],
     });
@@ -44,24 +44,15 @@ class SocketService {
     }
   }
 
-  	//STARTGAME JOIN GAME
+  //STARTGAME JOIN GAME
   identifyUser(userId: string): void {
     this.emit('user:identify', { userId });
   }
 
   // Join a game room
-  joinGame(gameId: string): void {
+  joinGame(gameId: string, timeControlKey?: string, claimedRole?: string): void {
     console.log('Joining game:', gameId);
-    this.emit('game:join', { gameId });
-  }
-
-  loadGame(gameId: string): void {
-    console.log('Loading game:', gameId);
-    this.emit('game:load', { gameId} );
-  }
-
-  onGameLoaded(callback: (data: { gameId: string; fen: string; moves: any, pgn?: string }) => void): void {
-    this.on('game:loaded', callback);
+    this.emit('game:join', { gameId, timeControlKey, claimedRole });
   }
 
   // Leave a gmae room
@@ -69,7 +60,37 @@ class SocketService {
     this.emit('game:leave', { gameId });
   }
 
-  // Send a chess move
+  loadGame(gameId: string): void {
+    console.log('Loading game:', gameId);
+    this.emit('game:load', { gameId });
+  }
+
+  onGameLoaded(callback: (data: { gameId: string; fen: string; moves: any, pgn?: string }) => void): void {
+    this.on('game:loaded', callback);
+  }
+
+  joinMatchmaking(timeControlKey: string, userId: string): void {
+    console.log(`Joining matchmaking queue: ${timeControlKey}`);
+    this.emit('matchmaking:join', { timeControlKey, userId });
+  }
+
+  cancelMatchmaking(): void {
+    this.emit('matchmaking:cancel', {});
+  }
+
+  onMatchmakingFound(callback: (data: { gameId: string; role: 'white' | 'black' }) => void): void {
+    this.on('matchmaking:found', callback);
+  }
+
+  onMatchmakingWaiting(callback: () => void): void {
+    this.on('matchmaking:waiting', callback);
+  }
+
+  joinBotGame(gameId: string, difficulty: 'easy' | 'medium' | 'hard', timeControlKey?: string): void {
+    console.log(`Joining bot game: ${gameId} (${difficulty}) [${timeControlKey ?? 'default'}]`);
+    this.emit('game:bot-join', { gameId, difficulty, timeControlKey });
+  }
+
   sendMove(gameId: string, move: any, fen: string, pgn: string): void {
     console.log('Sending move:', move);
     this.emit('game:move', { gameId, move, fen, pgn });
@@ -90,13 +111,24 @@ class SocketService {
     this.on('game:over', callback);
   }
 
-  // Send chat message
-  sendChatMessage(message:string, userId: string, gameId?: string): void {
+  sendResign(gameId: string): void {
+    this.emit('game:resign', { gameId });
+  }
+
+  sendDrawOffer(gameId: string): void {
+    this.emit('game:draw-offer', { gameId });
+  }
+
+  sendDrawResponse(gameId: string, accepted: boolean): void {
+    this.emit('game:draw-response', { gameId, accepted });
+  }
+
+  sendChatMessage(message: string, userId: string, gameId?: string): void {
     this.emit('chat:message', { message, userId, gameId });
   }
 
   // Listen for chat messages
-  onChatMessage(callback: (data: { userId: string; message: string; timestamp: Date}) => void): void {
+  onChatMessage(callback: (data: { userId: string; message: string; timestamp: Date }) => void): void {
     this.on('chat:message', callback);
   }
 
@@ -109,6 +141,20 @@ class SocketService {
   onSpectatorCount(callback: (data: { gameId: string; count: number }) => void): void {
     this.on('spectate:count', callback);
   }
+
+  // Listen for role assignment from server
+  onRoleAssigned(callback: (data: { gameId: string; role: 'white' | 'black' | 'spectator' }) => void): void {
+    this.on('game:role-assigned', callback);
+  }
+
+  onGameState(callback: (data: { gameId: string; fen: string; pgn: string }) => void): void {
+    this.on('game:state', callback);
+  }
+
+  onTimer(callback: (data: { whiteTimeMs: number; blackTimeMs: number; currentTurn: string; timerRunning: boolean }) => void): void {
+    this.on('game:timer', callback);
+  }
+
 
   // Generic emit
   private emit(event: string, data: any): void {
@@ -125,13 +171,17 @@ class SocketService {
       this.socket.on(event, callback);
       return () => this.socket?.off(event, callback);
     }
-    return () => {};
+    return () => { };
   }
 
   // Remove listener
-  off(event: string): void {
+  off(event: string, callback?: any): void {
     if (this.socket) {
-      this.socket.off(event);
+      if (callback) {
+        this.socket.off(event, callback);
+      } else {
+        this.socket.off(event);
+      }
     }
   }
 
@@ -140,35 +190,7 @@ class SocketService {
     return this.socket?.connected || false;
   }
 
-  // Listen for role assignment from server
-  onRoleAssigned(callback: (data: { gameId: string; role: 'white' | 'black' | 'spectator' }) => void): void {
-    this.on('game:role-assigned', callback);
-  }
 
-  onGameState(callback: (data: { gameId: string; fen: string; pgn: string }) => void): void {
-    this.on('game:state', callback);
-  }
-
-  onTimer(callback: (data: { whiteTimeMs: number; blackTimeMs: number; currentTurn: string; timerRunning: boolean }) => void): void {
-    this.on('game:timer', callback);
-  }
-
-  sendResign(gameId: string): void {
-    this.emit('game:resign', { gameId });
-  }
-
-  sendDrawOffer(gameId: string): void {
-    this.emit('game:draw-offer', { gameId });
-  }
-
-  sendDrawResponse(gameId: string, accepted: boolean): void {
-    this.emit('game:draw-response', { gameId, accepted });
-  }
-
-  joinBotGame(gameId: string, difficulty: 'easy' | 'medium' | 'hard'): void {
-    console.log(`Joining bot game: ${gameId} (${difficulty})`);
-    this.emit('game:bot-join', { gameId, difficulty });
-  }
 }
 
 export const socketService = new SocketService();

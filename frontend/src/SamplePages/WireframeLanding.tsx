@@ -1,26 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Tile from '../components/Tile';
 import LoginTile from '../components/LoginTile';
 import GameHistoryList, { GameHistoryItem } from '../components/GameHistoryList';
 import * as Icons from 'lucide-react';
-import { isLoggedIn } from '../services/auth.service';
-import Button from '@/components/Button';
 
 export default function WireframeLanding() {
-    const navigate = useNavigate();
-    const [loggedIn, setLoggedIn] = useState(false);
-
-    const checkAuth = () => {
-        isLoggedIn().then(({ connected }) => {
-            setLoggedIn(connected);
-			console.log("User is logged in:", connected);
-        });
-    };
-
-    useEffect(() => {
-        checkAuth();
-    }, []);
+	const navigate = useNavigate();
+	const [isLoggedIn, setIsLoggedIn] = useState(false);
 
 	// Dummy data for the history list
 	const history: GameHistoryItem[] = [
@@ -29,101 +16,80 @@ export default function WireframeLanding() {
 		{ id: '3', date: '2023-10-20', opponent: 'ChessBot', result: 'Draw', moves: 55, mode: 'Rapid', accuracy: 92 },
 	];
 
-/*	//USERSYL
-	const handleLogin = async () => {
-  const response = await fetch('/api/users/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: '...', username: '...', password: '...' })
-  });
-  const data = await response.json();
-  // gérer la réponse
-	};*/
+	/*	//USERSYL
+		const handleLogin = async () => {
+		const response = await fetch('/api/users/register', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ email: '...', username: '...', password: '...' })
+		});
+		const data = await response.json();
+		// gérer la réponse
+		};*/
 
 
 	const features = [
-	{
-		title: "Create Game",
-		description: "Start a new game against AI or local opponents.",
-		icon: <Icons.PlusCircle size={36} />,
-		action: () => navigate('/wireframe/games')
-	},
-	{
-		title: "Join Game",
-		description: "Find an open lobby and jump into the action.",
-		icon: <Icons.Swords size={36} />,
-		action: () => navigate('/wireframe')
-	},
-	{
-		title: "Solo",
-		description: "Play single player puzzles and challenges.",
-		icon: <Icons.User size={36} />,
-		action: () => navigate('/wireframe/social')
-	},
-	{
-		title: "AI oponent",
-		description: "Challenge the computer engine.",
-		icon: <Icons.Bot size={36} />,
-		action: () => console.log("Navigate to settings")
-	}
+		{
+			title: "Join Game",
+			description: "Find an open lobby and jump into the action.",
+			icon: <Icons.Swords size={36} />,
+			action: () => navigate('/gamemode')
+		},
+		{
+			title: "Solo",
+			description: "Play single player puzzles and challenges.",
+			icon: <Icons.User size={36} />,
+			action: () => navigate('/wireframe/social')
+		},
+		{
+			title: "AI oponent",
+			description: "Challenge the computer engine.",
+			icon: <Icons.Bot size={36} />,
+			action: () => navigate('/botmode')
+		}
 	];
 
 	return (
-	<div className="flex flex-col items-center justify-center min-h-[80vh] px-4 max-w-5xl mx-auto py-12">
-		
-		<h1 className="text-4xl font-heading font-bold mb-12 text-center">
-		Welcome to 42 Chess!
-		</h1>
+		<div className="flex flex-col items-center justify-center min-h-[80vh] px-4 max-w-5xl mx-auto py-12">
 
-		<div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-2xl lg:max-w-full">
-		{features.map((feature, index) => (
-			<Tile 
-			key={index}
-			title={feature.title}
-			description={feature.description}
-			icon={feature.icon}
-			onClick={feature.action}
-			/>
-		))}
+			<h1 className="text-4xl font-heading font-bold mb-12 text-center">
+				Welcome to 42 Chess!
+			</h1>
+
+			<div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-2xl lg:max-w-full">
+				{features.map((feature, index) => (
+					<Tile
+						key={index}
+						title={feature.title}
+						description={feature.description}
+						icon={feature.icon}
+						onClick={feature.action}
+					/>
+				))}
+			</div>
+
+			{/* HISTORY / LOGIN SECTION */}
+			<div className="w-full mt-12">
+				{/* Dev Toggle: Remove this when real auth is implemented */}
+				<div className="flex justify-center mb-4">
+					<button
+						onClick={() => setIsLoggedIn(!isLoggedIn)}
+						className="text-xs text-gray-400 hover:text-gray-600 underline"
+					>
+						[Dev: Toggle Login State]
+					</button>
+				</div>
+
+				{isLoggedIn ? (
+					<GameHistoryList history={history} />
+				) : (
+					<LoginTile
+						onLogin={() => console.log('Login clicked')}
+						onRegister={() => console.log('Register clicked')}
+					/>
+				)}
+			</div>
+
 		</div>
-
-
-        {/* HISTORY / LOGIN SECTION */}
-        <div className="w-full mt-12">
-
-            {loggedIn ? (
-                <>
-                    <GameHistoryList history={history} />
-					{/*Test button to logout (waiting for bastian to add a clean one)*/}
-                    <button
-                        className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
-                        onClick={async () => {
-                            try {
-                                await fetch('/api/auth/logout', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                                    },
-                                });
-                                localStorage.removeItem('token');
-                                setLoggedIn(false);
-                            } catch (error) {
-                                console.error('Logout failed', error);
-                            }
-                        }}
-                    >
-                        Logout
-                    </button>
-                </>
-            ) : (
-                <LoginTile 
-                    onLogin={() => console.log('Login clicked')} 
-                    onRegister={() => console.log('Register clicked')}
-					onLoginSuccess={checkAuth}
-                />
-            )}
-        </div>
-
-	</div>
 	);
 }
