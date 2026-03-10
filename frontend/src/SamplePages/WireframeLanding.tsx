@@ -5,6 +5,7 @@ import LoginTile from '../components/LoginTile';
 import GameHistoryList, { GameHistoryItem } from '../components/GameHistoryList';
 import * as Icons from 'lucide-react';
 import { isLoggedIn } from '../services/auth.service';
+import Button from '@/components/Button';
 
 export default function WireframeLanding() {
     const navigate = useNavigate();
@@ -13,6 +14,7 @@ export default function WireframeLanding() {
     const checkAuth = () => {
         isLoggedIn().then(({ connected }) => {
             setLoggedIn(connected);
+			console.log("User is logged in:", connected);
         });
     };
 
@@ -90,7 +92,29 @@ export default function WireframeLanding() {
         <div className="w-full mt-12">
 
             {loggedIn ? (
-                <GameHistoryList history={history} />
+                <>
+                    <GameHistoryList history={history} />
+					{/*Test button to logout (waiting for bastian to add a clean one)*/}
+                    <button
+                        className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
+                        onClick={async () => {
+                            try {
+                                await fetch('/api/auth/logout', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                                    },
+                                });
+                                localStorage.removeItem('token');
+                                setLoggedIn(false);
+                            } catch (error) {
+                                console.error('Logout failed', error);
+                            }
+                        }}
+                    >
+                        Logout
+                    </button>
+                </>
             ) : (
                 <LoginTile 
                     onLogin={() => console.log('Login clicked')} 
