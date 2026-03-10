@@ -130,9 +130,20 @@ export class GameGateway implements OnGatewayDisconnect {
 
         if (gameRoom.players.size === 0) {
           this.clearGameTimer(gameId);
-          if (gameRoom.isBot)
-            this.stockfishService.stopEngine(gameId);
-          this.activeGames.delete(gameId);
+          if (gameRoom.isBot) {
+            setTimeout(() => {
+              const room = this.activeGames.get(gameId);
+              if (room && room.players.size === 0) {
+                this.clearGameTimer(gameId);
+                this.stockfishService.stopEngine(gameId);
+                this.activeGames.delete(gameId);
+                console.log(`Bot game ${gameId} cleaned up after reconect timeout`);
+              }
+            }, 10_000)
+          } else {
+            this.clearGameTimer(gameId);
+            this.activeGames.delete(gameId);
+          }
         }
       }
     }

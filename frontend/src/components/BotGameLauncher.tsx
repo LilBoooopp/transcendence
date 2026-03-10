@@ -41,7 +41,14 @@ const BotGameLauncher: React.FC = () => {
       const tryNavigate = () => {
         if (receivedRole && receivedTimer) {
           navigate(`/game/${receivedRole.gameId}`, {
-            state: { userId, role: receivedRole.role, tcKey, initialTimer: receivedTimer },
+            state: {
+              userId,
+              role: receivedRole.role,
+              tcKey,
+              initialTimer: receivedTimer,
+              isBot: true,
+              difficulty,
+            },
           });
         }
       };

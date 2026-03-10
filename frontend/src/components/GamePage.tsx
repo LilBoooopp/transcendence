@@ -10,6 +10,8 @@ interface LocationState {
   role?: 'white' | 'black';
   tcKey?: string;
   initialTimer?: TimerState;
+  isBot?: boolean;
+  difficulty?: string;
 }
 
 const GamePage: React.FC = () => {
