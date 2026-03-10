@@ -11,6 +11,7 @@ import { socketService } from './services/socket.service';
 import WireframeLayout from './SamplePages/WireframeLayout';
 import WireframeDashboard from './SamplePages/WireframeDashboard';
 import WireframeLanding from './SamplePages/WireframeLanding';
+import WireframeGameMode from './SamplePages/WireframeGameMode';
 
 
 
@@ -174,12 +175,22 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/wireframe" element={
+		<Route path="/home" element={
+			<WireframeLayout>
+				<WireframeLanding />
+			</WireframeLayout>
+		} />
+		<Route path="/gamemode" element={
+			<WireframeLayout>
+				<WireframeGameMode />
+			</WireframeLayout>
+		} />
+        <Route path="/dashboard" element={
           <WireframeLayout>
             <WireframeDashboard />
           </WireframeLayout>
         } />
-        {/* 2. The Default URL (Your existing game logic) */}
+        {/* Default/Fallback URL */}
         <Route path="/" element={
 		    	<WireframeLayout>
 		    		<WireframeLanding />
