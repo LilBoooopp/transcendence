@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class GameService {
@@ -8,11 +9,13 @@ export class GameService {
   constructor(private prisma: PrismaService) { }
 
   // Create a new game
-  async createGame(whitePlayerId: string, blackPlayerId: string) {
+  async createGame(whitePlayerId: string, blackPlayerId: string, id: string, timeControl?: string) {
     const game = await this.prisma.game.create({
       data: {
+        id,
         whitePlayerId,
         blackPlayerId,
+        timeControl,
         status: 'IN_PROGRESS',
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
       },
@@ -30,7 +33,8 @@ export class GameService {
       this.waitingPlayers.delete(opponentId);
 
       /// make game with matched plaeyrs
-      const game = await this.createGame(opponentId, userId);
+      const gameId = uuidv4();
+      const game = await this.createGame(opponentId, userId, gameId);
       return (game.id);
     } else {
       // noone waiting, add to waitlist
@@ -38,7 +42,7 @@ export class GameService {
       return (null);
     }
   }
-  //USERSYL EXEMPLE POUR JEUX
+
   async getOrCreateGame(gameId: string) {
     let game = await this.prisma.game.findUnique({
       where: { id: gameId },
@@ -58,7 +62,6 @@ export class GameService {
   }
 
   async updateGame(gameId: string, data: { fen: string; moves: any }) {
-    await this.getOrCreateGame(gameId);
     return (this.prisma.game.update({
       where: { id: gameId },
       data: {
@@ -78,9 +81,10 @@ export class GameService {
     }));
   }
 
-  async createBotGame(userId: string, color: 'white' | 'black', difficulty: string, timeControl: string) {
+  async createBotGame(userId: string, color: 'white' | 'black', difficulty: string, timeControl: string, id: string) {
     return (this.prisma.game.create({
       data: {
+        id,
         whitePlayerId: color === 'white' ? userId : null,
         blackPlayerId: color === 'black' ? userId : null,
         status: 'IN_PROGRESS',
