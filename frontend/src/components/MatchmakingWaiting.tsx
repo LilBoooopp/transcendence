@@ -31,7 +31,7 @@ const MatchmakingWaiting: React.FC = () => {
         });
       });
 
-      socketService.joinMatchmaking(tcKey, userId);
+      socketService.joinMatchmaking(tcKey);
     };
 
     if (socketService.isConnected()) {

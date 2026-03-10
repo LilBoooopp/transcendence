@@ -14,6 +14,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Chess } from '../chess/src/Chess';
 import { StockfishService } from './stockfish.service';
 import { PieceSymbol } from '../chess/src/types';
+import { GameResult } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { UseGuards } from '@nestjs/common';
 import { WsAuthGuard } from '../auth/guards/auth.guards';
@@ -62,10 +63,10 @@ function parseTc(key?: string): { initialMs: number; incrementMs: number } {
   return ({ initialMs: parts[0] * 1_000, incrementMs: parts[1] * 1_000 });
 }
 
-function toDbResult(winner: string): string {
-  if (winner === 'White') return ('WHITE_WIN');
-  if (winner === 'Black') return ('BLACK_WIN');
-  return ('DRAW');
+function toDbResult(winner: string): GameResult {
+  if (winner === 'White') return (GameResult.WHITE_WIN);
+  if (winner === 'Black') return (GameResult.BLACK_WIN);
+  return (GameResult.DRAW);
 }
 
 @WebSocketGateway({ cors: { origin: '*' } })
@@ -203,7 +204,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       console.log(`Matchmaking [${tcKey}]: paired ${whiteEntry.clientId} (W) vs ${blackEntry.clientId} (B) -> game ${gameId}`);
 
       try {
-        await this.gameService.createGame(whiteEntry.userId, blackEntry.userId);
+        await this.gameService.createGame(whiteEntry.userId, blackEntry.userId, gameId, tcKey);
       } catch (e) {
         console.warn('Could not persist matchmade game:', e.message);
       }
@@ -535,7 +536,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
 
   @SubscribeMessage('game:over')
-  handleGameOver(
+  async handleGameOver(
     @MessageBody() data: { gameId: string; winner: string; result: string },
     @ConnectedSocket() client: Socket,
   ) {
@@ -560,7 +561,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('game:resign')
-  handleResign(
+  async handleResign(
     @MessageBody() data: { gameId: string },
     @ConnectedSocket() client: Socket,
   ) {
@@ -602,7 +603,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('game:draw-response')
-  handleDrawResponse(
+  async handleDrawResponse(
     @MessageBody() data: { gameId: string; accepted: boolean },
     @ConnectedSocket() client: Socket,
   ) {
