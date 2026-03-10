@@ -22,9 +22,9 @@ export default function Navbar({ isDarkMode, toggleDarkMode }: NavbarProps) {
         {/* DESKTOP NAVIGATION */}
         <div className="hidden md:flex items-center gap-8 font-body font-medium">
           <div className="flex gap-6">
-            <Link to="/wireframe/games" className="hover:text-accent transition-colors">Home</Link>
-            <Link to="/wireframe" className="hover:text-accent transition-colors">Dashboard</Link>
-            <Link to="/wireframe/social" className="hover:text-accent transition-colors">Social</Link>
+            <Link to="/" className="hover:text-accent transition-colors">Home</Link>
+            <Link to="/dashboard" className="hover:text-accent transition-colors">Dashboard</Link>
+            <Link to="/social" className="hover:text-accent transition-colors">Social</Link>
           </div>
 
           <div className="flex items-center">
