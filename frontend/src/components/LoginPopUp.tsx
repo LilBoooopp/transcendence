@@ -6,9 +6,10 @@ interface AuthModalProps
 	isOpen: boolean;
 	onClose: () => void;
 	initialView?: 'login' | 'register'; 
+	onLoginSuccess?: () => void;
 }
 
-export default function AuthModal({ isOpen, onClose, initialView = 'login' }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose, initialView = 'login', onLoginSuccess }: AuthModalProps) {
 	const [isLoginView, setIsLoginView] = useState(initialView === 'login');
 	const [formData, setFormData] = useState({
 		username: '',
@@ -56,20 +57,35 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setIsLoading(true);
+		setError('');
+		
+		try {
+			const url = isLoginView ? '/api/auth/login' : '/api/auth/register';
+			const body = isLoginView
+				? { username: formData.username, password: formData.password }
+				: { username: formData.username, password: formData.password, email: formData.email };
 
-    // ==========================================
-    // TODO FOR BACKEND INTEGRATION:
-    // 1. Check `isLoginView` to know if you should call /auth/login or /auth/register
-    // 2. The data is stored in `formData` (formData.username, formData.password, etc.)
-    // 3. Make the fetch() request to the NestJS API here.
-    // 4. If success: Save the JWT token, clear the form, and call onClose()
-    // 5. If error: Call setError("The error message from backend")
-    // ==========================================
+			const response = await fetch(url, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(body),
+			});
 
-		console.log("Form submitted! View:", isLoginView ? "Login" : "Register");
-		console.log("Data ready for backend:", formData);
+			const data = await response.json();
 
-		setTimeout(() => setIsLoading(false), 500); 
+			if (!response.ok) {
+				throw new Error(data.message || 'Something went wrong');
+			}
+			localStorage.setItem('token', data.accessToken);
+			setFormData({ username: '', password: '', email: '' });
+			onClose();
+			onLoginSuccess?.();
+			window.location.reload();
+		} catch (err: any) {
+			setError(err.message || 'Something went wrong');
+		} finally {
+			setIsLoading(false);
+		}
   };
 
   return (

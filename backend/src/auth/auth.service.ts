@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { UserService} from 'src/user/user.service'
-import { JwtService} from '@nestjs/jwt'
+import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { IsEmail } from 'class-validator';
