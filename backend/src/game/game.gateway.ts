@@ -244,7 +244,7 @@ export class GameGateway implements OnGatewayDisconnect {
   //@UseGuards(WsAuthGuard)
   @SubscribeMessage('game:join')
   handleJoinGame(
-    @MessageBody() data: { gameId: string; timeControlKey?: string },
+    @MessageBody() data: { gameId: string; timeControlKey?: string, claimedRole?: 'white' | 'black' },
     @ConnectedSocket() client: Socket,
   ) {
     const roomName = `game:${data.gameId}`;
@@ -282,6 +282,12 @@ export class GameGateway implements OnGatewayDisconnect {
       assignedRole = 'white';
     } else if (gameRoom.black === client.id) {
       assignedRole = 'black';
+    } else if (data.claimedRole === 'white' && gameRoom.white === null) {
+      assignedRole = 'white';
+      gameRoom.white = client.id;
+    } else if (data.claimedRole === 'black' && gameRoom.black === null) {
+      assignedRole = 'black';
+      gameRoom.white = client.id;
     } else if (gameRoom.gameStarted) {
       assignedRole = 'spectator';
       gameRoom.spectators.add(client.id);

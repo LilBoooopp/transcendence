@@ -50,9 +50,9 @@ class SocketService {
   }
 
   // Join a game room
-  joinGame(gameId: string, timeControlKey?: string): void {
+  joinGame(gameId: string, timeControlKey?: string, claimedRole?: string): void {
     console.log('Joining game:', gameId);
-    this.emit('game:join', { gameId, timeControlKey });
+    this.emit('game:join', { gameId, timeControlKey, claimedRole });
   }
 
   // Leave a gmae room

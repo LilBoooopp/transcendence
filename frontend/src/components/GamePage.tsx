@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import ChessGame from './ChessGame';
 import { socketService } from '../services/socket.service';
@@ -48,7 +48,9 @@ const GamePage: React.FC = () => {
         setInitialTimer(prev => prev ?? data);
       });
 
-      socketService.joinGame(gameId, tcKey);
+      const role = state.role
+
+      socketService.joinGame(gameId, tcKey, role);
 
       if (state.role) {
         setWaiting(false);
