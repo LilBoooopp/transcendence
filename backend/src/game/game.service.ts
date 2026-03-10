@@ -5,8 +5,8 @@ import { PrismaService } from '../prisma/prisma.service';
 export class GameService {
   private waitingPlayers: Map<string, string> = new Map(); // userId to socketId
 
-  constructor(private prisma: PrismaService) {}
-  
+  constructor(private prisma: PrismaService) { }
+
   // Create a new game
   async createGame(whitePlayerId: string, blackPlayerId: string) {
     const game = await this.prisma.game.create({
@@ -57,7 +57,7 @@ export class GameService {
     return (game);
   }
 
-  async updateGame(gameId: string, data: { fen: string; moves: any}) {
+  async updateGame(gameId: string, data: { fen: string; moves: any }) {
     await this.getOrCreateGame(gameId);
     return (this.prisma.game.update({
       where: { id: gameId },
@@ -74,6 +74,19 @@ export class GameService {
       include: {
         whitePlayer: true,
         blackPlayer: true,
+      },
+    }));
+  }
+
+  async createBotGame(userId: string, color: 'white' | 'black', difficulty: string, timeControl: string) {
+    return (this.prisma.game.create({
+      data: {
+        whitePlayerId: color === 'white' ? userId : null,
+        blackPlayerId: color === 'black' ? userId : null,
+        status: 'IN_PROGRESS',
+        isAiGame: true,
+        timeControl,
+        startedAt: new Date(),
       },
     }));
   }

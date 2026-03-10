@@ -37,7 +37,7 @@ export class AuthGuard implements CanActivate {
 export class WsAuthGuard implements CanActivate {
 	constructor(private jwtService: JwtService) { }
 
-	canActivate(context: ExecutionContext): Promise<boolean> {
+	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const client: Socket = context.switchToWs().getClient();
 		const token = client.handshake.auth?.token;
 

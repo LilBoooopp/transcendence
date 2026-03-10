@@ -4,6 +4,7 @@ import {
   SubscribeMessage,
   MessageBody,
   ConnectedSocket,
+  OnGatewayConnection,
   OnGatewayDisconnect,
   WsException,
 } from '@nestjs/websockets';
@@ -14,16 +15,19 @@ import { Chess } from '../chess/src/Chess';
 import { StockfishService } from './stockfish.service';
 import { PieceSymbol } from '../chess/src/types';
 import { v4 as uuidv4 } from 'uuid';
-// add by syl
 import { UseGuards } from '@nestjs/common';
 import { WsAuthGuard } from '../auth/guards/auth.guards';
+import { JwtService } from '@nestjs/jwt';
+import { JWT_SECRET } from '../auth/configs/jwtsecret';
 
 type BotDifficulty = 'easy' | 'medium' | 'hard';
 
 interface GameRoom {
   players: Set<string>;
-  white: string | null;
-  black: string | null;
+  white: string | null; // just socket
+  black: string | null; // socket
+  whiteUserId: string | null;
+  blackUserId: string | null;
   spectators: Set<string>;
   fen: string;
   pgn: string;
@@ -58,30 +62,17 @@ function parseTc(key?: string): { initialMs: number; incrementMs: number } {
   return ({ initialMs: parts[0] * 1_000, incrementMs: parts[1] * 1_000 });
 }
 
-function defaultRoom(timeControlKey?: string): Omit<GameRoom, 'players' | 'white' | 'black' | 'isBot' | 'botColor' | 'botDifficulty'> {
-  const { initialMs, incrementMs } = parseTc(timeControlKey);
-  return {
-    spectators: new Set(),
-    fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-    pgn: '',
-    gameStarted: false,
-    whiteTimeMs: initialMs,
-    blackTimeMs: initialMs,
-    incrementMs,
-    currentTurn: 'w',
-    lastMoveAt: null,
-    timerRunning: false,
-    timerInterval: null,
-  };
+function toDbResult(winner: string): string {
+  if (winner === 'White') return ('WHITE_WIN');
+  if (winner === 'Black') return ('BLACK_WIN');
+  return ('DRAW');
 }
 
 @WebSocketGateway({ cors: { origin: '*' } })
-//syl a ajoute un guard
-//@UseGuards(WsAuthGuard)
-export class GameGateway implements OnGatewayDisconnect {
+@UseGuards(WsAuthGuard)
+export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
 
-  // START GAME. OK TO PUT IT HERE
 
   //Store games
   private activeGames = new Map<string, GameRoom>();
@@ -99,7 +90,21 @@ export class GameGateway implements OnGatewayDisconnect {
     private readonly gameService: GameService,
     private readonly prisma: PrismaService,
     private readonly stockfishService: StockfishService,
+    private readonly jwtService: JwtService,
   ) { }
+
+  async handleConnection(client: Socket) {
+    const token = client.handshake.auth?.token;
+    try {
+      const payload = await this.jwtService.verifyAsync(token, { secret: JWT_SECRET });
+      client.data.userId = payload.sub;
+      client.data.username = payload.username;
+      console.log(`Client connected: ${client.id} (user: ${client.data.username})`);
+    } catch {
+      console.log(`Rejected unauthenticated connection: ${client.id}`);
+      client.disconnect();
+    }
+  }
 
   //disconnections
   handleDisconnect(client: Socket) {
@@ -149,26 +154,12 @@ export class GameGateway implements OnGatewayDisconnect {
     }
   }
 
-  //START GAME
-  // User authentication/identificaition
-  @SubscribeMessage('user:identify')
-  handleUserIdentify(
-    @MessageBody() data: { userId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    this.activeUsers.set(data.userId, client.id);
-
-    // braodcast user online
-    this.server.emit('user:status', { userId: data.userId, isOnline: true });
-
-    return { success: true, userId: data.userId };
-  }
-
   @SubscribeMessage('matchmaking:join')
   async handleMatchmakingJoin(
-    @MessageBody() data: { timeControlKey: string; userId: string },
+    @MessageBody() data: { timeControlKey: string },
     @ConnectedSocket() client: Socket,
   ) {
+    const userId = client.data.userId;
     const tcKey = data.timeControlKey ?? DEFAULT_TIME_KEY;
     const waiting = this.matchmakingQueues.get(tcKey);
 
@@ -182,13 +173,13 @@ export class GameGateway implements OnGatewayDisconnect {
       // assign colors
       const [whiteEntry, blackEntry] =
         Math.random() < 0.5
-          ? [waiting, { clientId: client.id, userId: data.userId }]
-          : [{ clientId: client.id, userId: data.userId }, waiting];
+          ? [waiting, { clientId: client.id, userId: userId }]
+          : [{ clientId: client.id, userId: userId }, waiting];
 
       const gameRoom: GameRoom = {
         players: new Set(),
-        white: whiteEntry.clientId,
-        black: blackEntry.clientId,
+        white: null,
+        black: null,
         spectators: new Set(),
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         pgn: '',
@@ -203,6 +194,8 @@ export class GameGateway implements OnGatewayDisconnect {
         isBot: false,
         botColor: null,
         botDifficulty: null,
+        whiteUserId: whiteEntry.userId,
+        blackUserId: blackEntry.userId
       };
 
       this.activeGames.set(gameId, gameRoom);
@@ -221,16 +214,13 @@ export class GameGateway implements OnGatewayDisconnect {
 
       console.log(`Matchmaking [${tcKey}]: paired ${whiteEntry.clientId} (W) vs ${blackEntry.clientId} (B) -> game ${gameId}`);
 
-      // try {
-      //   await this.gameService.createGame({
-      //     timeControl: tcKey,
-      //     isRanked: true,
-      //   });
-      // } catch (e) {
-      //   console.warn('Could not persist matchmade game to DB (non-fatal):', e.message);
-      // }
+      try {
+        await this.gameService.createGame(whiteEntry.userId, blackEntry.userId);
+      } catch (e) {
+        console.warn('Could not persist matchmade game:', e.message);
+      }
     } else {
-      this.matchmakingQueues.set(tcKey, { clientId: client.id, userId: data.userId });
+      this.matchmakingQueues.set(tcKey, { clientId: client.id, userId: userId });
       client.emit('matchmaking:waiting', { timeControlKey: tcKey });
       console.log(`Matchmaking [${tcKey}]: ${client.id} is waiting`);
     }
@@ -288,6 +278,8 @@ export class GameGateway implements OnGatewayDisconnect {
     gameRoom.players.add(client.id);
 
     let assignedRole: 'white' | 'black' | 'spectator';
+
+    const userId = client.data.userId;
 
     if (gameRoom.white === client.id) {
       assignedRole = 'white';
@@ -401,10 +393,14 @@ export class GameGateway implements OnGatewayDisconnect {
 
     await this.stockfishService.startEngine(data.gameId, data.difficulty);
 
+    const userId = client.data.userId;
+
     client.emit('game:role-assigned', {
       gameId: data.gameId,
       role: humanColor,
     });
+
+    await this.gameService.createBotGame(userId, humanColor, data.difficulty, data.timeControlKey ?? DEFAULT_TIME_KEY);
 
     client.emit('game:state', {
       gameId: data.gameId,
