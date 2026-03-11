@@ -14,7 +14,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Chess } from '../chess/src/Chess';
 import { StockfishService } from './stockfish.service';
 import { PieceSymbol } from '../chess/src/types';
-import { GameResult } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { UseGuards } from '@nestjs/common';
 import { WsAuthGuard } from '../auth/guards/auth.guards';
@@ -63,10 +62,10 @@ function parseTc(key?: string): { initialMs: number; incrementMs: number } {
   return ({ initialMs: parts[0] * 1_000, incrementMs: parts[1] * 1_000 });
 }
 
-function toDbResult(winner: string): GameResult {
-  if (winner === 'White') return (GameResult.WHITE_WIN);
-  if (winner === 'Black') return (GameResult.BLACK_WIN);
-  return (GameResult.DRAW);
+function toDbResult(winner: string): 'WHITE_WIN' | 'BLACK_WIN' | 'DRAW' {
+  if (winner === 'White') return ('WHITE_WIN');
+  if (winner === 'Black') return ('BLACK_WIN');
+  return ('DRAW');
 }
 
 @WebSocketGateway({ cors: { origin: '*' } })
