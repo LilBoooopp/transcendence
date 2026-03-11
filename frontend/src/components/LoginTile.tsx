@@ -6,9 +6,10 @@ import LoginPopUp from './LoginPopUp';
 interface LoginTileProps {
   onLogin: () => void;
   onRegister: () => void;
+  onLoginSuccess?: () => void;
 }
 
-export default function LoginTile({ onLogin, onRegister }: LoginTileProps) {
+export default function LoginTile({ onLogin, onRegister, onLoginSuccess }: LoginTileProps) {
 	const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 	const [modalView, setModalView] = useState<'login' | 'register'>('login');
 	const openModal = (view: 'login' | 'register') => {
@@ -29,6 +30,7 @@ export default function LoginTile({ onLogin, onRegister }: LoginTileProps) {
 		isOpen={isAuthModalOpen}
 		onClose={() => setIsAuthModalOpen(false)}
 		initialView={modalView}
+    onLoginSuccess={onLoginSuccess}
 	  />
     </div>
   );
