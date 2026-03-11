@@ -27,11 +27,11 @@ re: down all
 
 clean: down
 	@printf "Cleaning configuration ${name}...\n"
-	@$(COMPOSE_CMD) down -rmi local
+	@$(COMPOSE_CMD) down --rmi local
 
 fclean: clean
-	@printf "Total clean of all Docker configurations\n"
-	@$(COMPOSE_CMD) down -rmi local -v
+	@printf "Total clean of all configurations docker\n"
+	@$(COMPOSE_CMD) down --rmi local -v
 	rm -f $(KEY) $(CERT)
 	rm -rf nginx/ssl
 
