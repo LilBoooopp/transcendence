@@ -44,6 +44,8 @@ chess-platform/
 - ✅ Major: Frontend + Backend frameworks (2pts)
 - ✅ Major: Real-time WebSocket features (2pts)
 - ✅ Minor: ORM (Prisma) (1pt)
+- Major: Public API (2pts)
+- Minor: Custom-made design, reusable components (1pt)
 
 ### User Management (3 points)
 - Major: Standard user management (2pts)
@@ -52,7 +54,7 @@ chess-platform/
 ### Gaming (7 points)
 - ✅ Major: Web-based chess game (2pts)
 - ✅ Major: Remote players (2pts)
-- Major: AI opponent (Stockfish) (2pts)
+- ✅ Major: AI opponent (Stockfish) (2pts)
 - Minor: Tournament system (1pt)
 
 ### User Interaction (2 points)
@@ -61,7 +63,7 @@ chess-platform/
 ### Spectator Mode (1 point)
 - ✅ Minor: Watch live games (1pt)
 
-**Total: 18 Points** (4 points bonus)
+**Total: 12 Points** (theoretical total: 21)
 
 ## Installation
 
