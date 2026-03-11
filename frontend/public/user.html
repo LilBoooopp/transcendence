@@ -41,7 +41,7 @@
  
   <script>
 		async function isUserConnected(){
-		const token = localStorage.getItem('authToken');
+		const token = localStorage.getItem('token');
 		if (!token){
 			console.log('no token');
 			return false;
@@ -56,7 +56,7 @@
 		});
 		if (!res.ok)
 		{
-			localStorage.removeItem('authToken');
+			localStorage.removeItem('token');
 			return false;
 		}
 		const data = await res.json();
@@ -78,7 +78,7 @@
 				return;
 			}
 			console.log('user is connected');
-			const token = localStorage.getItem('authToken');
+			const token = localStorage.getItem('token');
 			const res = await fetch('/api/users/me', {
 			method: 'GET',
 			headers: {
@@ -126,7 +126,7 @@
 			}
 		try {
 			console.log('begin Patch');
-			const token = localStorage.getItem('authToken');
+			const token = localStorage.getItem('token');
 			const res = await fetch('/api/users', {
 				method: 'PATCH',
 				headers: {
@@ -164,7 +164,7 @@
 			}
 		try {
 			console.log('begin Delete');
-			const token = localStorage.getItem('authToken');
+			const token = localStorage.getItem('token');
 			const res = await fetch('/api/users', {
 				method: 'DELETE',
 				headers:{
@@ -173,7 +173,7 @@
 				},
 			});
 			if (res.ok){
-				localStorage.removeItem('authToken');
+				localStorage.removeItem('token');
 				window.location.href = '/basepage.html';
 				return;
 			}

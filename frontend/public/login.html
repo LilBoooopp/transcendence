@@ -33,7 +33,7 @@
       const data = await res.json().catch(() => ({ message: 'Erreur serveur'}));
 	  if (res.ok) {
     // Changez access_token en accessToken
-    localStorage.setItem('authToken', data.accessToken);
+    localStorage.setItem('token', data.accessToken);
 	document.getElementById('loginForm').reset();
 	window.opener.location.href = '/basepage.html';
 	window.close();

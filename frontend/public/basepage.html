@@ -20,7 +20,7 @@
 	const result = document.getElementById('result');
 	//FUNCTION TO SEE IF THE USER IS CONNECTED
 	async function isUserConnected(){
-		const token = localStorage.getItem('authToken');
+		const token = localStorage.getItem('token');
 		if (!token){
 			console.log('no token');
 			return false;
@@ -35,7 +35,7 @@
 		});
 		if (!res.ok)
 		{
-			localStorage.removeItem('authToken');
+			localStorage.removeItem('token');
 			return false;
 		}
 		const data = await res.json();
@@ -75,7 +75,7 @@
 		}
 		console.log('In logout1');
 		try{
-			const token = localStorage.getItem('authToken');
+			const token = localStorage.getItem('token');
 			const res = await fetch('/api/auth/logout', {
 				method: 'POST',
 				headers: {
@@ -85,7 +85,7 @@
         })
 		if (res.ok) {
 		  // Supprimer le token du localStorage
-			localStorage.removeItem('authToken');
+			localStorage.removeItem('token');
 			result.textContent = 'Vous avez été déconnecté';
 		}
 		else {
@@ -138,7 +138,7 @@
 			result.textContent = 'Error: you have to be connected to see the players';
 			return;
 		}
-		const token = localStorage.getItem('authToken');
+		const token = localStorage.getItem('token');
 		try {
 			const res = await fetch('/api/users', {
 			method: 'GET',
@@ -169,7 +169,7 @@ try {
 			result.textContent = 'You are  not connected yet';
 			return;
 		}
-		const token = localStorage.getItem('authToken');
+		const token = localStorage.getItem('token');
 		const res = await fetch('/api/auth/me', {
 		method: 'GET',
 		headers: {
@@ -205,7 +205,7 @@ try {
 	console.log('is connected clicked');
 	e.preventDefault();
 	try {
-		const token = localStorage.getItem('authToken');
+		const token = localStorage.getItem('token');
 		if (!token){
 			result.textContent = 'You are  not connected and have no token';
 			return ;

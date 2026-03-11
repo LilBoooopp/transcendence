@@ -57,4 +57,11 @@ export class UserController {
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
+
+/*  @UseGuards(AuthGuard)
+  @Get('history')
+  async getUserHistory(@Req() req: any)
+  {
+	return this.userService.getUserHistory(req.user.userId);
+  }*/
 }
