@@ -17,6 +17,9 @@ class SocketService {
 
     this.socket = io({
       transports: ['polling', 'websocket'],
+      auth: {
+        token: localStorage.getItem('token') ?? '',
+      },
     });
 
     this.socket.on('connect', () => {
@@ -69,9 +72,9 @@ class SocketService {
     this.on('game:loaded', callback);
   }
 
-  joinMatchmaking(timeControlKey: string, userId: string): void {
+  joinMatchmaking(timeControlKey: string): void {
     console.log(`Joining matchmaking queue: ${timeControlKey}`);
-    this.emit('matchmaking:join', { timeControlKey, userId });
+    this.emit('matchmaking:join', { timeControlKey });
   }
 
   cancelMatchmaking(): void {

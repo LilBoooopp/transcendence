@@ -21,7 +21,7 @@ If you already cloned without that flag:
 git submodule update --init --recursive
 ```
 
-#### Updating the chess engin
+#### Updating the chess engine
 ```bash
 cd frontend/src/components/chess
 git pull origin main

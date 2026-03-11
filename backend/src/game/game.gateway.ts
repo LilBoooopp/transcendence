@@ -4,6 +4,7 @@ import {
   SubscribeMessage,
   MessageBody,
   ConnectedSocket,
+  OnGatewayConnection,
   OnGatewayDisconnect,
   WsException,
 } from '@nestjs/websockets';
@@ -14,16 +15,19 @@ import { Chess } from '../chess/src/Chess';
 import { StockfishService } from './stockfish.service';
 import { PieceSymbol } from '../chess/src/types';
 import { v4 as uuidv4 } from 'uuid';
-// add by syl
 import { UseGuards } from '@nestjs/common';
 import { WsAuthGuard } from '../auth/guards/auth.guards';
+import { JwtService } from '@nestjs/jwt';
+import { JWT_SECRET } from '../auth/configs/jwtsecret';
 
 type BotDifficulty = 'easy' | 'medium' | 'hard';
 
 interface GameRoom {
   players: Set<string>;
-  white: string | null;
-  black: string | null;
+  white: string | null; // just socket
+  black: string | null; // socket
+  whiteUserId: string | null;
+  blackUserId: string | null;
   spectators: Set<string>;
   fen: string;
   pgn: string;
@@ -58,30 +62,17 @@ function parseTc(key?: string): { initialMs: number; incrementMs: number } {
   return ({ initialMs: parts[0] * 1_000, incrementMs: parts[1] * 1_000 });
 }
 
-function defaultRoom(timeControlKey?: string): Omit<GameRoom, 'players' | 'white' | 'black' | 'isBot' | 'botColor' | 'botDifficulty'> {
-  const { initialMs, incrementMs } = parseTc(timeControlKey);
-  return {
-    spectators: new Set(),
-    fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-    pgn: '',
-    gameStarted: false,
-    whiteTimeMs: initialMs,
-    blackTimeMs: initialMs,
-    incrementMs,
-    currentTurn: 'w',
-    lastMoveAt: null,
-    timerRunning: false,
-    timerInterval: null,
-  };
+function toDbResult(winner: string): 'WHITE_WIN' | 'BLACK_WIN' | 'DRAW' {
+  if (winner === 'White') return ('WHITE_WIN');
+  if (winner === 'Black') return ('BLACK_WIN');
+  return ('DRAW');
 }
 
 @WebSocketGateway({ cors: { origin: '*' } })
-//syl a ajoute un guard
-//@UseGuards(WsAuthGuard)
-export class GameGateway implements OnGatewayDisconnect {
+@UseGuards(WsAuthGuard)
+export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
 
-  // START GAME. OK TO PUT IT HERE
 
   //Store games
   private activeGames = new Map<string, GameRoom>();
@@ -99,7 +90,28 @@ export class GameGateway implements OnGatewayDisconnect {
     private readonly gameService: GameService,
     private readonly prisma: PrismaService,
     private readonly stockfishService: StockfishService,
+    private readonly jwtService: JwtService,
   ) { }
+
+  async handleConnection(client: Socket) {
+    const token = client.handshake.auth?.token;
+
+    if (!token || token === '') {
+      console.log(`Rejected: no token provided by ${client.id}`);
+      client.disconnect();
+      return;
+    }
+    try {
+      const payload = await this.jwtService.verifyAsync(token, { secret: JWT_SECRET });
+      client.data.userId = payload.sub;
+      client.data.username = payload.username;
+      console.log(`Client connected: ${client.id} (user: ${client.data.username})`);
+    } catch (err) {
+      console.log(`Rejected invalid token from ${client.id}: ${err.message}`);
+      console.log(`Token received: ${token?.slice(0, 20)}...`);
+      client.disconnect();
+    }
+  }
 
   //disconnections
   handleDisconnect(client: Socket) {
@@ -120,12 +132,8 @@ export class GameGateway implements OnGatewayDisconnect {
         gameRoom.spectators.delete(client.id);
 
         if (!gameRoom.gameStarted) {
-          if (gameRoom.white === client.id) {
-            gameRoom.white = null;
-          }
-          if (gameRoom.black === client.id) {
-            gameRoom.black = null;
-          }
+          if (gameRoom.white === client.id) gameRoom.white = null;
+          if (gameRoom.black === client.id) gameRoom.black = null;
         }
 
         if (gameRoom.players.size === 0) {
@@ -149,26 +157,12 @@ export class GameGateway implements OnGatewayDisconnect {
     }
   }
 
-  //START GAME
-  // User authentication/identificaition
-  @SubscribeMessage('user:identify')
-  handleUserIdentify(
-    @MessageBody() data: { userId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    this.activeUsers.set(data.userId, client.id);
-
-    // braodcast user online
-    this.server.emit('user:status', { userId: data.userId, isOnline: true });
-
-    return { success: true, userId: data.userId };
-  }
-
   @SubscribeMessage('matchmaking:join')
   async handleMatchmakingJoin(
-    @MessageBody() data: { timeControlKey: string; userId: string },
+    @MessageBody() data: { timeControlKey: string },
     @ConnectedSocket() client: Socket,
   ) {
+    const userId = client.data.userId;
     const tcKey = data.timeControlKey ?? DEFAULT_TIME_KEY;
     const waiting = this.matchmakingQueues.get(tcKey);
 
@@ -182,13 +176,15 @@ export class GameGateway implements OnGatewayDisconnect {
       // assign colors
       const [whiteEntry, blackEntry] =
         Math.random() < 0.5
-          ? [waiting, { clientId: client.id, userId: data.userId }]
-          : [{ clientId: client.id, userId: data.userId }, waiting];
+          ? [waiting, { clientId: client.id, userId: userId }]
+          : [{ clientId: client.id, userId: userId }, waiting];
 
       const gameRoom: GameRoom = {
         players: new Set(),
-        white: whiteEntry.clientId,
-        black: blackEntry.clientId,
+        white: null,
+        black: null,
+        whiteUserId: whiteEntry.userId,
+        blackUserId: blackEntry.userId,
         spectators: new Set(),
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         pgn: '',
@@ -208,29 +204,18 @@ export class GameGateway implements OnGatewayDisconnect {
       this.activeGames.set(gameId, gameRoom);
 
       // notify players of game
-      this.server.to(whiteEntry.clientId).emit('matchmaking:found', {
-        gameId,
-        role: 'white',
-        timeControlKey: tcKey,
-      });
-      this.server.to(blackEntry.clientId).emit('matchmaking:found', {
-        gameId,
-        role: 'black',
-        timeControlKey: tcKey,
-      });
+      this.server.to(whiteEntry.clientId).emit('matchmaking:found', { gameId, role: 'white', timeControlKey: tcKey });
+      this.server.to(blackEntry.clientId).emit('matchmaking:found', { gameId, role: 'black', timeControlKey: tcKey });
 
       console.log(`Matchmaking [${tcKey}]: paired ${whiteEntry.clientId} (W) vs ${blackEntry.clientId} (B) -> game ${gameId}`);
 
-      // try {
-      //   await this.gameService.createGame({
-      //     timeControl: tcKey,
-      //     isRanked: true,
-      //   });
-      // } catch (e) {
-      //   console.warn('Could not persist matchmade game to DB (non-fatal):', e.message);
-      // }
+      try {
+        await this.gameService.createGame(whiteEntry.userId, blackEntry.userId, gameId, tcKey);
+      } catch (e) {
+        console.warn('Could not persist matchmade game:', e.message);
+      }
     } else {
-      this.matchmakingQueues.set(tcKey, { clientId: client.id, userId: data.userId });
+      this.matchmakingQueues.set(tcKey, { clientId: client.id, userId: userId });
       client.emit('matchmaking:waiting', { timeControlKey: tcKey });
       console.log(`Matchmaking [${tcKey}]: ${client.id} is waiting`);
     }
@@ -259,6 +244,7 @@ export class GameGateway implements OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const roomName = `game:${data.gameId}`;
+    const userId = client.data.userId;
     client.join(roomName);
 
     if (!this.activeGames.has(data.gameId)) {
@@ -267,6 +253,8 @@ export class GameGateway implements OnGatewayDisconnect {
         players: new Set(),
         white: null,
         black: null,
+        whiteUserId: null,
+        blackUserId: null,
         spectators: new Set(),
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
         pgn: '',
@@ -289,16 +277,20 @@ export class GameGateway implements OnGatewayDisconnect {
 
     let assignedRole: 'white' | 'black' | 'spectator';
 
-    if (gameRoom.white === client.id) {
+    if (gameRoom.whiteUserId === userId) {
       assignedRole = 'white';
-    } else if (gameRoom.black === client.id) {
+      gameRoom.white = client.id;
+    } else if (gameRoom.blackUserId === userId) {
       assignedRole = 'black';
+      gameRoom.black = client.id;
     } else if (data.claimedRole === 'white' && gameRoom.white === null) {
       assignedRole = 'white';
       gameRoom.white = client.id;
+      gameRoom.whiteUserId = userId;
     } else if (data.claimedRole === 'black' && gameRoom.black === null) {
       assignedRole = 'black';
       gameRoom.white = client.id;
+      gameRoom.blackUserId = userId;
     } else if (gameRoom.gameStarted) {
       assignedRole = 'spectator';
       gameRoom.spectators.add(client.id);
@@ -306,15 +298,19 @@ export class GameGateway implements OnGatewayDisconnect {
       assignedRole = Math.random() < 0.5 ? 'white' : 'black';
       if (assignedRole === 'white') {
         gameRoom.white = client.id;
+        gameRoom.whiteUserId = userId;
       } else {
         gameRoom.black = client.id;
+        gameRoom.blackUserId = userId;
       }
     } else if (gameRoom.white === null) {
       assignedRole = 'white'
       gameRoom.white = client.id;
+      gameRoom.whiteUserId = userId;
     } else if (gameRoom.black === null) {
       assignedRole = 'black';
       gameRoom.black = client.id;
+      gameRoom.blackUserId = userId;
     } else {
       assignedRole = 'spectator';
       gameRoom.spectators.add(client.id);
@@ -328,6 +324,17 @@ export class GameGateway implements OnGatewayDisconnect {
       if (whiteReady && blackReady) {
         gameRoom.gameStarted = true;
         this.startGameTimer(data.gameId, gameRoom);
+
+        if (gameRoom.whiteUserId && gameRoom.blackUserId) {
+          this.gameService.createGame(
+            gameRoom.whiteUserId,
+            gameRoom.blackUserId,
+            data.gameId,
+            data.timeControlKey ?? DEFAULT_TIME_KEY,
+          ).catch((e) => {
+            console.warn('Could not persist direct-join game to DB:', e.message);
+          })
+        }
       }
     }
 
@@ -368,6 +375,7 @@ export class GameGateway implements OnGatewayDisconnect {
     @MessageBody() data: { gameId: string; difficulty: BotDifficulty, timeControlKey?: string },
     @ConnectedSocket() client: Socket,
   ) {
+    const userId = client.data.userId;
     const roomName = `game:${data.gameId}`;
     client.join(roomName);
 
@@ -381,6 +389,8 @@ export class GameGateway implements OnGatewayDisconnect {
       players: new Set([client.id]),
       white: humanColor === 'white' ? client.id : null,
       black: humanColor === 'black' ? client.id : null,
+      whiteUserId: humanColor === 'white' ? userId : null,
+      blackUserId: humanColor === 'black' ? userId : null,
       spectators: new Set(),
       fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
       pgn: '',
@@ -400,6 +410,14 @@ export class GameGateway implements OnGatewayDisconnect {
     this.activeGames.set(data.gameId, gameRoom);
 
     await this.stockfishService.startEngine(data.gameId, data.difficulty);
+
+    await this.gameService.createBotGame(
+      userId,
+      humanColor,
+      data.difficulty,
+      data.timeControlKey ?? DEFAULT_TIME_KEY,
+      data.gameId,
+    );
 
     client.emit('game:role-assigned', {
       gameId: data.gameId,
@@ -429,25 +447,19 @@ export class GameGateway implements OnGatewayDisconnect {
   ) {
     client.leave(`game:${data.gameId}`);
 
-    if (this.activeGames.has(data.gameId)) {
-      const gameRoom = this.activeGames.get(data.gameId);
+    const gameRoom = this.activeGames.get(data.gameId);
+    if (gameRoom) {
       gameRoom.players.delete(client.id);
       gameRoom.spectators.delete(client.id);
 
       if (!gameRoom.gameStarted) {
-        if (gameRoom.white === client.id) {
-          gameRoom.white = null;
-        }
-        if (gameRoom.black === client.id) {
-          gameRoom.black = null;
-        }
+        if (gameRoom.white === client.id) { gameRoom.white = null; gameRoom.whiteUserId = null; }
+        if (gameRoom.black === client.id) { gameRoom.black = null; gameRoom.blackUserId = null; }
       }
 
       if (gameRoom.players.size === 0) {
         this.clearGameTimer(data.gameId);
-        if (gameRoom.isBot) {
-          this.stockfishService.stopEngine(data.gameId);
-        }
+        if (gameRoom.isBot) this.stockfishService.stopEngine(data.gameId);
         this.activeGames.delete(data.gameId);
       }
     }
@@ -513,12 +525,8 @@ export class GameGateway implements OnGatewayDisconnect {
       }
       console.log(`Move in game ${data.gameId}:`, data.move);
 
-      this.gameService.updateGame(data.gameId, {
-        fen: data.fen,
-        moves: data.pgn,
-      }).catch((err) => {
-        console.log('Failed to save game state to DB (non-fatal):', err.message);
-      });
+      this.gameService.updateGame(data.gameId, { fen: data.fen, moves: data.pgn })
+        .catch((err) => console.warn('Failed to save game state to DB (non-fatal):', err.message));
 
       if (gameRoom.isBot && gameRoom.currentTurn === gameRoom.botColor) {
         this.scheduleBotMove(data.gameId, gameRoom);
@@ -527,18 +535,14 @@ export class GameGateway implements OnGatewayDisconnect {
       return { success: true };
     } catch (error) {
       console.error('Error handling move:', error);
-
-      client.emit('error', {
-        message: error.message ?? 'failed to process move',
-      });
-
+      client.emit('error', { message: error.message ?? 'failed to process move' });
       return { success: false, error: error.message };
     }
   }
 
 
   @SubscribeMessage('game:over')
-  handleGameOver(
+  async handleGameOver(
     @MessageBody() data: { gameId: string; winner: string; result: string },
     @ConnectedSocket() client: Socket,
   ) {
@@ -557,11 +561,13 @@ export class GameGateway implements OnGatewayDisconnect {
       result: data.result,
     });
 
+    await this.persistGameResult(data.gameId, data.winner, data.result);
+
     return { success: true };
   }
 
   @SubscribeMessage('game:resign')
-  handleResign(
+  async handleResign(
     @MessageBody() data: { gameId: string },
     @ConnectedSocket() client: Socket,
   ) {
@@ -570,14 +576,18 @@ export class GameGateway implements OnGatewayDisconnect {
 
     const resigningColor = gameRoom.white === client.id ? 'White' : 'Black';
     const winner = resigningColor === 'White' ? 'Black' : 'White';
+    const resultStr = `${resigningColor} resigned - ${winner} wins`;
 
     gameRoom.timerRunning = false;
     this.clearGameTimer(data.gameId);
+    if (gameRoom.isBot) this.stockfishService.stopEngine(data.gameId);
 
     this.server.to(`game:${data.gameId}`).emit('game:over', {
       winner,
-      result: `${resigningColor} resigned - ${winner} wins`,
+      result: resultStr,
     });
+
+    await this.persistGameResult(data.gameId, winner, resultStr);
 
     return ({ success: true });
   }
@@ -599,7 +609,7 @@ export class GameGateway implements OnGatewayDisconnect {
   }
 
   @SubscribeMessage('game:draw-response')
-  handleDrawResponse(
+  async handleDrawResponse(
     @MessageBody() data: { gameId: string; accepted: boolean },
     @ConnectedSocket() client: Socket,
   ) {
@@ -607,12 +617,17 @@ export class GameGateway implements OnGatewayDisconnect {
     if (!gameRoom) return ({ success: false });
 
     if (data.accepted) {
+      const resultStr = 'Draw by agreement';
       gameRoom.timerRunning = false;
+      this.clearGameTimer(data.gameId);
+      if (gameRoom.isBot) this.stockfishService.stopEngine(data.gameId);
 
       this.server.to(`game:${data.gameId}`).emit('game:over', {
         winner: 'Draw',
-        result: 'Draw by agreement',
+        result: resultStr,
       });
+
+      await this.persistGameResult(data.gameId, 'Draw', resultStr);
     } else {
       client.to(`game:${data.gameId}`).emit('game:draw-declined', {
         gameId: data.gameId,
@@ -628,22 +643,15 @@ export class GameGateway implements OnGatewayDisconnect {
     @MessageBody() data: { gameId?: string; message: string; userId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    if (data.gameId) {
-      // Send to specific game
-      client.to(`game:${data.gameId}`).emit('chat:message', {
-        userId: data.userId,
-        message: data.message,
-        timestamp: new Date(),
-      });
-    } else {
-      // Broadcast to all users (global chat)
-      this.server.emit('chat:message', {
-        userId: data.userId,
-        message: data.message,
-        timestamp: new Date(),
-      });
-    }
+    const userId = client.data.userId;
 
+    const payload = { userId, message: data.message, timestamp: new Date() };
+
+    if (data.gameId) {
+      client.to(`game:${data.gameId}`).emit('chat:message', payload);
+    } else {
+      this.server.emit('chat:message', payload);
+    }
     return { success: true };
   }
 
@@ -695,6 +703,7 @@ export class GameGateway implements OnGatewayDisconnect {
     }
   }
 
+  // helper functinos
   private getActiveTime(gameRoom: any, color: 'w' | 'b'): number {
     if (!gameRoom.timerRunning || !gameRoom.lastMoveAt) {
       return (color === 'w' ? gameRoom.whiteTimeMs : gameRoom.blackTimeMs);
@@ -709,8 +718,8 @@ export class GameGateway implements OnGatewayDisconnect {
   private startGameTimer(gameId: string, gameRoom: any) {
     gameRoom.timerRunning = true;
     gameRoom.lastMoveAt = Date.now();
-
     const inc = gameRoom.incrementMs;
+
     console.log(`Game ${gameId} started - timers running (${gameRoom.whiteTimeMs / 1000}s + ${inc / 1000}s increment`);
 
     this.server.to(`game:${gameId}`).emit('game:timer', {
@@ -729,8 +738,9 @@ export class GameGateway implements OnGatewayDisconnect {
 
       const winner = gameRoom.currentTurn === 'w' ? 'Black' : 'White';
       const loser = gameRoom.currentTurn === 'b' ? 'White' : 'Black';
+      const result = `${loser} ran out of time - ${winner} wins`;
 
-      console.log(`Game ${gameId}: ${loser} ran out of time - ${winner} wins`);
+      console.log(`Game ${gameId}: ${result}`);
 
       gameRoom.timerRunning = false;
       if (gameRoom.currentTurn === 'w') {
@@ -739,11 +749,10 @@ export class GameGateway implements OnGatewayDisconnect {
         gameRoom.blackTimeMs = 0;
       }
 
+      clearInterval(gameRoom.timerInterval);
+      gameRoom.timerInterval = null;
 
-      this.server.to(`game:${gameId}`).emit('game:over', {
-        winner,
-        result: `${loser} ran out of time - ${winner} wins`,
-      });
+      this.server.to(`game:${gameId}`).emit('game:over', { winner, result });
 
       this.server.to(`game:${gameId}`).emit('game:timer', {
         whiteTimeMs: gameRoom.whiteTimeMs,
@@ -753,8 +762,7 @@ export class GameGateway implements OnGatewayDisconnect {
         incrementMs: gameRoom.incrementMs,
       });
 
-      clearInterval(gameRoom.timerInterval);
-      gameRoom.timerInterval = null;
+      this.persistGameResult(gameId, winner, result);
     }, 1000);
   }
 
@@ -763,6 +771,22 @@ export class GameGateway implements OnGatewayDisconnect {
     if (gameRoom?.timerInterval) {
       clearInterval(gameRoom.timerInterval);
       gameRoom.timerInterval = null;
+    }
+  }
+
+  private async persistGameResult(gameId: string, winner: string, result: string) {
+    try {
+      await this.prisma.game.update({
+        where: { id: gameId },
+        data: {
+          status: 'COMPLETED',
+          result: toDbResult(winner),
+          winner: winner.toLowerCase(),
+          endedAt: new Date(),
+        },
+      });
+    } catch (e) {
+      console.warn(`Failed to persist result for game ${gameId} (non-fatal):`, e.message);
     }
   }
 

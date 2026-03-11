@@ -113,7 +113,7 @@ const BotGameLauncher: React.FC = () => {
         )}
 
         <button
-          onClick={() => navigate('botmode')}
+          onClick={() => navigate('/botmode')}
           className="w-full py-2.5 rounded-lg border-2 border-primary/40 text-primary font-semibold text-sm hover:bg-primary/5 transition-colors"
         >
           Cancel

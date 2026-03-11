@@ -88,22 +88,22 @@ export function useGameSetup({
         });
 
         socketService.on('matchmaking:cancelled', () => {
-        setError('Matchmaking cancelled');
-        setWaiting(false);
+          setError('Matchmaking cancelled');
+          setWaiting(false);
         });
 
-        socketService.joinMatchmaking(toRef.current.key, userId);
+        socketService.joinMatchmaking(toRef.current.key);
       } else if (modeRef.current === 'bot') {
         const id = gameIdRef.current ?? `bot-${Math.random().toString(36).substr(2, 9)}`;
         setGameId(id);
         socketService.joinBotGame(id, diffRef.current, toRef.current.key);
       } else {
         if (gameIdRef.current) {
-        socketService.joinGame(gameIdRef.current, toRef.current.key);
+          socketService.joinGame(gameIdRef.current, toRef.current.key);
         }
       }
     };
-  
+
     if (socketService.isConnected()) {
       doSetup();
     } else {
