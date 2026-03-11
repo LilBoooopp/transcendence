@@ -18,7 +18,7 @@ class SocketService {
     this.socket = io({
       transports: ['polling', 'websocket'],
       auth: {
-        token: localStorage.getItem('authToken') ?? '',
+        token: localStorage.getItem('token') ?? '',
       },
     });
 

@@ -95,13 +95,20 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(client: Socket) {
     const token = client.handshake.auth?.token;
+
+    if (!token || token === '') {
+      console.log(`Rejected: no token provided by ${client.id}`);
+      client.disconnect();
+      return;
+    }
     try {
       const payload = await this.jwtService.verifyAsync(token, { secret: JWT_SECRET });
       client.data.userId = payload.sub;
       client.data.username = payload.username;
       console.log(`Client connected: ${client.id} (user: ${client.data.username})`);
-    } catch {
-      console.log(`Rejected unauthenticated connection: ${client.id}`);
+    } catch (err) {
+      console.log(`Rejected invalid token from ${client.id}: ${err.message}`);
+      console.log(`Token received: ${token?.slice(0, 20)}...`);
       client.disconnect();
     }
   }

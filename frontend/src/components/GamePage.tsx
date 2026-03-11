@@ -20,14 +20,14 @@ const GamePage: React.FC = () => {
   const navigate = useNavigate();
 
   const state = (location.state ?? {}) as LocationState;
-  const [userId] = useState(() => state.userId ?? `player-${Math.random().toString(36).substr(2, 9)}`);
+  const [userId] = useState(() => state.userId ?? localStorage.getItem('userId') ?? '');
   const tcKey = state.tcKey ?? '600+0';
   const timeControl = getTimeControl(tcKey);
 
   const [role, setRole] = useState<'white' | 'black' | 'spectator' | null>(state.role ?? null);
   const [initialState, setInitialState] = useState<{ fen: string; pgn: string } | null>(null);
   const [initialTimer, setInitialTimer] = useState<TimerState | null>(state.initialTimer ?? null);
-  const [waiting, setWaiting] = useState(!state.role);
+  const [waiting, setWaiting] = useState(true);
 
   const hasConnected = useRef(false);
 
@@ -48,16 +48,10 @@ const GamePage: React.FC = () => {
       });
 
       socketService.on('game:timer', (data: TimerState) => {
-        setInitialTimer(prev => prev ?? data);
+        setInitialTimer(data);
       });
 
-      const role = state.role
-
-      socketService.joinGame(gameId, tcKey, role);
-
-      if (state.role) {
-        setWaiting(false);
-      }
+      socketService.joinGame(gameId, tcKey, state.role ?? undefined);
     };
 
     if (socketService.isConnected()) {
@@ -118,8 +112,8 @@ const GamePage: React.FC = () => {
     <ChessGame
       gameId={gameId}
       userId={userId}
-      playerColor="white"
-      isSpectator={true}
+      playerColor={role}
+      isSpectator={false}
       initialState={initialState}
       initialTimer={initialTimer}
       incrementMs={timeControl.incrementMs}

@@ -10,8 +10,9 @@ export class GameService {
 
   // Create a new game
   async createGame(whitePlayerId: string, blackPlayerId: string, id: string, timeControl?: string) {
-    const game = await this.prisma.game.create({
-      data: {
+    return (this.prisma.game.upsert({
+      where: { id },
+      create: {
         id,
         whitePlayerId,
         blackPlayerId,
@@ -19,8 +20,8 @@ export class GameService {
         status: 'IN_PROGRESS',
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
       },
-    });
-    return (game);
+      update: {},
+    }));
   }
 
   // Find or create game
