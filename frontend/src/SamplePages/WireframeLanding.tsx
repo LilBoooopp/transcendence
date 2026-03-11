@@ -7,6 +7,7 @@ import * as Icons from 'lucide-react';
 import { isLoggedIn } from '../services/auth.service';
 import Button from '@/components/Button';
 
+
 export default function WireframeLanding() {
     const navigate = useNavigate();
     const [loggedIn, setLoggedIn] = useState(false);
@@ -22,13 +23,11 @@ export default function WireframeLanding() {
         checkAuth();
     }, []);
 
-	// Dummy data for the history list
 	const history: GameHistoryItem[] = [
 		{ id: '1', date: '2023-10-24', opponent: 'GrandMasterFlash', result: 'Win', moves: 34, mode: 'Blitz', accuracy: 89 },
 		{ id: '2', date: '2023-10-22', opponent: 'Rookie123', result: 'Loss', moves: 21, mode: 'Bullet', accuracy: 65 },
 		{ id: '3', date: '2023-10-20', opponent: 'ChessBot', result: 'Draw', moves: 55, mode: 'Rapid', accuracy: 92 },
 	];
-
 /*	//USERSYL
 	const handleLogin = async () => {
   const response = await fetch('/api/users/register', {
@@ -88,41 +87,41 @@ export default function WireframeLanding() {
 		</div>
 
 
-        {/* HISTORY / LOGIN SECTION */}
-        <div className="w-full mt-12">
+        	{/* HISTORY / LOGIN SECTION */}
+        	<div className="w-full mt-12">
 
-            {loggedIn ? (
-                <>
-                    <GameHistoryList history={history} />
-					{/*Test button to logout (waiting for bastian to add a clean one)*/}
-                    <button
-                        className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
-                        onClick={async () => {
-                            try {
-                                await fetch('/api/auth/logout', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                                    },
-                                });
-                                localStorage.removeItem('token');
-                                setLoggedIn(false);
-                            } catch (error) {
-                                console.error('Logout failed', error);
-                            }
-                        }}
-                    >
-                        Logout
-                    </button>
-                </>
-            ) : (
-                <LoginTile 
-                    onLogin={() => console.log('Login clicked')} 
-                    onRegister={() => console.log('Register clicked')}
-					onLoginSuccess={checkAuth}
-                />
-            )}
-        </div>
+        	    {loggedIn ? (
+        	        <>
+        	            <GameHistoryList history={history} />
+						{/*Test button to logout (waiting for bastian to add a clean one)*/}
+        	            <button
+        	                className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
+        	                onClick={async () => {
+        	                    try {
+        	                        await fetch('/api/auth/logout', {
+        	                            method: 'POST',
+        	                            headers: {
+        	                                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        	                            },
+        	                        });
+        	                        localStorage.removeItem('token');
+        	                        setLoggedIn(false);
+        	                    } catch (error) {
+        	                        console.error('Logout failed', error);
+        	                    }
+        	                }}
+        	            >
+        	                Logout
+        	            </button>
+        	        </>
+        	    ) : (
+        	        <LoginTile 
+        	            onLogin={() => console.log('Login clicked')} 
+        	            onRegister={() => console.log('Register clicked')}
+						onLoginSuccess={checkAuth}
+        	        />
+        	    )}
+        	</div>
 
 	</div>
 	);
