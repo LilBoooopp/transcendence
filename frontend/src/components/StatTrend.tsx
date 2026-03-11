@@ -25,7 +25,7 @@ export const StatTrend: React.FC<StatTrendProps> = ({ delta, label }) => {
   }
 
   return (
-    <div className="flex items-center gap-2 mt-1">
+    <div className="flex items-center gap-2">
       <div className={`flex items-center gap-1 font-bold ${colorClass}`}>
         <Icon size={20} strokeWidth={3} />
         <span>{Math.abs(delta)}</span> {/* Math.abs hides the minus sign so the arrow does the talking */}

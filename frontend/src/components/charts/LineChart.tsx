@@ -37,7 +37,6 @@ export const LineChart: React.FC<BaseChartProps> = ({
           />
           <Legend />
 
-          {/* Lines mapping to your Primary colors as defaults */}
           {series.map((s, index) => (
             <Line
               key={index}

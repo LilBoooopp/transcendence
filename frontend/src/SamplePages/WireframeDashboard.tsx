@@ -3,6 +3,8 @@ import { Zap, Timer } from 'lucide-react';
 import { LineChart } from '../components/charts/LineChart'; 
 import { GameModeStatsCard } from '../components/GameModeStatsCard';
 import themeColors from '../themeColors';
+import GameHistoryList, { GameHistoryItem } from '../components/GameHistoryList';
+import UserTile from '../components/UserTile'; // <-- 1. Imported the UserTile here
 
 // --- 1. DUMMY DATA ---
 const myRatingData = [
@@ -10,22 +12,34 @@ const myRatingData = [
   { date: 'Week 2', rapid: 1150, blitz: 1080 },
   { date: 'Week 3', rapid: 1130, blitz: 1120 },
   { date: 'Week 4', rapid: 1210, blitz: 1190 },
+  { date: 'Week 5', rapid: 1240, blitz: 1205 },
+  { date: 'Week 6', rapid: 1260, blitz: 1214 },
 ];
 
 const blitzHistory = [
-  { date: '1st', rating: 1100 },
-  { date: '8th', rating: 1120 },
-  { date: '15th', rating: 1090 },
-  { date: '22nd', rating: 1150 },
-  { date: 'Now', rating: 1214 },
+  { date: 'Jan', rating: 1050 },
+  { date: 'Feb', rating: 1080 },
+  { date: 'Mar', rating: 1120 },
+  { date: 'Apr', rating: 1090 },
+  { date: 'May', rating: 1150 },
+  { date: 'Jun', rating: 1180 },
+  { date: 'Jul', rating: 1214 },
 ];
 
 const rapidHistory = [
-  { date: '1st', rating: 1300 },
-  { date: '8th', rating: 1305 },
-  { date: '15th', rating: 1290 },
-  { date: '22nd', rating: 1285 },
-  { date: 'Now', rating: 1260 },
+  { date: 'Jan', rating: 1250 },
+  { date: 'Feb', rating: 1280 },
+  { date: 'Mar', rating: 1300 },
+  { date: 'Apr', rating: 1305 },
+  { date: 'May', rating: 1290 },
+  { date: 'Jun', rating: 1285 },
+  { date: 'Jul', rating: 1260 },
+];
+
+const history: GameHistoryItem[] = [
+    { id: '1', date: '2023-10-24', opponent: 'GrandMasterFlash', result: 'Win', moves: 34, mode: 'Blitz', accuracy: 89 },
+    { id: '2', date: '2023-10-22', opponent: 'Rookie123', result: 'Loss', moves: 21, mode: 'Bullet', accuracy: 65 },
+    { id: '3', date: '2023-10-20', opponent: 'ChessBot', result: 'Draw', moves: 55, mode: 'Rapid', accuracy: 92 },
 ];
 
 
@@ -34,7 +48,7 @@ const StatsView = () => {
     <div className="flex flex-col gap-6 w-full">
       {/* Blitz Card */}
       <GameModeStatsCard 
-        title="Blitz 3 min"
+        title="Blitz"
         icon={<Zap size={32} />}
         currentRating={1214}
         ratingDelta={+114}
@@ -44,12 +58,12 @@ const StatsView = () => {
 
       {/* Rapid Card */}
       <GameModeStatsCard 
-        title="Rapid 10 min"
+        title="Rapid"
         icon={<Timer size={32} />}
         currentRating={1260}
         ratingDelta={-40}
         chartData={rapidHistory}
-        chartColor={themeColors.primary.hover} 
+        chartColor={themeColors.accent.DEFAULT} 
       />
     </div>
   );
@@ -60,63 +74,26 @@ const WireframeDashboard = () => {
   const [view, setView] = useState<'menu' | 'time-selection'>('menu');
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 items-center w-full max-w-4xl mx-auto py-8 px-4">
       
-      {/* TOP SECTION: Play Menu & Open Games */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* LEFT COLUMN: The dynamic play menu */}
-        <div className="lg:col-span-2">
-          <div className="bg-white p-6 rounded-xl shadow-sm border-2 border-gray-200 min-h-[400px]">
-            {view === 'menu' && (
-              <div>
-                <h2 className="text-2xl font-bold mb-6 text-gray-800">Play Chess</h2>
-                <button onClick={() => setView('time-selection')} className="bg-blue-500 text-white p-2 rounded mt-4">
-                  Test: Go to Time Selection
-                </button>
-              </div>
-            )}
-
-            {view === 'time-selection' && (
-              <div>
-                <button onClick={() => setView('menu')} className="text-gray-500 hover:text-black mb-4">
-                  ← Back
-                </button>
-                <h2 className="text-2xl font-bold mb-6 text-gray-800">Choose Time Control</h2>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: Open Games */}
-        <div className="lg:col-span-1 border-2 border-dashed border-blue-300 p-4 rounded-xl">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">Open Games</h3>
-          <p className="text-gray-500">List of players looking for a match...</p>
-        </div>
+      {/* TOP SECTION: User Profile Tile */}
+      <div className="w-full flex justify-center">
+        <UserTile 
+          username="lilboooopp"
+          MemberSince="Oct 2023"
+          TotalGames={342}
+          AvgScore={1234}
+        />
       </div>
 
       {/* BOTTOM SECTION: Statistics Dashboard */}
-      <div className="w-full">
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">Your Statistics</h2>
-        
-        {/* We just drop our local component right here! */}
-        <StatsView />
-        
-        {/* We can also keep the old combined LineChart right below it if you want to see both! */}
-        <div className="bg-gray-900 p-6 rounded-xl shadow-sm border-2 border-gray-800 mt-8">
-          <LineChart 
-            title="Combined Rating Progression (Past Month)"
-            data={myRatingData}
-            xAxisKey="date"
-            height={350}
-            series={[
-              { dataKey: 'rapid', name: 'Rapid Elo', color: themeColors.primary.DEFAULT },
-              { dataKey: 'blitz', name: 'Blitz Elo', color: themeColors.accent.DEFAULT }
-            ]}
-          />
+      <div className="w-full mt-8">        
+        <div className="flex justify-center mb-8"> 
+          <StatsView /> 
         </div>
-
+        <GameHistoryList history={history} />
       </div>
+      
     </div>
   );
 };
