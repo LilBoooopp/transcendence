@@ -3,6 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import Tile from '../components/Tile_w_select';
 import * as Icons from 'lucide-react';
 
+const BULLET_OPTIONS = ['1 min', '1 | 1', '2 | 1'];
+const BLITZ_OPTIONS = ['3 min', '3 | 2', '5 min', '5 | 3'];
+const RAPID_OPTIONS = ['10 min', '15 | 10', '30 min'];
+
+const LABEL_TO_KEY: Record<string, string> = {
+	'1 min': '60+0',
+	'1 | 1': '60+1',
+	'2 | 1': '120+1',
+	'3 min': '180+0',
+	'3 | 2': '180+2',
+	'5 min': '300+0',
+	'5 | 3': '300+3',
+	'10 min': '600+0',
+	'15 | 10': '900+10',
+	'30 min': '1800+0',
+};
+
 export default function WireframeGameMode() {
 	const navigate = useNavigate();
 
@@ -11,51 +28,51 @@ export default function WireframeGameMode() {
 	const [blitzOption, setBlitzOption] = useState('3 min');
 	const [rapidOption, setRapidOption] = useState('10 min');
 
-	const handlePlay = (mode: string, option: string) => {
-		console.log(`Starting ${mode} game (${option})`);
-		// In a real app, you'd pass these params to the game creation logic
-		navigate('/wireframe'); 
+	const handlePlay = (label: string) => {
+		const key = LABEL_TO_KEY[label];
+		if (!key) return;
+		navigate(`/play?tc=${encodeURIComponent(key)}`);
 	};
 
 	return (
-	<div className="flex flex-col items-center justify-center min-h-[80vh] px-4 max-w-5xl mx-auto py-12">
-		
-		<h1 className="text-4xl font-heading font-bold mb-12 text-center">
-			Select Game Mode
-		</h1>
+		<div className="flex flex-col items-center justify-center min-h-[80vh] px-4 max-w-5xl mx-auto py-12">
 
-		<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-4xl">
-			<Tile 
-				title="Bullet"
-				description="Super fast! 1 to 2 minutes."
-				icon={<Icons.Zap size={36} />}
-				options={['1 min', '1 | 1', '2 | 1']}
-				selectedOption={bulletOption}
-				onSelect={setBulletOption}
-				onClick={() => handlePlay('Bullet', bulletOption)}
-			/>
+			<h1 className="text-4xl font-heading font-bold mb-12 text-center">
+				Select Game Mode
+			</h1>
 
-			<Tile 
-				title="Blitz"
-				description="Fast paced. 3 to 5 minutes."
-				icon={<Icons.Flame size={36} />}
-				options={['3 min', '3 | 2', '5 min', '5 | 3']}
-				selectedOption={blitzOption}
-				onSelect={setBlitzOption}
-				onClick={() => handlePlay('Blitz', blitzOption)}
-			/>
+			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-4xl">
+				<Tile
+					title="Bullet"
+					description="Super fast! 1 to 2 minutes."
+					icon={<Icons.Zap size={36} />}
+					options={BULLET_OPTIONS}
+					selectedOption={bulletOption}
+					onSelect={setBulletOption}
+					onClick={() => handlePlay(bulletOption)}
+				/>
 
-			<Tile 
-				title="Rapid"
-				description="Standard play. 10+ minutes."
-				icon={<Icons.Timer size={36} />}
-				options={['10 min', '15 | 10', '30 min']}
-				selectedOption={rapidOption}
-				onSelect={setRapidOption}
-				onClick={() => handlePlay('Rapid', rapidOption)}
-			/>
+				<Tile
+					title="Blitz"
+					description="Fast paced. 3 to 5 minutes."
+					icon={<Icons.Flame size={36} />}
+					options={BLITZ_OPTIONS}
+					selectedOption={blitzOption}
+					onSelect={setBlitzOption}
+					onClick={() => handlePlay(blitzOption)}
+				/>
+
+				<Tile
+					title="Rapid"
+					description="Standard play. 10+ minutes."
+					icon={<Icons.Timer size={36} />}
+					options={RAPID_OPTIONS}
+					selectedOption={rapidOption}
+					onSelect={setRapidOption}
+					onClick={() => handlePlay(rapidOption)}
+				/>
+			</div>
+
 		</div>
-
-	</div>
 	);
 }

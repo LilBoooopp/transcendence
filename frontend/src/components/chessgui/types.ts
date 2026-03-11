@@ -37,4 +37,5 @@ export interface ChessGameProps {
   isSpectator?: boolean;
   initialState?: { fen: string; pgn: string } | null;
   initialTimer?: TimerState | null;
+  incrementMs?: number;
 }
