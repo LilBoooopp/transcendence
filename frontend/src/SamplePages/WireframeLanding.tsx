@@ -1,14 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Tile from '../components/Tile';
 import LoginTile from '../components/LoginTile';
 import GameHistoryList, { GameHistoryItem } from '../components/GameHistoryList';
 import * as Icons from 'lucide-react';
+import { isLoggedIn } from '../services/auth.service';
 
 
 export default function WireframeLanding() {
-	const navigate = useNavigate();
-	const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const navigate = useNavigate();
+    const [loggedIn, setLoggedIn] = useState(false);
+
+    const checkAuth = () => {
+        isLoggedIn().then(({ connected }) => {
+            setLoggedIn(connected);
+			console.log("User is logged in:", connected);
+        });
+    };
+
+    useEffect(() => {
+        checkAuth();
+    }, []);
 
 	const history: GameHistoryItem[] = [
 		{ id: '1', date: '2023-10-24', opponent: 'GrandMasterFlash', result: 'Win', moves: 34, mode: 'Blitz', accuracy: 89 },
