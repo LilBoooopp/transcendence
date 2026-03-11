@@ -10,6 +10,7 @@ import { isLoggedIn } from '../services/auth.service';
 export default function WireframeLanding() {
     const navigate = useNavigate();
     const [loggedIn, setLoggedIn] = useState(false);
+	const [history, setHistory] = useState<GameHistoryItem[]>([]); //rajoute pour history
 
     const checkAuth = () => {
         isLoggedIn().then(({ connected }) => {
@@ -22,25 +23,41 @@ export default function WireframeLanding() {
         checkAuth();
     }, []);
 
-	const history: GameHistoryItem[] = [
+/*	const history: GameHistoryItem[] = [
 		{ id: '1', date: '2023-10-24', opponent: 'GrandMasterFlash', result: 'Win', moves: 34, mode: 'Blitz', accuracy: 89 },
 		{ id: '2', date: '2023-10-22', opponent: 'Rookie123', result: 'Loss', moves: 21, mode: 'Bullet', accuracy: 65 },
 		{ id: '3', date: '2023-10-20', opponent: 'ChessBot', result: 'Draw', moves: 55, mode: 'Rapid', accuracy: 92 },
-	];
+	];*/
 
-/*	const history: GameHistoryItem[] = 	await fetch('/api/users/stat' {
-				method: 'GET',
-				headers: { 
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${token}`,
-					});*/
+	useEffect(() => {
+    if (!loggedIn) return;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.warn('No token, cannot fetch history');
+      return;
+    }
 
+    (async () => {
+      try {
+        const res = await fetch('/api/users/history', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        });
 
-
-
-
-
-
+        if (!res.ok) {
+          console.error('Failed to fetch history', res.status, res.statusText);
+          return;
+        }
+        const data: GameHistoryItem[] = await res.json();
+        setHistory(data); // je sais pas trop a quoi c est lie...
+      } catch (err) {
+        console.error('Error fetching history', err);
+      }
+    })();
+  }, [loggedIn]);
 
 	const features = [
 		{
