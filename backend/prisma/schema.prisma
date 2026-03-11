@@ -27,10 +27,6 @@ model User {
   oauthProvider String? // 'google', 'github', etc.
   oauthId       String? // ID from OAuth provider
 
-  // 2FA fields 
-  twoFactorSecret  String?
-  twoFactorEnabled Boolean @default(false)
-
   isOnline Boolean  @default(false)
   lastSeen DateTime @default(now())
 
@@ -44,6 +40,7 @@ model User {
   chatMessages ChatMessage[]
   tournaments  TournamentParticipant[]
   statistics   UserStatistics?
+  eloHistory   EloHistory[]
 
   @@index([email])
   @@index([username])
@@ -55,7 +52,9 @@ model UserStatistics {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  eloRating Int @default(1200)
+  bulletElo Int @default(1200)
+  blitzElo  Int @default(1200)
+  rapidElo  Int @default(1200)
 
   totalGames Int @default(0)
   wins       Int @default(0)
@@ -69,7 +68,40 @@ model UserStatistics {
 
   updatedAt DateTime @updatedAt
 
-  @@index([eloRating])
+  @@index([bulletElo])
+  @@index([blitzElo])
+  @@index([rapidElo])
+}
+
+// every elo change for every player
+// 1 per player per game
+model EloHistory {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  gameId   String
+  gameType GameType // bullet, etc
+
+  eloBefore   Int
+  eloAfter    Int
+  eloChange   Int
+  opponentElo Int // snapshot of opponent's elo at game time
+
+  result String
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([gameId])
+  @@index([userId, gameType])
+  @@index([createdAt])
+}
+
+enum GameType {
+  BULLET
+  BLITZ
+  RAPID
 }
 
 // game model 
