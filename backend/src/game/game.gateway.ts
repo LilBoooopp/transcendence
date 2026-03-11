@@ -19,6 +19,7 @@ import { UseGuards } from '@nestjs/common';
 import { WsAuthGuard } from '../auth/guards/auth.guards';
 import { JwtService } from '@nestjs/jwt';
 import { JWT_SECRET } from '../auth/configs/jwtsecret';
+import { EloService } from '../elo/elo.service';
 
 type BotDifficulty = 'easy' | 'medium' | 'hard';
 
@@ -91,6 +92,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly prisma: PrismaService,
     private readonly stockfishService: StockfishService,
     private readonly jwtService: JwtService,
+    private readonly eloService: EloService,
   ) { }
 
   async handleConnection(client: Socket) {
@@ -776,6 +778,17 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private async persistGameResult(gameId: string, winner: string, result: string) {
     try {
+      const game = await this.prisma.game.findUnique({
+        where: { id: gameId },
+        select: {
+          whitePlayerId: true,
+          blackPlayerId: true,
+          timeControl: true,
+          isRanked: true,
+          isAiGame: true,
+        },
+      });
+
       await this.prisma.game.update({
         where: { id: gameId },
         data: {
@@ -785,6 +798,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           endedAt: new Date(),
         },
       });
+
+      if (game && game.isRanked && !game.isAiGame) {
+        await this.eloService.processGameResult(
+          gameId,
+          game.timeControl,
+          game.whitePlayerId,
+          game.blackPlayerId,
+          winner,
+        );
+      }
     } catch (e) {
       console.warn(`Failed to persist result for game ${gameId} (non-fatal):`, e.message);
     }

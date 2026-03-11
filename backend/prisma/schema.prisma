@@ -135,9 +135,6 @@ model Game {
   tournamentId String?
   tournament   Tournament? @relation(fields: [tournamentId], references: [id])
 
-  // Spectators
-  spectatorCount Int @default(0)
-
   // Timestamps
   startedAt DateTime?
   endedAt   DateTime?
