@@ -1,23 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class GameService {
   private waitingPlayers: Map<string, string> = new Map(); // userId to socketId
 
-  constructor(private prisma: PrismaService) {}
-  
+  constructor(private prisma: PrismaService) { }
+
   // Create a new game
-  async createGame(whitePlayerId: string, blackPlayerId: string) {
-    const game = await this.prisma.game.create({
-      data: {
+  async createGame(whitePlayerId: string, blackPlayerId: string, id: string, timeControl?: string) {
+    return (this.prisma.game.upsert({
+      where: { id },
+      create: {
+        id,
         whitePlayerId,
         blackPlayerId,
+        timeControl,
         status: 'IN_PROGRESS',
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
       },
-    });
-    return (game);
+      update: {},
+    }));
   }
 
   // Find or create game
@@ -30,7 +34,8 @@ export class GameService {
       this.waitingPlayers.delete(opponentId);
 
       /// make game with matched plaeyrs
-      const game = await this.createGame(opponentId, userId);
+      const gameId = uuidv4();
+      const game = await this.createGame(opponentId, userId, gameId);
       return (game.id);
     } else {
       // noone waiting, add to waitlist
@@ -38,7 +43,7 @@ export class GameService {
       return (null);
     }
   }
-  //USERSYL EXEMPLE POUR JEUX
+
   async getOrCreateGame(gameId: string) {
     let game = await this.prisma.game.findUnique({
       where: { id: gameId },
@@ -57,8 +62,7 @@ export class GameService {
     return (game);
   }
 
-  async updateGame(gameId: string, data: { fen: string; moves: any}) {
-    await this.getOrCreateGame(gameId);
+  async updateGame(gameId: string, data: { fen: string; moves: any }) {
     return (this.prisma.game.update({
       where: { id: gameId },
       data: {
@@ -74,6 +78,20 @@ export class GameService {
       include: {
         whitePlayer: true,
         blackPlayer: true,
+      },
+    }));
+  }
+
+  async createBotGame(userId: string, color: 'white' | 'black', difficulty: string, timeControl: string, id: string) {
+    return (this.prisma.game.create({
+      data: {
+        id,
+        whitePlayerId: color === 'white' ? userId : null,
+        blackPlayerId: color === 'black' ? userId : null,
+        status: 'IN_PROGRESS',
+        isAiGame: true,
+        timeControl,
+        startedAt: new Date(),
       },
     }));
   }

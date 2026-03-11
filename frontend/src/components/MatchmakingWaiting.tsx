@@ -31,7 +31,7 @@ const MatchmakingWaiting: React.FC = () => {
         });
       });
 
-      socketService.joinMatchmaking(tcKey, userId);
+      socketService.joinMatchmaking(tcKey);
     };
 
     if (socketService.isConnected()) {
@@ -68,7 +68,7 @@ const MatchmakingWaiting: React.FC = () => {
             Finding Opponent{dots}
           </h2>
           <p className="text-sm text-text-dark/60">
-            Time contole: <span className="font-smibold text-primary">{timeControl.label}</span>
+            Time contol: <span className="font-smibold text-primary">{timeControl.label}</span>
           </p>
         </div>
 
