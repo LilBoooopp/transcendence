@@ -5,7 +5,6 @@ import { PrismaModule } from './prisma/prisma.module';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 
-
 //AppModule is the Nestjs root module. 
 //that function is a decorator on an empty class??
 //we can create some modules with cli 'nest generate module modulename' and it will
