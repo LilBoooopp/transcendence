@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Tile from '../components/Tile_w_select';
+import Tile from '../../components/Tile_w_select';
 import * as Icons from 'lucide-react';
 
 const BULLET_OPTIONS = ['1 min', '1 | 1', '2 | 1'];

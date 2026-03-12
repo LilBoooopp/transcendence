@@ -398,7 +398,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       gameRoom.whiteUserId = userId;
     } else if (data.claimedRole === 'black' && gameRoom.black === null) {
       assignedRole = 'black';
-      gameRoom.white = client.id;
+      gameRoom.black = client.id;
       gameRoom.blackUserId = userId;
     } else if (gameRoom.gameStarted) {
       assignedRole = 'spectator';
