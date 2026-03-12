@@ -1,4 +1,5 @@
-import { Controller, Post, Patch, Get, Body, Param, Delete, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
+//bien
+import { Controller, Post, Patch, Get, Body, Param, Delete, UseGuards, Req, NotFoundException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthGuard } from '../auth/guards/auth.guards';
 
@@ -16,7 +17,7 @@ export class UserController {
   @Delete()
   async deleteUser(@Req() req: any)
   {
-	console.log('Delete User');
+	//console.log('Delete User');
 	return this.userService.deleteUser(req.user.userId);
   }
 
@@ -31,7 +32,7 @@ export class UserController {
  @UseGuards(AuthGuard)
   @Get('me')
   async getUserProfile(@Req() req: any){
-	console.log('in users/me');
+	//console.log('in users/me');
 	return this.userService.getUserProfile(req.user.userId);
   }
 
@@ -39,22 +40,23 @@ export class UserController {
   @Get('email/:email')
   async getUserByEmail(@Param('email') email: string) {
     const user = await this.userService.findByEmail(email);
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    if (!user) throw new NotFoundException('User not found');
+    return user;
   }
+
  @UseGuards(AuthGuard)
   @Get('username/:username')
   async getUserByUsername(@Param('username') username: string) {
     const user = await this.userService.findByUsername(username);
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    if (!user) throw new NotFoundException('User not found');
+    return user;
   }
 
   @UseGuards(AuthGuard)
   @Get(':id')
   async getUserById(@Param('id') id: string) {
     const user = await this.userService.findById(id);
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    if (!user) throw new NotFoundException('User not found');
+    return user;
   }
 }
