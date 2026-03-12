@@ -11,6 +11,8 @@ import MatchmakingWaiting from './components/MatchmakingWaiting';
 import BotGameLauncher from './components/BotGameLauncher';
 import GamePage from './components/GamePage';
 
+import ProtectedRoute from './components/ProtectedRoute';
+
 function App() {
   return (
     <BrowserRouter>
@@ -26,12 +28,16 @@ function App() {
           </WireframeLayout>
         } />
         <Route path="/gamemode" element={
-          <WireframeLayout>
-            <WireframeGameMode />
-          </WireframeLayout>
+          <ProtectedRoute>
+            <WireframeLayout>
+              <WireframeGameMode />
+            </WireframeLayout>
+          </ProtectedRoute>
         } />
         <Route path="/botmode" element={
-          <WireframeLayout><WireframeBotMode /></WireframeLayout>
+          <ProtectedRoute>
+            <WireframeLayout><WireframeBotMode /></WireframeLayout>
+          </ProtectedRoute>
         } />
         <Route path="/dashboard" element={
           <WireframeLayout>
@@ -45,14 +51,26 @@ function App() {
           Shows the "searching for opponent" waiting screen.
           on match found goes to /game/:gameId.
         */}
-        <Route path="/play" element={<MatchmakingWaiting />} />
+        <Route path="/play" element={
+          <ProtectedRoute>
+            <MatchmakingWaiting />
+          </ProtectedRoute>
+        } />
 
-        <Route path="/bot-launch" element={<BotGameLauncher />} />
+        <Route path="/bot-launch" element={
+          <ProtectedRoute>
+            <BotGameLauncher />
+          </ProtectedRoute>
+        } />
         {/*
           /game/:gameId
           chess game set by matchmaking
         */}
-        <Route path="/game/:gameId" element={<GamePage />} />
+        <Route path="/game/:gameId" element={
+          <ProtectedRoute>
+            <GamePage />
+          </ProtectedRoute>
+        } />
       </Routes>
     </BrowserRouter>
   );
