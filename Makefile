@@ -21,18 +21,18 @@ $(CERT):
 
 down:
 	@printf "Stopping configuration ${name}...\n"
-	@$(COMPOSE_CMD) down -v
+	@$(COMPOSE_CMD) down
 
 re: down all
 
 clean: down
 	@printf "Cleaning configuration ${name}...\n"
-	@docker system prune -a
+	@$(COMPOSE_CMD) down --rmi local
 
 fclean: clean
 	@printf "Total clean of all configurations docker\n"
+	@$(COMPOSE_CMD) down --rmi local -v
 	rm -f $(KEY) $(CERT)
 	rm -rf nginx/ssl
-	@docker volume rm transcendence_postgres_data
 
 .PHONY: all down re clean fclean
