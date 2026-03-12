@@ -211,8 +211,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (this.reconnectTimers.has(timerKey)) continue;
 
       if (gameRoom.moveCount < 1) {
-        console.log(`Game ${gameId}: player disconnected before first move - cancelling silently`);
+        console.log(`Game ${gameId}: player disconnected before first move - ending game as abandoned and notifying room`);
         this.clearGameTimer(gameId);
+
+        this.server.to(`game:${gameId}`).emit('game:over', {
+          winner: 'Draw',
+          result: 'Game abandoned - opponent left before game began',
+        });
+
         this.activeGames.delete(gameId);
 
         this.prisma.game
