@@ -1,4 +1,4 @@
-import { Controller, Post, Patch, Get, Body, Param, Delete, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Patch, Get, Body, Param, Delete, NotFoundException, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthGuard } from '../auth/guards/auth.guards';
 
@@ -35,6 +35,14 @@ export class UserController {
 	return this.userService.getUserProfile(req.user.userId);
   }
 
+@UseGuards(AuthGuard)
+  @Get('history')
+  async getUserHistory(@Req() req: any)
+  {
+	const history = this.userService.getUserHistory(req.user.userId);
+	return history;
+  }
+
   @UseGuards(AuthGuard)
   @Get('email/:email')
   async getUserByEmail(@Param('email') email: string) {
@@ -54,7 +62,13 @@ export class UserController {
   @Get(':id')
   async getUserById(@Param('id') id: string) {
     const user = await this.userService.findById(id);
+	if (!user) {
+    throw new NotFoundException('User not found');
+  }
+
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
+
+
 }
