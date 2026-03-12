@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Chess } from '../../chess/src/Chess';
-import { Square,  Move } from '../../chess/src/types';
+import { Square, Move } from '../../chess/src/types';
 import { socketService } from '../../../services/socket.service';
 import { convertBoard } from '../utils';
 import { getPremoveTargets } from '../premoveTargets';
@@ -33,7 +33,7 @@ export function useChessGame({
 
   const gameOverRef = useRef(gameOver);
   useEffect(() => { gameOverRef.current = gameOver; }, [gameOver]);
-  
+
   const [premoves, setPremoves] = useState<Premove[]>([]);
   const premovesRef = useRef(premoves);
   useEffect(() => { premovesRef.current = premoves; }, [premoves]);
@@ -48,8 +48,12 @@ export function useChessGame({
 
   const timer = useTimer(gameOver);
 
+  const [opponentDisconnected, setOpponentDisconnected] = useState(false);
+  const [reconnectSecondsLeft, setReconnectSecondsLeft] = useState(0);
+  const reconnectIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // helpers
-  
+
   const clearHighlights = useCallback(() => setHighlighted(emptyHighlights()), []);
 
   const squareToCoord = useCallback((square: string): Coord => ({
@@ -71,7 +75,7 @@ export function useChessGame({
   const isPlayerTurn = useCallback(() => {
     const turn = gameRef.current.turn();
     return (playerColor === 'white' && turn === 'w') ||
-    (playerColor === 'black' && turn === 'b');
+      (playerColor === 'black' && turn === 'b');
   }, [playerColor]);
 
   // Sync board from engin
@@ -150,9 +154,12 @@ export function useChessGame({
   useEffect(() => {
     const unsubTimer = socketService.on('game:timer', (data: TimerState) => {
       timer.syncTimer(data);
-      if (data.timerRunning && gameStatus === 'Waiting for opponent...') {
-        setGameStatus('Playing');
-      }
+      setGameStatus((prevStatus) => {
+        if (data.timerRunning && prevStatus === 'Waiting for opponent...') {
+          return 'Playing';
+        }
+        return prevStatus;
+      });
     });
 
     const unsubMove = socketService.on('game:move', (data: { move: any; fen: string; pgn: string }) => {
@@ -194,6 +201,36 @@ export function useChessGame({
       }
     });
 
+    const unsubDisconnected = socketService.on(
+      'game:opponent-disconnected',
+      (data: { reconnectSeconds: number }) => {
+        setOpponentDisconnected(true);
+        setReconnectSecondsLeft(data.reconnectSeconds);
+
+        if (reconnectIntervalRef.current) clearInterval(reconnectIntervalRef.current);
+
+        reconnectIntervalRef.current = setInterval(() => {
+          setReconnectSecondsLeft((prev) => {
+            if (prev <= 1) {
+              clearInterval(reconnectIntervalRef.current!);
+              reconnectIntervalRef.current = null;
+              return (0);
+            }
+            return (prev - 1);
+          });
+        }, 1000);
+      },
+    );
+
+    const unsubReconnected = socketService.on('game:opponent-reconnected', () => {
+      setOpponentDisconnected(false);
+      setReconnectSecondsLeft(0);
+      if (reconnectIntervalRef.current) {
+        clearInterval(reconnectIntervalRef.current);
+        reconnectIntervalRef.current = null;
+      }
+    });
+
     const unsubGameOver = socketService.on('game:over', (data: { winner: string; result: string }) => {
       setGameStatus(`Game Over - ${data.result}`);
       timer.setTimerRunning(false);
@@ -211,11 +248,14 @@ export function useChessGame({
     return () => {
       unsubTimer?.();
       unsubMove?.();
+      unsubDisconnected?.();
+      unsubReconnected?.();
+      if (reconnectIntervalRef.current) clearInterval(reconnectIntervalRef.current);
       unsubGameOver?.();
       unsubDrawOffered?.();
       unsubDrawDeclined?.();
     };
-  }, [gameId, userId, gameStatus]);
+  }, [gameId, userId]);
 
   // Premove virtual board
 
@@ -300,7 +340,7 @@ export function useChessGame({
       }
     }
   }, [isSpectator, isPlayerTurn, selectedTile, board, clearHighlights,
-      isPawnPromotion, isOwnPiece, highlightMovesFrom, sendMove, gameOver]);
+    isPawnPromotion, isOwnPiece, highlightMovesFrom, sendMove, gameOver]);
 
   // Drag handling
 
@@ -315,7 +355,7 @@ export function useChessGame({
 
   const onDrop = useCallback((sourceSquare: string, targetSquare: string): boolean => {
     if (isSpectator || gameOverRef.current) return (false);
-    
+
     if (!isPlayerTurn()) {
       const from = squareToCoord(sourceSquare);
       const to = squareToCoord(targetSquare);
@@ -343,7 +383,7 @@ export function useChessGame({
       return (false);
     }
   }, [isSpectator, isPlayerTurn, isOwnPiece, isPawnPromotion, squareToCoord,
-      sendMove, clearHighlights]);
+    sendMove, clearHighlights]);
 
   // Promotion
 
@@ -396,5 +436,7 @@ export function useChessGame({
     handleResign,
     handleDrawOffer,
     handleDrawResponse,
+    opponentDisconnected,
+    reconnectSecondsLeft,
   };
 }

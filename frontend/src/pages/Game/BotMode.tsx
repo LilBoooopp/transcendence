@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import Tile from '../components/Tile';
+import Tile from '../../components/Tile';
 import * as Icons from 'lucide-react';
 
 type Difficulty = 'easy' | 'medium' | 'hard';

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Tile from '../components/Tile';
-import LoginTile from '../components/LoginTile';
-import GameHistoryList, { GameHistoryItem } from '../components/GameHistoryList';
+import Tile from '../../components/Tile';
+import LoginTile from '../../components/LoginTile';
+import GameHistoryList, { GameHistoryItem } from '../../components/GameHistoryList';
 import * as Icons from 'lucide-react';
-import { isLoggedIn } from '../services/auth.service';
+import { isLoggedIn } from '../../services/auth.service';
 
 
 export default function WireframeLanding() {
