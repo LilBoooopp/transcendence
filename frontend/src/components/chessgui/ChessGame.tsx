@@ -23,8 +23,8 @@ interface PlayerBarProps {
   isBottom?: boolean;
 }
 
-const PlayerBar: React.FC<PlayerBarProps> = ({ label, isBottom }) => ( 
-  <div className={`flex items-center gap-2 py-1.5 ${isBottom ? 'mt-1': 'mb-1'}`}>
+const PlayerBar: React.FC<PlayerBarProps> = ({ label, isBottom }) => (
+  <div className={`flex items-center gap-2 py-1.5 ${isBottom ? 'mt-1' : 'mb-1'}`}>
     <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-text-default text-xs font-heading">
       ♟
     </div>
@@ -58,7 +58,7 @@ const Clock: React.FC<ClockProps> = ({ timeMs, label, isActive }) => {
           'text-xl font-mono font-bold tabular-nums tracking-tight',
           isCritical ? 'text-red-500' : '',
         ].join(' ')}
-        >
+      >
         {formatTime(timeMs)}
       </span>
     </div>
@@ -91,23 +91,23 @@ const MoveHistory: React.FC<MoveHistoryProps> = ({ history }) => {
       ) : (
         <table className="w-full text-sm font-mono">
           <tbody>
-              {pairs.map(({ n, white, black }) => (
-                <tr
-                  key={n}
-                  className="group hover:bg-accent/20 transition-colors duration-100"
-                >
-                  <td className="w-8 pl-3 py-0.5 text-text-dark/40 font-body text-xs select-none">
-                    {n}
-                  </td>
-                  <td className="w-1/2 py-0.5 pr-3 font-semibold text-text-dark cursor-pointer hover:text-primary transition-colors">
-                    {white}
-                  </td>
-                  <td className="w-1/2 py-0.5 pr-3 font-semibold text-text-dark cursor-pointer hover:text-primary transition-colors">
-                    {black ?? ''}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+            {pairs.map(({ n, white, black }) => (
+              <tr
+                key={n}
+                className="group hover:bg-accent/20 transition-colors duration-100"
+              >
+                <td className="w-8 pl-3 py-0.5 text-text-dark/40 font-body text-xs select-none">
+                  {n}
+                </td>
+                <td className="w-1/2 py-0.5 pr-3 font-semibold text-text-dark cursor-pointer hover:text-primary transition-colors">
+                  {white}
+                </td>
+                <td className="w-1/2 py-0.5 pr-3 font-semibold text-text-dark cursor-pointer hover:text-primary transition-colors">
+                  {black ?? ''}
+                </td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       )}
       <div ref={bottomRef} />
@@ -181,19 +181,72 @@ const GameControls: React.FC<GameControlsProps> = ({ isSpectator, gameOver, draw
 
 // Status badge
 
-const StatusBadge: React.FC<{ status: string, gameOver: boolean}> = ({ status, gameOver }) => {
+const StatusBadge: React.FC<{ status: string, gameOver: boolean }> = ({ status, gameOver }) => {
   const colors = gameOver
     ? 'bg-red-100 text-red-700 boarder-red-200'
     : status === 'Check!'
-    ? 'bg-amber-100 text-amber-700 border-amber-200'
-    : status === 'Playing'
-    ? 'bg-accent/40 text-secondary border-accent'
-    : 'bg-primary/10 text-primary border-primary/20';
+      ? 'bg-amber-100 text-amber-700 border-amber-200'
+      : status === 'Playing'
+        ? 'bg-accent/40 text-secondary border-accent'
+        : 'bg-primary/10 text-primary border-primary/20';
 
   return (
     <span className={`text-xs font-body font-semibold px-2.5 py-0.5 rounded-full border ${colors}`}>
       {status}
     </span>
+  );
+};
+
+const ReconnectOverlay: React.FC<{ secondsLeft: number }> = ({ secondsLeft }) => {
+  const ringColor =
+    secondsLeft > 15
+      ? 'stroke-green-400'
+      : secondsLeft > 8
+        ? 'stroke-amber-400'
+        : 'stroke-red-500';
+
+  const textColor =
+    secondsLeft > 15 ? 'text-green-300' : secondsLeft > 8 ? 'text-amber-300' : 'text-red-400';
+
+  const RADIUS = 20;
+  const CIRC = 2 * Math.PI * RADIUS;
+  const MAX = 30;
+  const dash = CIRC * (secondsLeft / MAX);
+
+  return (
+    <div
+      className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-20"
+      style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(3px)' }}
+    >
+      <svg width={56} height={56} className="-rotate-90">
+        {/* Track */}
+        <circle cx={28} cy={28} r={RADIUS} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={4} />
+        {/* progress */}
+        <circle
+          cx={28}
+          cy={28}
+          r={RADIUS}
+          fill="none"
+          strokeWidth={4}
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${CIRC}`}
+          className={`${ringColor} transition-all duration-1000`}
+        />
+      </svg>
+
+      {/* number */}
+      <span className={`text-3xl font-bold font-mono -mt-1 ${textColor} transition-colors duration-500`}>
+        {secondsLeft}
+      </span>
+
+      {/* label */}
+      <div className="text-center px-4">
+        <p className="text-white text-sm font-semibold">Opponent disconnected</p>
+        <p className="text-white/60 text-xs mt-0.5">
+          Waiting for them to reconnect...
+        </p>
+      </div>
+    </div>
   );
 };
 
@@ -209,10 +262,11 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 
   const {
     board, moveHistory, highlighted, lastMove, premoves,
-    gameStatus, gameOver,promotionMove, timer,
+    gameStatus, gameOver, promotionMove, timer,
     onTileClick, onDrop, onDragStart, completePromotion,
     drawOffered, drawOfferSent,
     handleResign, handleDrawOffer, handleDrawResponse,
+    opponentDisconnected, reconnectSecondsLeft,
   } = useChessGame(props);
 
   const { whiteTimeMs, blackTimeMs, currentTurn, timerRunning } = timer;
@@ -246,6 +300,11 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
             lastMove={lastMove}
             premoves={premoves}
           />
+
+          {/* Reconnect overlay - shown when opponent drops connection */}
+          {opponentDisconnected && !gameOver && (
+            <ReconnectOverlay secondsLeft={reconnectSecondsLeft} />
+          )}
         </div>
 
         <PlayerBar label={bottomLabel} isBottom />
