@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import ChessGame from '../../components/ChessGame';
+import ChessGame from '../../components/chessgui/ChessGame';
 import { socketService } from '../../services/socket.service';
 import { getTimeControl } from '../../types/timeControl';
 import type { TimerState } from '../../components/chessgui/types';
@@ -39,17 +39,27 @@ const GamePage: React.FC = () => {
 
 		socketService.connect(userId);
 
+		// FIXED: Create variables to hold our unsubscribe functions
+		let unsubRole: (() => void) | undefined;
+		let unsubState: (() => void) | undefined;
+		let unsubTimer: (() => void) | undefined;
+
 		const doJoin = () => {
-			socketService.on('game:role-assigned', (data: { gameId: string; role: 'white' | 'black' | 'spectator' }) => {
+			// FIXED: Clear old listeners first in case this is an auto-reconnect
+			unsubRole?.();
+			unsubState?.();
+			unsubTimer?.();
+
+			unsubRole = socketService.on('game:role-assigned', (data: { gameId: string; role: 'white' | 'black' | 'spectator' }) => {
 				setRole(data.role);
 				setWaiting(false);
 			});
 
-			socketService.on('game:state', (data: { fen: string; pgn: string }) => {
+			unsubState = socketService.on('game:state', (data: { fen: string; pgn: string }) => {
 				setInitialState({ fen: data.fen, pgn: data.pgn });
 			});
 
-			socketService.on('game:timer', (data: TimerState) => {
+			unsubTimer = socketService.on('game:timer', (data: TimerState) => {
 				setInitialTimer(data);
 			});
 
@@ -58,16 +68,23 @@ const GamePage: React.FC = () => {
 
 		if (socketService.isConnected()) {
 			doJoin();
-		} else {
-			socketService.on('connect', doJoin);
 		}
+		
+		// FIXED: ALWAYS listen for connects to handle dropped connections gracefully
+		const unsubConnect = socketService.on('connect', doJoin);
 
 		return () => {
+			// FIXED: Clean everything up on unmount
+			unsubRole?.();
+			unsubState?.();
+			unsubTimer?.();
+			unsubConnect?.();
 			socketService.leaveGame(gameId);
 			socketService.disconnect();
 			hasConnected.current = false;
 		};
-	}, [gameId, userId]);
+	// FIXED: Update dependency array
+	}, [gameId, userId, tcKey, state.role]);
 
 	if (!gameId) {
 		return (
