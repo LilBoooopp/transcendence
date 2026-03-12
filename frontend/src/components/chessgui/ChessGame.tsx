@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Board from './Board';
 import PromotionPopup from './PromotionPopup';
@@ -285,6 +285,13 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
   const bottomTimeMs = bottomColor === 'w' ? whiteTimeMs : blackTimeMs;
 	const handleGoHome = () => { navigate('/'); };
 	const handleNewGame = () => { navigate('/gamemode'); };
+	const [showPopup, setShowPopup] = useState(false);
+
+	useEffect(() => {
+    if (gameOver) {
+      setShowPopup(true);
+    }
+  }, [gameOver]);
 
   return (
    <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 p-4 w-full max-w-7xl mx-auto font-body relative">
