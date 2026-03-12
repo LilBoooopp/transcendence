@@ -1,6 +1,10 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Board from './Board';
 import PromotionPopup from './PromotionPopup';
+import GameEndPopup from './GameEndPopup';
+import GamePlayerTile from './GamePlayerTile'; // 1. Import your new tile
+import { Card } from '../ui/Card'; // Ensure you have the surface variant we discussed!
 import { classicTheme } from './themes';
 import { useChessGame } from './hooks/useChessGame';
 import { ChessGameProps } from './types';
@@ -204,12 +208,14 @@ const StatusBadge: React.FC<{ status: string, gameOver: boolean}> = ({ status, g
  *  import ChessGame from './chessgui';
  *  <ChessGame gameId="abc-123" userId="user-456" playerColor="white" />
 */
+
 const ChessGame: React.FC<ChessGameProps> = (props) => {
   const { playerColor, isSpectator = false } = props;
+  const navigate = useNavigate();
 
   const {
     board, moveHistory, highlighted, lastMove, premoves,
-    gameStatus, gameOver,promotionMove, timer,
+    gameStatus, gameOver, promotionMove, timer,
     onTileClick, onDrop, onDragStart, completePromotion,
     drawOffered, drawOfferSent,
     handleResign, handleDrawOffer, handleDrawResponse,
@@ -223,17 +229,23 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
   const bottomLabel = bottomColor === 'w' ? 'White' : 'Black';
   const topTimeMs = topColor === 'w' ? whiteTimeMs : blackTimeMs;
   const bottomTimeMs = bottomColor === 'w' ? whiteTimeMs : blackTimeMs;
+	const handleGoHome = () => { navigate('/'); };
+	const handleNewGame = () => { navigate('/gamemode'); };
 
   return (
-    <div className="flex flex-wrap justify-center items-start gap-3 p-4 bg-background-light min-h-screen font-body">
+   <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 p-4 w-full max-w-7xl mx-auto font-body relative">
 
-      {/* Left = board + player bars */}
-      <div className="flex flex-col flex-shrink-0">
-        <PlayerBar label={topLabel} />
+      {/* Left Column: Player Top, Board, Player Bottom */}
+      <div className="flex flex-col w-full max-w-[600px] flex-shrink-0">
+        <GamePlayerTile 
+          username={topLabel} 
+          color={topColor === 'w' ? 'white' : 'black'} 
+          isActive={currentTurn === topColor && timerRunning}
+        />
 
         <div
           style={{ width: BOARD_SIZE, height: BOARD_SIZE }}
-          className="rounded-lg overflow-hidden shadow-xl flex-shrink-0"
+          className="rounded-xl overflow-hidden shadow-xl flex-shrink-0 border-4 border-accent/20"
         >
           <Board
             board={board}
@@ -248,72 +260,53 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
           />
         </div>
 
-        <PlayerBar label={bottomLabel} isBottom />
-      </div>
-
-      {/* Right panel */}
-      <div
-        className="flex flex-col gap-2 rounded-xl border border-accent/40 bg-white shadow-md overflow-hidden flex-shrink-0"
-        style={{
-          width: `${PANEL_WIDTH}px`,
-          height: BOARD_SIZE,
-          marginTop: `${PLAYER_BAR_H}px`,
-        }}
-      >
-        {/* Opponent clock */}
-        <div className="px-2 pt-2 flex-shrink-0">
-          <Clock
-            timeMs={topTimeMs}
-            label={topLabel}
-            isActive={currentTurn === topColor && timerRunning}
-          />
-        </div>
-
-        {/* Status */}
-        <div className="flex items-center justify-center px-2 flex-shrink-0">
-          <StatusBadge status={gameStatus} gameOver={gameOver} />
-        </div>
-
-        {/* Move history */}
-        <div className="flex flex-col min-h-0 flex-1 overflow-hidden border-t border-b border-accent/30">
-          <div className="px-3 py-1.5 bg-accent/20 flex items-center justify-between flex-shrink-0">
-            <span className="text-xs font-heading text-primary font-semibold uppercase tracking-wider">Move</span>
-            <span className="text-xs font-body text-text-dark/40">{Math.ceil(moveHistory.length / 2)} / —</span>
-          </div>
-          <MoveHistory history={moveHistory} />
-        </div>
-
-        {/* your clock */}
-        <div className="px-2 flex-shrink-0">
-          <Clock
-            timeMs={bottomTimeMs}
-            label={bottomLabel}
-            isActive={currentTurn === bottomColor && timerRunning}
-          />
-        </div>
-
-        {/* Game Controls */}
-        <div className="px-2 pb-2 flex-shrink-0">
-          <GameControls
-            isSpectator={isSpectator}
-            gameOver={gameOver}
-            drawOffered={drawOffered}
-            drawOfferSent={drawOfferSent}
-            onResign={handleResign}
-            onDrawOffer={handleDrawOffer}
-            onDrawResponse={handleDrawResponse}
-          />
-        </div>
-      </div>
-
-      {/* promotion popup */}
-      {promotionMove && (
-        <PromotionPopup
-          color={playerColor}
-          theme={classicTheme}
-          onSelect={completePromotion}
+        <GamePlayerTile 
+          username={bottomLabel} 
+          color={bottomColor === 'w' ? 'white' : 'black'} 
+          isActive={currentTurn === bottomColor && timerRunning}
+          isBottom
         />
-      )}
+      </div>
+
+      {/* Right Column: Game Panel */}
+      {/* On mobile, it takes full width. On desktop, it takes a fixed width of 280px */}
+      <div style={{ height: 'min(calc(100vh - 2rem), 600px)' }} className="flex-shrink-0">
+        <Card
+          variant="surface"
+          className="flex flex-col gap-2 w-full lg:w-[280px] flex-shrink-0"
+        >
+          <div className="px-3 pt-3 flex-shrink-0">
+            <Clock timeMs={topTimeMs} label="Opponent Time" isActive={currentTurn === topColor && timerRunning} />
+          </div>
+
+          <div className="flex items-center justify-center px-3 flex-shrink-0 pt-2">
+            <StatusBadge status={gameStatus} gameOver={gameOver} />
+          </div>
+
+          <div className="flex flex-col min-h-0 flex-1 overflow-hidden border-t border-b border-accent/30 mt-2">
+            <div className="px-4 py-2 bg-accent/10 flex items-center justify-between flex-shrink-0">
+              <span className="text-xs font-heading text-primary font-bold uppercase tracking-widest">History</span>
+              <span className="text-xs font-body text-text-dark/50">{Math.ceil(moveHistory.length / 2)} moves</span>
+            </div>
+            <MoveHistory history={moveHistory} />
+          </div>
+
+          <div className="px-3 flex-shrink-0">
+            <Clock timeMs={bottomTimeMs} label="Your Time" isActive={currentTurn === bottomColor && timerRunning} />
+          </div>
+
+          <div className="px-3 pb-3 flex-shrink-0 pt-2">
+            <GameControls
+              isSpectator={isSpectator} gameOver={gameOver} drawOffered={drawOffered}
+              drawOfferSent={drawOfferSent} onResign={handleResign} onDrawOffer={handleDrawOffer}
+              onDrawResponse={handleDrawResponse}
+            />
+          </div>
+        </Card>
+      </div>
+
+      {promotionMove && <PromotionPopup color={playerColor} theme={classicTheme} onSelect={completePromotion} />}
+      {gameOver && <GameEndPopup status={gameStatus} onHome={() => navigate('/')} onNewGame={() => navigate('/games')} />}
     </div>
   );
 };
