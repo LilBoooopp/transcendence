@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
-import ChessGame from './ChessGame';
-import { socketService } from '../services/socket.service';
-import { getTimeControl } from '../types/timeControl';
-import type { TimerState } from './chessgui/types';
-import { Card } from '../components/ui/Card';
+import ChessGame from '../../components/ChessGame';
+import { socketService } from '../../services/socket.service';
+import { getTimeControl } from '../../types/timeControl';
+import type { TimerState } from '../../components/chessgui/types';
+import { Card } from '../../components/ui/Card';
 
 
 interface LocationState {

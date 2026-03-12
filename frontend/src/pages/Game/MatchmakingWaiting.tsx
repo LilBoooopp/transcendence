@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { socketService } from '../services/socket.service';
-import { getTimeControl } from '../types/timeControl';
+import { socketService } from '../../services/socket.service';
+import { getTimeControl } from '../../types/timeControl';
 
 const MatchmakingWaiting: React.FC = () => {
   const navigate = useNavigate();
