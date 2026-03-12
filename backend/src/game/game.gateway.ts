@@ -265,7 +265,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const tcKey = data.timeControlKey ?? DEFAULT_TIME_KEY;
     const waiting = this.matchmakingQueues.get(tcKey);
 
-    if (waiting && waiting.clientId !== client.id) {
+    if (waiting && waiting.clientId !== client.id && waiting.userId !== userId) { 
       // match found
       this.matchmakingQueues.delete(tcKey);
 
@@ -316,6 +316,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         console.warn('Could not persist matchmade game:', e.message);
       }
     } else {
+      // If the same user is already waiting (e.g. second tab), replace their entry
+      // so they don't end up paired against themselves.
+      if (waiting && waiting.userId === userId) {
+        console.log(`Matchmaking [${tcKey}]: same user ${userId} re-entered queue, updating socket`);
+        this.server.to(waiting.clientId).emit('matchmaking:cancelled', {
+          reason: 'You joined matchmaking from another session.',
+        });
+      }
       this.matchmakingQueues.set(tcKey, { clientId: client.id, userId: userId });
       client.emit('matchmaking:waiting', { timeControlKey: tcKey });
       console.log(`Matchmaking [${tcKey}]: ${client.id} is waiting`);
@@ -398,11 +406,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } else if (gameRoom.blackUserId === userId) {
       assignedRole = 'black';
       gameRoom.black = client.id;
-    } else if (data.claimedRole === 'white' && gameRoom.white === null) {
+    } else if (data.claimedRole === 'white' && gameRoom.white === null && gameRoom.blackUserId !== userId) {
       assignedRole = 'white';
       gameRoom.white = client.id;
       gameRoom.whiteUserId = userId;
-    } else if (data.claimedRole === 'black' && gameRoom.black === null) {
+    } else if (data.claimedRole === 'black' && gameRoom.black === null && gameRoom.whiteUserId !== userId) {
       assignedRole = 'black';
       gameRoom.black = client.id;
       gameRoom.blackUserId = userId;
@@ -418,11 +426,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         gameRoom.black = client.id;
         gameRoom.blackUserId = userId;
       }
-    } else if (gameRoom.white === null) {
+    } else if (gameRoom.white === null && gameRoom.blackUserId !== userId) {
       assignedRole = 'white'
       gameRoom.white = client.id;
       gameRoom.whiteUserId = userId;
-    } else if (gameRoom.black === null) {
+    } else if (gameRoom.black === null && gameRoom.whiteUserId !== userId) {
       assignedRole = 'black';
       gameRoom.black = client.id;
       gameRoom.blackUserId = userId;
