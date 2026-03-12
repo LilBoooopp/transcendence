@@ -19,8 +19,19 @@ import { UseGuards } from '@nestjs/common';
 import { WsAuthGuard } from '../auth/guards/auth.guards';
 import { JwtService } from '@nestjs/jwt';
 import { JWT_SECRET } from '../auth/configs/jwtsecret';
+import { EloService } from '../elo/elo.service';
+import { timer } from 'rxjs';
 
 type BotDifficulty = 'easy' | 'medium' | 'hard';
+
+const DIFFICULTY_TO_INT: Record<BotDifficulty, number> = {
+  easy: 1,
+  medium: 10,
+  hard: 20,
+};
+
+const HUMAN_RECONNECT_SECONDS = 30;
+const BOT_RECONNECT_SECONDS = 10;
 
 interface GameRoom {
   players: Set<string>;
@@ -42,6 +53,8 @@ interface GameRoom {
   isBot: boolean;
   botColor: 'w' | 'b' | null;
   botDifficulty: BotDifficulty | null;
+  gameStartedAt: number | null;
+  moveCount: number;
 }
 
 interface MatchmakingEntry {
@@ -86,11 +99,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   */
   private matchmakingQueues = new Map<string, MatchmakingEntry>();
 
+  /**
+   * Keyed by "<gameId>:<userId>"
+   * Stores pending setTimeout handles so reconnects can cancel them
+   */
+  private reconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
   constructor(
     private readonly gameService: GameService,
     private readonly prisma: PrismaService,
     private readonly stockfishService: StockfishService,
     private readonly jwtService: JwtService,
+    private readonly eloService: EloService,
   ) { }
 
   async handleConnection(client: Socket) {
@@ -113,8 +133,20 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  //disconnections
+  /**
+   * Handles socket drop for any reason
+   *
+   * ranked:
+   * moveCount === 0 -> game never really began, ABANDONED
+   * moveCount >= 1 -> real game; start 30-second reconnect window
+   *  if reconnected within window -> timer cancelled
+   *  if timeout expires -> opponent wins
+   *
+   * bot:
+   * 10 second timout
+   */
   handleDisconnect(client: Socket) {
+    const userId: string | undefined = client.data?.userId;
     console.log(`Client disconnected: ${client.id}`);
 
     // remove from matchmaking
@@ -125,35 +157,96 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     }
 
+    if (userId) {
+      this.prisma.user
+        .update({
+          where: { id: userId },
+          data: { isOnline: false, lastSeen: new Date() },
+        })
+        .catch((e) => console.warn(`Failed to mark user ${userId} offline:`, e.message));
+    }
+
     // Remove from active games
     for (const [gameId, gameRoom] of this.activeGames.entries()) {
-      if (gameRoom.players.has(client.id)) {
-        gameRoom.players.delete(client.id);
-        gameRoom.spectators.delete(client.id);
+      if (!gameRoom.players.has(client.id)) continue;
 
-        if (!gameRoom.gameStarted) {
-          if (gameRoom.white === client.id) gameRoom.white = null;
-          if (gameRoom.black === client.id) gameRoom.black = null;
-        }
+      gameRoom.players.delete(client.id);
+      gameRoom.spectators.delete(client.id);
 
+      const isWhite = gameRoom.white === client.id;
+      const isBlack = gameRoom.black === client.id;
+      const wasPlayer = isWhite || isBlack;
+
+
+      if (gameRoom.isBot) {
+        const timerKey = `${gameId}:${userId}`;
+        if (this.reconnectTimers.has(timerKey)) return; // already waiting
+
+        const timerId = setTimeout(async () => {
+          this.reconnectTimers.delete(timerKey);
+          const room = this.activeGames.get(gameId);
+          if (!room || room.players.size > 0) return;
+
+          this.clearGameTimer(gameId);
+          this.stockfishService.stopEngine(gameId);
+          this.activeGames.delete(gameId);
+
+          await this.persistGameResult(gameId, 'Draw', 'Player abandoned', true).catch(() => { });
+          console.log(`Bot game ${gameId} marked ABANDONED after reconnect timeout`);
+        }, BOT_RECONNECT_SECONDS * 1000);
+
+        this.reconnectTimers.set(timerKey, timerId);
+        continue;
+      }
+
+      if (!wasPlayer || !gameRoom.gameStarted) {
         if (gameRoom.players.size === 0) {
           this.clearGameTimer(gameId);
-          if (gameRoom.isBot) {
-            setTimeout(() => {
-              const room = this.activeGames.get(gameId);
-              if (room && room.players.size === 0) {
-                this.clearGameTimer(gameId);
-                this.stockfishService.stopEngine(gameId);
-                this.activeGames.delete(gameId);
-                console.log(`Bot game ${gameId} cleaned up after reconect timeout`);
-              }
-            }, 10_000)
-          } else {
-            this.clearGameTimer(gameId);
-            this.activeGames.delete(gameId);
-          }
+          this.activeGames.delete(gameId);
         }
+        continue;
       }
+
+      const timerKey = `${gameId}:${userId}`;
+      if (this.reconnectTimers.has(timerKey)) continue;
+
+      if (gameRoom.moveCount < 1) {
+        console.log(`Game ${gameId}: player disconnected before first move - cancelling silently`);
+        this.clearGameTimer(gameId);
+        this.activeGames.delete(gameId);
+
+        this.prisma.game
+          .update({ where: { id: gameId }, data: { status: 'ABANDONED', endedAt: new Date() } })
+          .catch(() => { });
+        continue;
+      }
+
+      console.log(`Game ${gameId}: ${userId} disconnected - starting ${HUMAN_RECONNECT_SECONDS}s reconnect window`);
+
+      this.server.to(`game:${gameId}`).emit('game:opponent-disconnected', {
+        reconnectSeconds: HUMAN_RECONNECT_SECONDS,
+      });
+
+      const timerId = setTimeout(async () => {
+        this.reconnectTimers.delete(timerKey);
+        const room = this.activeGames.get(gameId);
+        if (!room) return;
+
+        const winner = isWhite ? 'Black' : 'White';
+        const resultStr = `${isWhite ? 'White' : 'Black'} disconnected - ${winner} wins`;
+
+        this.clearGameTimer(gameId);
+        this.activeGames.delete(gameId);
+
+        this.server.to(`game:${gameId}`).emit('game:over', { winner, result: resultStr });
+        console.log(`Game ${gameId}: reconnect window expired - ${resultStr}`);
+
+        await this.persistGameResult(gameId, winner, resultStr, true).catch((e) =>
+          console.warn(`Failed to persist abandoned game ${gameId}:`, e.message),
+        );
+      }, HUMAN_RECONNECT_SECONDS * 1000);
+
+      this.reconnectTimers.set(timerKey, timerId);
     }
   }
 
@@ -199,6 +292,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         isBot: false,
         botColor: null,
         botDifficulty: null,
+        gameStartedAt: null,
+        moveCount: 0,
       };
 
       this.activeGames.set(gameId, gameRoom);
@@ -269,11 +364,25 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         isBot: false,
         botColor: null,
         botDifficulty: null,
+        gameStartedAt: null,
+        moveCount: 0,
       });
     }
 
     const gameRoom = this.activeGames.get(data.gameId);
     gameRoom.players.add(client.id);
+
+    const timerKey = `${data.gameId}:${userId}`;
+    const pendingTimer = this.reconnectTimers.get(timerKey);
+    if (pendingTimer) {
+      clearTimeout(pendingTimer);
+      this.reconnectTimers.delete(timerKey);
+      console.log(`Game ${data.gameId}: ${userId} reconnected - timer cancelled`);
+      if (gameRoom.whiteUserId === userId) gameRoom.white = client.id;
+      if (gameRoom.blackUserId === userId) gameRoom.black = client.id;
+
+      this.server.to(roomName).emit('game:opponent-reconnected', {});
+    }
 
     let assignedRole: 'white' | 'black' | 'spectator';
 
@@ -405,6 +514,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       isBot: true,
       botColor,
       botDifficulty: data.difficulty,
+      gameStartedAt: null,
+      moveCount: 0,
     };
 
     this.activeGames.set(data.gameId, gameRoom);
@@ -415,6 +526,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userId,
       humanColor,
       data.difficulty,
+      DIFFICULTY_TO_INT[data.difficulty],
       data.timeControlKey ?? DEFAULT_TIME_KEY,
       data.gameId,
     );
@@ -501,6 +613,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       gameRoom.fen = data.fen;
       gameRoom.pgn = data.pgn;
+      gameRoom.moveCount += 1;
 
       const movedColor = gameRoom.currentTurn;
       gameRoom.currentTurn = gameRoom.currentTurn === 'w' ? 'b' : 'w';
@@ -717,6 +830,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private startGameTimer(gameId: string, gameRoom: any) {
     gameRoom.timerRunning = true;
+    gameRoom.gameStartedAt = Date.now();
     gameRoom.lastMoveAt = Date.now();
     const inc = gameRoom.incrementMs;
 
@@ -774,20 +888,113 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  private async persistGameResult(gameId: string, winner: string, result: string) {
+  /**
+   * Centralised endofgame persistence
+   *
+   * @param abandoned true when the game ended because a player disconnected.
+   */
+  private async persistGameResult(
+    gameId: string,
+    winner: string,
+    result: string,
+    abandoned = false,
+  ): Promise<void> {
+    const gameRoom = this.activeGames.get(gameId);
+    const endedAt = new Date();
+
     try {
+      const game = await this.prisma.game.findUnique({
+        where: { id: gameId },
+        select: {
+          whitePlayerId: true,
+          blackPlayerId: true,
+          timeControl: true,
+          isRanked: true,
+          isAiGame: true,
+          startedAt: true,
+        },
+      });
+
+      const startMs =
+        gameRoom?.gameStartedAt ??
+        (game?.startedAt ? game.startedAt.getTime() : null);
+      const playTimeSeconds = startMs
+        ? Math.max(0, Math.floor((endedAt.getTime() - startMs) / 1000))
+        : 0;
+
       await this.prisma.game.update({
         where: { id: gameId },
         data: {
-          status: 'COMPLETED',
+          status: abandoned ? 'ABANDONED' : 'COMPLETED',
           result: toDbResult(winner),
           winner: winner.toLowerCase(),
-          endedAt: new Date(),
+          endedAt,
+          fen: gameRoom?.fen ?? undefined,
+          pgn: gameRoom?.pgn ?? undefined,
+          moves: gameRoom?.pgn ?? undefined,
         },
       });
+
+      const whiteId = gameRoom?.whiteUserId ?? game?.whitePlayerId ?? null;
+      const blackId = gameRoom?.blackUserId ?? game?.blackPlayerId ?? null;
+      const w = winner.toLowerCase();
+
+      if (whiteId) {
+        const outcome: 'win' | 'draw' | 'loss' =
+          w === 'white' ? 'win' : w === 'draw' ? 'draw' : 'loss';
+        await this.updatePlayerStats(whiteId, outcome, playTimeSeconds);
+      }
+
+      if (blackId) {
+        const outcome: 'win' | 'draw' | 'loss' =
+          w === 'black' ? 'win' : w === 'draw' ? 'draw' : 'loss';
+        await this.updatePlayerStats(blackId, outcome, playTimeSeconds);
+      }
+
+      if (!abandoned && game?.isRanked && !game?.isAiGame && whiteId && blackId) {
+        await this.eloService.processGameResult(
+          gameId,
+          game.timeControl,
+          whiteId,
+          blackId,
+          winner,
+        );
+      }
     } catch (e) {
       console.warn(`Failed to persist result for game ${gameId} (non-fatal):`, e.message);
     }
+  }
+
+  /**
+  * updates UserStatistics for one player after game ends.
+  * does not touch ELO (done in EloServic)
+  */
+  private async updatePlayerStats(
+    userId: string,
+    outcome: 'win' | 'draw' | 'loss',
+    playTimeSeconds: number,
+  ): Promise<void> {
+    const stats = await this.prisma.userStatistics.upsert({
+      where: { userId },
+      create: { userId, bulletElo: 1200, blitzElo: 1200, rapidElo: 1200 },
+      update: {},
+    });
+
+    const newStreak = outcome === 'win' ? stats.currentStreak + 1 : 0;
+    const newBestStreak = Math.max(stats.bestStreak, newStreak);
+
+    await this.prisma.userStatistics.update({
+      where: { userId },
+      data: {
+        totalGames: { increment: 1 },
+        wins: outcome === 'win' ? { increment: 1 } : undefined,
+        losses: outcome === 'loss' ? { increment: 1 } : undefined,
+        draws: outcome === 'draw' ? { increment: 1 } : undefined,
+        currentStreak: newStreak,
+        bestStreak: newBestStreak,
+        totalPlayTime: { increment: playTimeSeconds },
+      },
+    });
   }
 
   private scheduleBotMove(gameId: string, gameRoom: GameRoom): void {
@@ -814,6 +1021,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         gameRoom.fen = newFen;
         gameRoom.pgn = newPgn;
+        gameRoom.moveCount += 1;
 
         const movedColor = gameRoom.currentTurn as 'w' | 'b';
         gameRoom.currentTurn = movedColor === 'w' ? 'b' : 'w';
