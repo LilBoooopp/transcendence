@@ -216,7 +216,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         this.server.to(`game:${gameId}`).emit('game:over', {
           winner: 'Draw',
-          result: 'Game abandoned - oppoenent left before game began',
+          result: 'Game abandoned - opponent left before game began',
         });
 
         this.activeGames.delete(gameId);
