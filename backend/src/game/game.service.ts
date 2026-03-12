@@ -8,8 +8,16 @@ export class GameService {
 
   constructor(private prisma: PrismaService) { }
 
-  // Create a new game
-  async createGame(whitePlayerId: string, blackPlayerId: string, id: string, timeControl?: string) {
+  /**
+  * Creates or no-ops a game row.
+  * startedAt is set here so persistGameResult can compute totalPlayTime even if gameRoom memory cleared.
+  */
+  async createGame(
+    whitePlayerId: string,
+    blackPlayerId: string,
+    id: string,
+    timeControl?: string
+  ) {
     return (this.prisma.game.upsert({
       where: { id },
       create: {
@@ -19,6 +27,7 @@ export class GameService {
         timeControl,
         status: 'IN_PROGRESS',
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        startedAt: new Date(),
       },
       update: {},
     }));
@@ -30,7 +39,7 @@ export class GameService {
     const entries = Array.from(this.waitingPlayers.entries());
 
     if (entries.length > 0) {
-      const [opponentId, opponentSocketId] = entries[0];
+      const [opponentId] = entries[0];
       this.waitingPlayers.delete(opponentId);
 
       /// make game with matched plaeyrs
@@ -45,9 +54,7 @@ export class GameService {
   }
 
   async getOrCreateGame(gameId: string) {
-    let game = await this.prisma.game.findUnique({
-      where: { id: gameId },
-    });
+    let game = await this.prisma.game.findUnique({ where: { id: gameId } });
 
     if (!game) {
       game = await this.prisma.game.create({
@@ -82,7 +89,14 @@ export class GameService {
     }));
   }
 
-  async createBotGame(userId: string, color: 'white' | 'black', difficulty: string, timeControl: string, id: string) {
+  async createBotGame(
+    userId: string,
+    color: 'white' | 'black',
+    difficulty: string,
+    aiDifficultyInt: number,
+    timeControl: string,
+    id: string,
+  ) {
     return (this.prisma.game.create({
       data: {
         id,
@@ -90,6 +104,7 @@ export class GameService {
         blackPlayerId: color === 'black' ? userId : null,
         status: 'IN_PROGRESS',
         isAiGame: true,
+        aiDifficultyInt: aiDifficultyInt,
         timeControl,
         startedAt: new Date(),
       },

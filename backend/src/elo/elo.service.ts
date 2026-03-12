@@ -39,26 +39,13 @@ export class EloService {
     const whiteElo = this.getEloForType(whiteStats, gameType);
     const blackElo = this.getEloForType(blackStats, gameType);
 
-    const whiteGames = whiteStats.totalGames;
-    const blackGames = blackStats.totalGames;
-
-    let whiteOutcome: GameOutcome;
-    let blackOutcome: GameOutcome;
-
     const w = winner.toLowerCase();
-    if (w === 'white') {
-      whiteOutcome = 'win';
-      blackOutcome = 'loss';
-    } else if (w === 'black') {
-      whiteOutcome = 'loss';
-      blackOutcome = 'win';
-    } else {
-      whiteOutcome = 'draw';
-      blackOutcome = 'draw';
-    }
+    let whiteOutcome: GameOutcome = w === 'white' ? 'win' : w === 'draw' ? 'draw' : 'loss';
+    let blackOutcome: GameOutcome = w === 'black' ? 'win' : w === 'draw' ? 'draw' : 'loss';
 
-    const whiteDelta = this.computeDelta(whiteElo, blackElo, whiteOutcome, whiteGames);
-    const blackDelta = this.computeDelta(blackElo, whiteElo, blackOutcome, blackGames);
+    // K-factor uses totalGames which is updated by updatePlayerStats BEFORE processGameResult is called, so the count already includes this game.
+    const whiteDelta = this.computeDelta(whiteElo, blackElo, whiteOutcome, whiteStats.totalGames);
+    const blackDelta = this.computeDelta(blackElo, whiteElo, blackOutcome, blackStats.totalGames);
 
     const newWhiteElo = Math.max(100, whiteElo + whiteDelta);
     const newBlackElo = Math.max(100, blackElo + blackDelta);
@@ -98,12 +85,12 @@ export class EloService {
       // white stats
       this.prisma.userStatistics.update({
         where: { userId: whiteId },
-        data: this.buildStatsUpdate(gameType, newWhiteElo, whiteOutcome),
+        data: this.buildEloUpdate(gameType, newWhiteElo),
       }),
       // black stats
       this.prisma.userStatistics.update({
         where: { userId: blackId },
-        data: this.buildStatsUpdate(gameType, newBlackElo, blackOutcome),
+        data: this.buildEloUpdate(gameType, newBlackElo),
       }),
     ]);
   }
@@ -121,7 +108,7 @@ export class EloService {
   ): number {
     const K = gamesPlayed < 30 ? 32 : 16;
     const expected = 1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
-    const actual = outcome === 'white' ? 1 : outcome === 'draw' ? 0.5 : 0;
+    const actual = outcome === 'win' ? 1 : outcome === 'draw' ? 0.5 : 0;
     return (Math.round(K * (actual - expected)));
   }
 
@@ -139,12 +126,8 @@ export class EloService {
     const match = timeControl.match(/^(\d+)(?:\+(\d+))?$/);
     if (!match) return ('RAPID');
 
-    const baseSeconds = parseInt(match[1], 10) * 60;
-    const increment = parseInt(match[2] ?? '0', 10);
-
-    // FIDE-style effective time: base + 40 * increment ( estimate game length for 40 moves)
-    const effectiveSeconds = baseSeconds + 40 * increment;
-    const effectiveMinutes = effectiveSeconds / 60;
+    const effectiveMinutes =
+      (parseInt(match[1], 10) * 60 + 40 * parseInt(match[2] ?? '0', 10)) / 60;
 
     if (effectiveMinutes < 3) return ('BULLET');
     if (effectiveMinutes <= 10) return ('BLITZ');
@@ -159,17 +142,10 @@ export class EloService {
     return (stats.rapidElo);
   }
 
-  private buildStatsUpdate(type: GameType, newElo: number, outcome: GameOutcome) {
-    const eloField =
-      type === 'BULLET' ? 'bulletElo' : type === 'BLITZ' ? 'blitzElo' : 'rapidElo';
-
-    return {
-      [eloField]: newElo,
-      totalGames: { increment: 1 },
-      wins: outcome === 'win' ? { increment: 1 } : undefined,
-      losses: outcome === 'loss' ? { increment: 1 } : undefined,
-      draws: outcome === 'draw' ? { increment: 1 } : undefined,
-    };
+  private buildEloUpdate(type: GameType, newElo: number) {
+    if (type === 'BULLET') return ({ bulletElo: newElo });
+    if (type === 'BLITZ') return ({ blitzElo: newElo });
+    return ({ rapidElo: newElo });
   }
 
   private async getOrCreateStats(userId: string) {
