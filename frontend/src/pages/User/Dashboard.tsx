@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import * as Icons from 'lucide-react';
-import { LineChart } from '../components/charts/LineChart'; 
-import { GameModeStatsCard } from '../components/GameModeStatsCard';
-import GameHistoryList, { GameHistoryItem } from '../components/GameHistoryList';
-import UserTile from '../components/UserTile'; 
+import { LineChart } from '../../components/charts/LineChart'; 
+import { GameModeStatsCard } from '../../components/GameModeStatsCard';
+import GameHistoryList, { GameHistoryItem } from '../../components/GameHistoryList';
+import UserTile from '../../components/UserTile'; 
 
 // DUMMY DATA
 const myRatingData = [
