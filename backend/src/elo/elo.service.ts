@@ -55,7 +55,7 @@ export class EloService {
       ` | black ${blackElo}->${newBlackElo} (${blackDelta > 0 ? '+' : ''}${blackDelta})`,
     );
 
-    await this.prisma.$transation([
+    await this.prisma.$transaction([
       // white elo history 
       this.prisma.eloHistory.create({
         data: {

@@ -104,7 +104,7 @@ export class GameService {
         blackPlayerId: color === 'black' ? userId : null,
         status: 'IN_PROGRESS',
         isAiGame: true,
-        aiDifficultyInt: aiDifficultyInt,
+        aiDifficulty: aiDifficultyInt,
         timeControl,
         startedAt: new Date(),
       },

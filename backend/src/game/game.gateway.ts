@@ -378,7 +378,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       clearTimeout(pendingTimer);
       this.reconnectTimers.delete(timerKey);
       console.log(`Game ${data.gameId}: ${userId} reconnected - timer cancelled`);
-      if (gameRoom.whiteUserId === useId) gameRoom.white = client.id;
+      if (gameRoom.whiteUserId === userId) gameRoom.white = client.id;
       if (gameRoom.blackUserId === userId) gameRoom.black = client.id;
 
       this.server.to(roomName).emit('game:opponent-reconnected', {});
@@ -981,7 +981,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
 
     const newStreak = outcome === 'win' ? stats.currentStreak + 1 : 0;
-    const newBestStreak = Math.max(stats.bestStreal, newStreak);
+    const newBestStreak = Math.max(stats.bestStreak, newStreak);
 
     await this.prisma.userStatistics.update({
       where: { userId },
