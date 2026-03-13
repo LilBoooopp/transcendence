@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import Board from './Board';
 import PromotionPopup from './PromotionPopup';
 import GameEndPopup from './GameEndPopup';
-import GamePlayerTile from './GamePlayerTile'; 
-import { Card } from '../ui/Card'; 
+import GamePlayerTile from './GamePlayerTile';
+import { Card } from '../ui/Card';
 import { classicTheme } from './themes';
 import { useChessGame } from './hooks/useChessGame';
 import { ChessGameProps } from './types';
@@ -85,6 +85,9 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 		opponentDisconnected, reconnectSecondsLeft,
 	} = useChessGame(props);
 
+	const [showPopup, setShowPopup] = React.useState(false);
+	React.useEffect(() => { if (gameOver) setShowPopup(true); }, [gameOver]);
+
 	const { whiteTimeMs, blackTimeMs, currentTurn, timerRunning } = timer;
 
 	const topColor = playerColor === 'white' ? 'b' : 'w';
@@ -95,13 +98,13 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 	const bottomTimeMs = bottomColor === 'w' ? whiteTimeMs : blackTimeMs;
 
 	return (
-	 <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 p-4 w-full max-w-7xl mx-auto font-body relative">
+		<div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 p-4 w-full max-w-7xl mx-auto font-body relative">
 
 			{/* Left Column: Player Top, Board, Player Bottom */}
 			<div className="flex flex-col w-full max-w-[600px] flex-shrink-0">
-				<GamePlayerTile 
-					username={topLabel} 
-					color={topColor === 'w' ? 'white' : 'black'} 
+				<GamePlayerTile
+					username={topLabel}
+					color={topColor === 'w' ? 'white' : 'black'}
 					isActive={currentTurn === topColor && timerRunning}
 				/>
 
@@ -125,9 +128,9 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 					)}
 				</div>
 
-				<GamePlayerTile 
-					username={bottomLabel} 
-					color={bottomColor === 'w' ? 'white' : 'black'} 
+				<GamePlayerTile
+					username={bottomLabel}
+					color={bottomColor === 'w' ? 'white' : 'black'}
 					isActive={currentTurn === bottomColor && timerRunning}
 					isBottom
 				/>
@@ -167,7 +170,7 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 			</div>
 
 			{promotionMove && <PromotionPopup color={playerColor} theme={classicTheme} onSelect={completePromotion} />}
-			{gameOver && <GameEndPopup status={gameStatus} onHome={() => navigate('/')} onNewGame={() => navigate('/gamemode')} />}
+			{showPopup && <GameEndPopup status={gameStatus} onHome={() => navigate('/')} onNewGame={() => navigate('/gamemode')} onClose={() => setShowPopup(false)} />}
 		</div>
 	);
 };
