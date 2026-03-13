@@ -2,8 +2,8 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { JwtService } from '@nestjs/jwt'
 import { Socket } from 'socket.io';
 import { JWT_SECRET } from '../configs/jwtsecret';
+
 // AUTH GARD
-//if it returns true, it means that the endpoint can be accessed. false we are refusing the access
 @Injectable()
 export class AuthGuard implements CanActivate {
 	constructor(private jwtService: JwtService) { }
