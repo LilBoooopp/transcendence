@@ -1,58 +1,31 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'; // 1. Import Router
 
 // Wireframe Imports pages Bastian
-import WireframeLayout from './SamplePages/WireframeLayout';
-import WireframeDashboard from './SamplePages/WireframeDashboard';
-import WireframeLanding from './SamplePages/WireframeLanding';
-import WireframeGameMode from './SamplePages/WireframeGameMode';
-import WireframeBotMode from './SamplePages/WireframeBotMode';
+import WireframeLayout from './pages/Header & Footer/Layout';
+import WireframeDashboard from './pages/User/Dashboard';
+import WireframeLanding from './pages/Home/Landing';
+import WireframeGameMode from './pages/Game/GameMode';
+import WireframeBotMode from './pages/Game/BotMode';
 
-import MatchmakingWaiting from './components/MatchmakingWaiting';
+import MatchmakingWaiting from './pages/Game/MatchmakingWaiting';
 import BotGameLauncher from './components/BotGameLauncher';
-import GamePage from './components/GamePage';
+import GamePage from './pages/Game/GamePage';
+
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={
-          <WireframeLayout>
-            <WireframeLanding />
-          </WireframeLayout>
-        } />
-        <Route path="/home" element={
-          <WireframeLayout>
-            <WireframeLanding />
-          </WireframeLayout>
-        } />
-        <Route path="/gamemode" element={
-          <WireframeLayout>
-            <WireframeGameMode />
-          </WireframeLayout>
-        } />
-        <Route path="/botmode" element={
-          <WireframeLayout><WireframeBotMode /></WireframeLayout>
-        } />
-        <Route path="/dashboard" element={
-          <WireframeLayout>
-            <WireframeDashboard />
-          </WireframeLayout>
-        } />
+        <Route path="/" element={<WireframeLayout><WireframeLanding /></WireframeLayout>} />
+        <Route path="/home" element={<WireframeLayout><WireframeLanding /></WireframeLayout>} />
+        <Route path="/gamemode" element={<ProtectedRoute><WireframeLayout><WireframeGameMode /></WireframeLayout></ProtectedRoute>} />
+        <Route path="/botmode" element={<ProtectedRoute><WireframeLayout><WireframeBotMode /></WireframeLayout></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><WireframeLayout><WireframeDashboard /></WireframeLayout></ProtectedRoute>} />
 
-        {/* matchmaking + game */}
-        {/*
-          /play?tc=600+0
-          Shows the "searching for opponent" waiting screen.
-          on match found goes to /game/:gameId.
-        */}
-        <Route path="/play" element={<MatchmakingWaiting />} />
-
-        <Route path="/bot-launch" element={<BotGameLauncher />} />
-        {/*
-          /game/:gameId
-          chess game set by matchmaking
-        */}
-        <Route path="/game/:gameId" element={<GamePage />} />
+        <Route path="/play" element={<ProtectedRoute><MatchmakingWaiting /></ProtectedRoute>} />
+        <Route path="/bot-launch" element={<ProtectedRoute><BotGameLauncher /></ProtectedRoute>} />
+        <Route path="/game/:gameId" element={<ProtectedRoute><GamePage /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

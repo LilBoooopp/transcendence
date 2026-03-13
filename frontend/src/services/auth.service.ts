@@ -16,7 +16,8 @@ export async function isLoggedIn(): Promise<{ connected: boolean; username?: str
         }
 
         const data = await res.json();
-        return { connected: !!data.isConnected, username: data.username };
+        // If we got a 200 OK response, the token is valid
+        return { connected: true, username: data.username };
     } catch {
         return { connected: false };
     }

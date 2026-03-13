@@ -154,9 +154,12 @@ export function useChessGame({
   useEffect(() => {
     const unsubTimer = socketService.on('game:timer', (data: TimerState) => {
       timer.syncTimer(data);
-      if (data.timerRunning && gameStatus === 'Waiting for opponent...') {
-        setGameStatus('Playing');
-      }
+      setGameStatus((prevStatus) => {
+        if (data.timerRunning && prevStatus === 'Waiting for opponent...') {
+          return 'Playing';
+        }
+        return prevStatus;
+      });
     });
 
     const unsubMove = socketService.on('game:move', (data: { move: any; fen: string; pgn: string }) => {
@@ -252,7 +255,7 @@ export function useChessGame({
       unsubDrawOffered?.();
       unsubDrawDeclined?.();
     };
-  }, [gameId, userId, gameStatus]);
+  }, [gameId, userId]);
 
   // Premove virtual board
 
