@@ -35,7 +35,7 @@ export function useChessGame({
   const [gameOver, setGameOver] = useState(!!initialGameOver);
 
   const gameOverRef = useRef(gameOver);
-  useEffect(() => { gameOverRef.current = gameOver; }, [gameOver]);
+  gameOverRef.current = gameOver;
 
   const [premoves, setPremoves] = useState<Premove[]>([]);
   const premovesRef = useRef(premoves);
@@ -92,7 +92,7 @@ export function useChessGame({
   // Game status
 
   const updateGameStatus = useCallback((game: Chess) => {
-    if (gameOver) return;
+    if (gameOverRef.current) return;
     if (game.isCheckmate()) {
       const winner = game.turn() === 'w' ? 'Black' : 'White';
       setGameStatus(`Checkmate - ${winner} wins`);
@@ -103,7 +103,12 @@ export function useChessGame({
       setGameOver(true);
       socketService.sendGameOver(gameId, 'Draw', 'Stalemate');
     } else if (game.isDraw()) {
-      setGameStatus('Draw');
+      let reason = 'Draw';
+      if (game.isThreefoldRepetition?.())
+        reason = 'Draw by repetition';
+      else if (game.isInsufficientMaterial?.())
+        reason = 'Insufficient material';
+      setGameStatus(reason);
       setGameOver(true);
       socketService.sendGameOver(gameId, 'Draw', 'Draw');
     } else if (game.isCheck()) {
@@ -111,7 +116,7 @@ export function useChessGame({
     } else {
       setGameStatus('Playing');
     }
-  }, [gameId, gameOver]);
+  }, [gameId]);
 
   // Send move
 
@@ -149,7 +154,10 @@ export function useChessGame({
   useEffect(() => {
     if (!initialTimer) return;
     timer.syncTimer(initialTimer);
-    if (initialTimer.timerRunning) setGameStatus('Playing');
+    if (initialTimer.timerRunning)
+      setGameStatus(prev =>
+        prev === 'Waiting for opponent...' ? 'Playing' : prev
+      );
   }, [initialTimer]);
 
   // socket listening
