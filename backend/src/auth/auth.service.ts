@@ -107,9 +107,12 @@ export class AuthService {
 	}
 
 	async logout(userId:string){
-		await this.prisma.user.update({
+		await this.prisma.user.updateMany({
 			where: { id : userId},
-			data: { isOnline: false}
+			data: {
+				isOnline: false,
+				lastSeen: new Date(),
+			}
 		});
 		return true;
 	}
