@@ -24,7 +24,7 @@ export class AuthController {
 	}
 
 	@UseGuards(AuthGuard)
-	@Throttle({ default: { limit: 60, ttl: 60_000 } })
+	@Throttle({ default: { limit: 100, ttl: 60_000 } })
 	@Get('me')
 	async isConnected(@Req() req: any){
 		console.log('in auth/me');
