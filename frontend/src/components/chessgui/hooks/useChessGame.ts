@@ -18,6 +18,7 @@ export function useChessGame({
   isSpectator = false,
   initialState = null,
   initialTimer = null,
+  initialGameOver = null,
 }: ChessGameProps) {
   const gameRef = useRef(new Chess());
 
@@ -28,8 +29,10 @@ export function useChessGame({
   const [selectedTile, setSelectedTile] = useState<Coord | null>(null);
   const [lastMove, setLastMove] = useState<{ from: Coord; to: Coord } | null>(null);
 
-  const [gameStatus, setGameStatus] = useState<string>('Playing');
-  const [gameOver, setGameOver] = useState(false);
+  const [gameStatus, setGameStatus] = useState<string>(
+    initialGameOver ? `Game Over - ${initialGameOver.result}` : 'Playing'
+  );
+  const [gameOver, setGameOver] = useState(!!initialGameOver);
 
   const gameOverRef = useRef(gameOver);
   useEffect(() => { gameOverRef.current = gameOver; }, [gameOver]);
