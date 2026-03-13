@@ -121,6 +121,49 @@ cd backend && npm install && npm run start
 - **Docker + Docker Compose** - each service (frontend, backend, database, nginx) runs in its own container for reproducibility
 - **Nginx** -reverse proxy handling HTTPS termination and routing between rontend and backend
 
+## Database Schema
+
+[PLACEHOLDER: insert a diagram maybe?]
+
+### Tables
+
+**users**
+| Field | Type | Description|
+|-------|------|------------|
+| id | UUID | Primary key |
+| login | VARCHAR | 42 login, unique |
+| display_name | VARCHAR | Public display name |
+| elo | INT | Current Elo rating |
+| created_at | TIMESTAMP | Account creation data |
+
+**games**
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| white_id | UUID | FK -> users.id |
+| black_id | UUID | FK -> users.id |
+| time_control | VARCHAR | e.g. "5+3" |
+| result | ENUM | white_win / black_win / draw |
+| pgn | TEXT | Full game PGN |
+| created_at | TIMESTAMP | Game start time |
+
+...
+
+## Features List
+
+| Feature | Description | Implemented by |
+|---------|-------------|----------------|
+| Real-time multiplayer | Two players matched via queue play chess live with WebSocket sync | cbopp |
+| Variable time contorls | Supports time+increment format (e.g., 3+2); parsed and enforced server-side | cbopp |
+| Matchmaking queues | Per-time-control queues; players are apried automatically | cbopp |
+| AI opponent (Stockfish) | Bot games against Stockfish at configurable depth; UCI subprocess per game | cbopp |
+| Spectator mode | Any authenticated user can watch a live game is read-only mode | cbopp |
+| Elo ratings | Rating updates after each rated game using standard Elo formula | cbopp |
+| User profiles | View your own stats, game history, and rating | bschimd |
+| User authentication | Registration, login, JWT-based sessions | beboccas, sforster |
+| Custom chess engine | Full move generation and validation without external libraries | cbopp |
+| [PLACEHOLDER] |
+
 ## Project Structure
 ```
 chess-platform/
