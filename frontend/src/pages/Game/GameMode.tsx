@@ -31,7 +31,13 @@ export default function WireframeGameMode() {
 	const handlePlay = (label: string) => {
 		const key = LABEL_TO_KEY[label];
 		if (!key) return;
-		navigate(`/play?tc=${encodeURIComponent(key)}`);
+
+		const mm_token = crypto.randomUUID(); //random token for each "Start" click
+		sessionStorage.setItem('mm_flow', JSON.stringify({ mm_token, tcKey: key, ts: Date.now() }));
+		//console.log('Starting matchmaking with token:', mm_token, 'and time control:', key);
+		navigate(`/play?tc=${encodeURIComponent(key)}`, {
+			state: { fromGameMode: true, mm_token },
+		});
 	};
 
 	return (
