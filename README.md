@@ -75,7 +75,7 @@ cd backend && npm install && npm run start
 
 - **cbpop (Product Owner, Developer)** - Defined product vision and feature priorities. Maintained the product backlog. Implemented WebSocket infrastructure (Socket.IO gateway, real-time game synchronization, matchmaking queues, spectator mode).
 
-- **bschimd (Project Manager, Developer)** - Facilitated team coordination, tracked progress, and organized sprints. [PLACEHOLDER: list technical contributions]
+- **bschmid (Project Manager, Developer)** - Facilitated team coordination, tracked progress, and organized sprints. [PLACEHOLDER: list technical contributions]
 
 - **sforster (Technical Lead, Developer)** - Defined the technical architecture and made key technology decisinos. Ensured code quality and reviewed critical changes. [PLACEHOLDER: list technical contributions]
 
@@ -159,10 +159,35 @@ cd backend && npm install && npm run start
 | AI opponent (Stockfish) | Bot games against Stockfish at configurable depth; UCI subprocess per game | cbopp |
 | Spectator mode | Any authenticated user can watch a live game is read-only mode | cbopp |
 | Elo ratings | Rating updates after each rated game using standard Elo formula | cbopp |
-| User profiles | View your own stats, game history, and rating | bschimd |
+| User profiles | View your own stats, game history, and rating | bschmid |
 | User authentication | Registration, login, JWT-based sessions | beboccas, sforster |
 | Custom chess engine | Full move generation and validation without external libraries | cbopp |
 | [PLACEHOLDER] |
+
+## Modules
+
+**Total: 13 points** (7 major x 2pts + 3 minor * 1pt - see breakdown below)
+
+### Web (9 points)
+
+| Module | Type | Points | Implementation | Memeber(s) |
+|--------|------|--------|----------------|------------|
+| Frontend + Backend frameworks (React/NestJS) | Major | 2 | React/TypeScript SPA served via Vite; NestJS REST WS gateway | cbopp |
+| Real-time WebSocket features | Major | 2 | Socket.IO gateway with rooms, matchmaking, psectator events | cbopp |
+| ORM (Prisma) | Minor | 1 | Prisma schema + migrations; type-safe DB access throughout backend | cbopp |
+| Custom-made design, reusable components | Minor | 1 | Shared component library (GamePage, MatchmakingWaiting, etc.) with Tailwind | bschmid |
+
+*Not yet implemented:*
+- Major: Public API (2pt)
+- Minor: Notification system (1pt)
+
+### User Management (3 points)
+
+| Module | Type | Points | Implementation | Member(s) |
+|--------|------|--------|----------------|-----------|
+| Standard user management | Major | 2 | [PLACEHOLDER] | everyone |
+| Game statistics | Minor | 1 | | [PLACEHOLDER] | bschmid, sforster |
+
 
 ## Project Structure
 ```
