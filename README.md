@@ -188,46 +188,35 @@ cd backend && npm install && npm run start
 | Standard user management | Major | 2 | [PLACEHOLDER] | everyone |
 | Game statistics | Minor | 1 | | [PLACEHOLDER] | bschmid, sforster |
 
-
-## Project Structure
-```
-chess-platform/
-├── docker-compose.yml
-├── frontend/          # React application
-├── backend/           # NestJS API
-├── database/          # PostgreSQL initialization
-└── nginx/             # HTTPS reverse proxy
-```
-
-## Modules (12 Points)
-
-### Web (9 points)
-- ✅ Major: Frontend + Backend frameworks (2pts)
-- ✅ Major: Real-time WebSocket features (2pts)
-- ✅ Minor: ORM (Prisma) (1pt)
-- ✅ Minor: Custom-made design, reusable components (1pt)
-- Major: Public API (2pts)
-- Minor: Notification system (1pt)
-
-### User Management (3 points)
-- Major: Standard user management (2pts)
-- Minor: Game statistics (1pt)
-
 ### Gaming (8 points)
-- ✅ Major: Web-based chess game (2pts)
-- ✅ Major: Remote players (2pts)
-- ✅ Major: AI opponent (Stockfish) (2pts)
-- ✅ Minor: Watch live games (1pt)
-- Minor: Tournament system (1pt)
 
-### User Interaction (2 points)
-- Major: Chat, profiles, friends (2pts)
+| Module | Type | Points | Implementation | Member(s) |
+|--------|------|--------|----------------|-----------|
+| Web-based chess game | Major | 2 | Custom TS engine (flat 64-array board, fullrules) | cbopp |
+| Remote players | Major | 2 | Socket.IO rooms with role assignment (white/black/spectator) and reconnect handling | cbopp |
+| AI opponent (stockfish) | Major | 2 | Stockfish binary as persisten UCI subprocess per bot game | cbopp |
+| Watch live games | Minor | 1 | Spectators join game rooms in read-only mode | cbopp |
 
-**Total: 13 Points** (theoretical total: 22)
+*Not yet implemented:*
+- Minor: Tournament system (1pt) 
 
-## Installation
+## Individual Contributions
 
-See [QUICKSTART.md](QUICKSTART.md)
+### cbopp (Charlie Bopp)
+- Designed and implemented the entire WebSocket layer: Socket.IO gateway, game rooms, matchmaking system, reconnect logic
+- Built the time control system with additive increment and per-time-control queue routing
+- Integrated Stockfish as a UCI subprocess with persisten process management per bot game
+- Refactored frontend game logic into reusable hooks (`useGameSetup`, `useChessGame`) and shared components
+- **Challenges:** Stale closures in Socket.IO callbacks required refs for all mutable game state; socket timing required defensive checks for already-connected sockets; bot reconnect logic needed explicit branches since bot games set `gameStarted: true` immediately
+
+### bschmid (Bastian Schmid)
+[PLACEHOLDER]
+
+### sforster (Sylvie Forster)
+[PLACEHOLDER]
+
+### beboccas (Bertrand Boccassino)
+[PLACEHOLDER]
 
 ## Resources
 
@@ -236,40 +225,43 @@ See [QUICKSTART.md](QUICKSTART.md)
 - [Prisma Documentation](https://www.prisma.io/docs)
 - [chess.js](https://github.com/jhlywa/chess.js)
 - [Stockfish](https://stockfishchess.org/)
+- [Stockfish UCI Protocol](https://www.schredderchess.com/chess-features/uci-universal-chess-interface.html)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [Elo Rating System](https://en.wikipedia.org/wiki/Elo_rating_system)
+
+### AI Usage
+
+[PLACEHOLDER]
+
+## Project Structure
+```
+chess-platform/
+├── docker-compose.yml
+├── .env.example
+├── .gitignore
+├── backend/
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── nest-cli.json
+│   ├── src/
+│   │   └── chess/          # Chess engine submodule
+│   └── prisma/
+│       └── schema.prisma
+├── frontend/
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── tailwind.config.js
+├── database/
+│   └── init.sql
+└── nginx/
+    ├── Dockerfile
+    ├── nginx.conf
+    └── ssl/
+```
 
 ## License
 
 Educational project for 42 School.
 
----
-
-## Summary - Complete File Structure
-
-```
-chess-platform/
-├── docker-compose.yml          
-├── .env.example                 
-├── .gitignore                  
-│
-├── backend/
-│   ├── Dockerfile               
-│   ├── package.json             
-│   ├── tsconfig.json           
-│   ├── nest-cli.json          
-│   └── prisma/
-│       └── schema.prisma     
-│
-├── frontend/
-│   ├── Dockerfile              
-│   ├── package.json           
-│   ├── tsconfig.json         
-│   └── tailwind.config.js   
-│
-├── database/
-│   └── init.sql            
-│
-└── nginx/
-    ├── Dockerfile              
-    ├── nginx.conf             
-    └── ssl/                  
-```
