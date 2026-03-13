@@ -1,73 +1,222 @@
-*This project has been created as part of the 42 curriculum by [beboccas], [bschmid], [cbopp], [sforster]*
+*This project has been created as part of the 42 curriculum by beboccas, bschmid, cbopp, sforster*
 
-# Chess Platform
+# 42 Chess
 
 ## Description
 
-An online chess platform featuring real-time multiplayer gameplay, AI opponents powered by Stockfish, tournament system, player statistics with Elo ratings, spectator mode, and comprehensive user interaction features.
+An online chess platform built as the final project of the 42 Common Core. The platform offers real-time multiplayer chess matches, AI opponents powered by Stockfish at variable difficulty levels, player statistics with Elo ratings and a spectator mode.
 
-## Quick Start
+**Key features:**
+- Real-time multiplayer chess with WebSocket-based game synchronization
+- Variable time controls (e.g., 3+2, 5+0, 10+0) with additive increment
+- AI opponent powered by Stockfish (UCI protocol, multiple difficulty levels)
+- Per-time-control matchmaking queues
+- Spectator mode for live games
+- Player statistics and Elo rating system
+- Custom chess engine (TypeScript, no external chess libraries)
 
-See [QUICKSTART.md](QUICKSTART.md) for a 5-minute setup guide.
+## Instructions
+
+### Prerequisites
+
+- Docker and Docker Compose (v2+)
+- Git (with submode support)
+- A `.env` file configured from `.env.example`
+
+### Setup
+
+1. Clone the repository with submodes:
+    ```bash
+    git clone --recurse-submodules
+    cd transcendence
+    ```
+
+2. Copy and configure the environment file:
+    ```bash
+    cp .env.example .env
+    # Edit .env with your values (DB credentials, JWT secret, etc.)
+    ```
+
+3. Build and start all services:
+    ```bash
+    make
+    ```
+
+4. The application will be available at `https://localhost` (Nginx reverse proxy with HTTPS).
+
+### Environment Variables
+
+See `.env.example` for a full list of required variables, including:
+- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` - database credentials
+- `JWT_SECRET` - secret key for authentication tokens
+- `[PLACEHOLDER: list any other required .env variables]`
+
+### Development
+
+To run individual services in development mode:
+```bash
+# Frontend only
+cd frontend && npm install && npm start
+
+# Backend only
+cd backend && npm install && npm run start
+```
 
 ## Team Information
 
-### Team Members
-1. **[Charlie Bopp]** ([cbopp]) - [Product Owner, Developer]
-2. **[Bastian Schmid]** ([bschmid]) - [Project Manager, Developer]
-3. **[Sylvie Forster]** ([sforster]) - [Technical Lead, Developer]
-4. **[Bertrand Boccassino]** ([beboccas]) - [Developer]
+| Login | Name | Role(s) |
+|-------|------|---------|
+| cbopp | Charlie Bopp | Product Owner, Developer |
+| bschmid | Bastian Schmid | Project Manager, Developer |
+| sforster | Sylvie Forster | Technical Lead, Developer |
+| beboccas | Bertrand Boccassino | Developer |
+
+### Responsibilities
+
+- **cbpop (Product Owner, Developer)** - Defined product vision and feature priorities. Maintained the product backlog. Implemented WebSocket infrastructure (Socket.IO gateway, real-time game synchronization, matchmaking queues, spectator mode).
+
+- **bschmid (Project Manager, Developer)** - Facilitated team coordination, tracked progress, and organized sprints. [PLACEHOLDER: list technical contributions]
+
+- **sforster (Technical Lead, Developer)** - Defined the technical architecture and made key technology decisinos. Ensured code quality and reviewed critical changes. [PLACEHOLDER: list technical contributions]
+
+- **beboccas (Developer)** - [PLACEHOLDER: list technical contributions]
+
+## Project Management
+
+### Work Organization
+
+[PLACEHOLDER: describe how you divided the work - e.g., "We split the project into frontend, backend, and chess engine tracks, Each sprint lasted one week and was planned during a weekly meeting."]
+
+### Tools Used
+
+- **Version control:** GitHub with branch rulesets (PR-before-merge, no force push, restricted deletions)
+- **Task tracking:** GitHub Issues and Projects.
+- **Communication:** a Discord server with categorized channels and a webhook linked to 
+
+### Meetings
+
+[PLACEHOLDER]
 
 ## Technical Stack
 
-- **Frontend**: React + TypeScript + Tailwind CSS
-- **Backend**: NestJS + TypeScript
-- **Database**: PostgreSQL 15 + Prisma ORM
-- **WebSocket**: Socket.io
-- **Chess Engine**: Stockfish
-- **Containerization**: Docker + Docker Compose
-- **HTTPS**: Nginx reverse proxy
+### Frontend
+- **React + TypeScript** - component-based UI with strong typing
+- **Tailwind CSS** - utility-first styling for rapid, consistent design
+- **Socket.IO client** - real-time bidirectional communication with the backend
+- **React Router** - client-side routing (`/game/:gameId`, `/play`, `/bot-launch`, etc.)
 
-## Project Structure
-```
-chess-platform/
-├── docker-compose.yml
-├── frontend/          # React application
-├── backend/           # NestJS API
-├── database/          # PostgreSQL initialization
-└── nginx/             # HTTPS reverse proxy
-```
+### Backend
+- **NestJS + TypeScript** - structured, modular server framework well-suited to WebSocket gateways and REST APIs
+- **Socket.IO (server)** - manages game rooms, matchmaking queues, and live event broadcasting
+- **Stockfish** - AI chess engine integrated as a persistent sub process vio the UCI protocol; chosen as a subprocess (not a library) so the team retains full understanding of the chess logic
 
-## Modules (12 Points)
+### Database
+- **PostgreSQL 15** - chosen for its reliability, relational integrity, and strong support for complex queries (Elo calculations)
+- **Prisma ORM** - type-safe query builder that integrates directly with TypeScript; eliminates raw SQL boilerplate while keeping the schema version-controlled
 
-### Web (5 points)
-- ✅ Major: Frontend + Backend frameworks (2pts)
-- ✅ Major: Real-time WebSocket features (2pts)
-- ✅ Minor: ORM (Prisma) (1pt)
-- Major: Public API (2pts)
-- Minor: Custom-made design, reusable components (1pt)
+### Chess Engine
+- **Custom TypeScript engine** - implemented from scratch (no external chess libraries) as a git submodule shared between the frontend and backend. Includes move generation, legal move validation, check/checkmate/stalemate detection, and a minimax AI with alpha-beta pruning and MVV-LVA move ordering.
+
+### Infrastructure
+- **Docker + Docker Compose** - each service (frontend, backend, database, nginx) runs in its own container for reproducibility
+- **Nginx** -reverse proxy handling HTTPS termination and routing between rontend and backend
+
+## Database Schema
+
+[PLACEHOLDER: insert a diagram maybe?]
+
+### Tables
+
+**users**
+| Field | Type | Description|
+|-------|------|------------|
+| id | UUID | Primary key |
+| login | VARCHAR | 42 login, unique |
+| display_name | VARCHAR | Public display name |
+| elo | INT | Current Elo rating |
+| created_at | TIMESTAMP | Account creation data |
+
+**games**
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| white_id | UUID | FK -> users.id |
+| black_id | UUID | FK -> users.id |
+| time_control | VARCHAR | e.g. "5+3" |
+| result | ENUM | white_win / black_win / draw |
+| pgn | TEXT | Full game PGN |
+| created_at | TIMESTAMP | Game start time |
+
+...
+
+## Features List
+
+| Feature | Description | Implemented by |
+|---------|-------------|----------------|
+| Real-time multiplayer | Two players matched via queue play chess live with WebSocket sync | cbopp |
+| Variable time contorls | Supports time+increment format (e.g., 3+2); parsed and enforced server-side | cbopp |
+| Matchmaking queues | Per-time-control queues; players are apried automatically | cbopp |
+| AI opponent (Stockfish) | Bot games against Stockfish at configurable depth; UCI subprocess per game | cbopp |
+| Spectator mode | Any authenticated user can watch a live game is read-only mode | cbopp |
+| Elo ratings | Rating updates after each rated game using standard Elo formula | cbopp |
+| User profiles | View your own stats, game history, and rating | bschmid |
+| User authentication | Registration, login, JWT-based sessions | beboccas, sforster |
+| Custom chess engine | Full move generation and validation without external libraries | cbopp |
+| [PLACEHOLDER] |
+
+## Modules
+
+**Total: 13 points** (7 major x 2pts + 3 minor * 1pt - see breakdown below)
+
+### Web (9 points)
+
+| Module | Type | Points | Implementation | Memeber(s) |
+|--------|------|--------|----------------|------------|
+| Frontend + Backend frameworks (React/NestJS) | Major | 2 | React/TypeScript SPA served via Vite; NestJS REST WS gateway | everyone |
+| Real-time WebSocket features | Major | 2 | Socket.IO gateway with rooms, matchmaking, psectator events | cbopp |
+| ORM (Prisma) | Minor | 1 | Prisma schema + migrations; type-safe DB access throughout backend | everyone |
+| Custom-made design, reusable components | Minor | 1 | Shared component library (GamePage, MatchmakingWaiting, etc.) with Tailwind | bschmid |
+
+*Not yet implemented:*
+- Major: Public API (2pt)
+- Minor: Notification system (1pt)
 
 ### User Management (3 points)
-- Major: Standard user management (2pts)
-- Minor: Game statistics (1pt)
 
-### Gaming (7 points)
-- ✅ Major: Web-based chess game (2pts)
-- ✅ Major: Remote players (2pts)
-- ✅ Major: AI opponent (Stockfish) (2pts)
-- Minor: Tournament system (1pt)
+| Module | Type | Points | Implementation | Member(s) |
+|--------|------|--------|----------------|-----------|
+| Standard user management | Major | 2 | [PLACEHOLDER] | everyone |
+| Game statistics | Minor | 1 | | [PLACEHOLDER] | bschmid, sforster |
 
-### User Interaction (2 points)
-- Major: Chat, profiles, friends (2pts)
+### Gaming (8 points)
 
-### Spectator Mode (1 point)
-- ✅ Minor: Watch live games (1pt)
+| Module | Type | Points | Implementation | Member(s) |
+|--------|------|--------|----------------|-----------|
+| Web-based chess game | Major | 2 | Custom TS engine (flat 64-array board, fullrules) | cbopp |
+| Remote players | Major | 2 | Socket.IO rooms with role assignment (white/black/spectator) and reconnect handling | cbopp |
+| AI opponent (stockfish) | Major | 2 | Stockfish binary as persisten UCI subprocess per bot game | cbopp |
+| Watch live games | Minor | 1 | Spectators join game rooms in read-only mode | cbopp |
 
-**Total: 12 Points** (theoretical total: 21)
+*Not yet implemented:*
+- Minor: Tournament system (1pt) 
 
-## Installation
+## Individual Contributions
 
-See [QUICKSTART.md](QUICKSTART.md)
+### cbopp (Charlie Bopp)
+- Designed and implemented the entire WebSocket layer: Socket.IO gateway, game rooms, matchmaking system, reconnect logic
+- Built the time control system with additive increment and per-time-control queue routing
+- Integrated Stockfish as a UCI subprocess with persisten process management per bot game
+- Refactored frontend game logic into reusable hooks (`useGameSetup`, `useChessGame`) and shared components
+- **Challenges:** Stale closures in Socket.IO callbacks required refs for all mutable game state; socket timing required defensive checks for already-connected sockets; bot reconnect logic needed explicit branches since bot games set `gameStarted: true` immediately
+
+### bschmid (Bastian Schmid)
+[PLACEHOLDER]
+
+### sforster (Sylvie Forster)
+[PLACEHOLDER]
+
+### beboccas (Bertrand Boccassino)
+[PLACEHOLDER]
 
 ## Resources
 
@@ -76,46 +225,43 @@ See [QUICKSTART.md](QUICKSTART.md)
 - [Prisma Documentation](https://www.prisma.io/docs)
 - [chess.js](https://github.com/jhlywa/chess.js)
 - [Stockfish](https://stockfishchess.org/)
+- [Stockfish UCI Protocol](https://www.schredderchess.com/chess-features/uci-universal-chess-interface.html)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [Elo Rating System](https://en.wikipedia.org/wiki/Elo_rating_system)
+
+### AI Usage
+
+[PLACEHOLDER]
+
+## Project Structure
+```
+chess-platform/
+├── docker-compose.yml
+├── .env.example
+├── .gitignore
+├── backend/
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── nest-cli.json
+│   ├── src/
+│   │   └── chess/          # Chess engine submodule
+│   └── prisma/
+│       └── schema.prisma
+├── frontend/
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── tailwind.config.js
+├── database/
+│   └── init.sql
+└── nginx/
+    ├── Dockerfile
+    ├── nginx.conf
+    └── ssl/
+```
 
 ## License
 
 Educational project for 42 School.
-```
 
-**What this does:**
-- Provides basic project overview
-- Template that you'll fill in with your team details
-- Lists your module choices (18 points)
-
----
-
-## Summary - Complete File Structure
-
-```
-chess-platform/
-├── docker-compose.yml          
-├── .env.example                 
-├── .gitignore                  
-│
-├── backend/
-│   ├── Dockerfile               
-│   ├── package.json             
-│   ├── tsconfig.json           
-│   ├── nest-cli.json          
-│   └── prisma/
-│       └── schema.prisma     
-│
-├── frontend/
-│   ├── Dockerfile              
-│   ├── package.json           
-│   ├── tsconfig.json         
-│   └── tailwind.config.js   
-│
-├── database/
-│   └── init.sql            
-│
-└── nginx/
-    ├── Dockerfile              
-    ├── nginx.conf             
-    └── ssl/                  
-```

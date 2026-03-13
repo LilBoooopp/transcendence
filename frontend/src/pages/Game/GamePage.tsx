@@ -29,6 +29,7 @@ const GamePage: React.FC = () => {
 	const [role, setRole] = useState<'white' | 'black' | 'spectator' | null>(state.role ?? null);
 	const [initialState, setInitialState] = useState<{ fen: string; pgn: string } | null>(null);
 	const [initialTimer, setInitialTimer] = useState<TimerState | null>(state.initialTimer ?? null);
+	const [initialGameOver, setInitialGameOver] = useState<{ winner: string; result: string } | null>(null);
 	const [waiting, setWaiting] = useState(true);
 
 	const hasConnected = useRef(false);
@@ -43,12 +44,14 @@ const GamePage: React.FC = () => {
 		let unsubRole: (() => void) | undefined;
 		let unsubState: (() => void) | undefined;
 		let unsubTimer: (() => void) | undefined;
+		let unsubGameOver: (() => void) | undefined;
 
 		const doJoin = () => {
 			// FIXED: Clear old listeners first in case this is an auto-reconnect
 			unsubRole?.();
 			unsubState?.();
 			unsubTimer?.();
+			unsubGameOver?.();
 
 			unsubRole = socketService.on('game:role-assigned', (data: { gameId: string; role: 'white' | 'black' | 'spectator' }) => {
 				setRole(data.role);
@@ -63,13 +66,17 @@ const GamePage: React.FC = () => {
 				setInitialTimer(data);
 			});
 
+			unsubGameOver = socketService.on('game:over', (data: { winner: string; result: string }) => {
+				setInitialGameOver(data);
+			});
+
 			socketService.joinGame(gameId, tcKey, state.role ?? undefined);
 		};
 
 		if (socketService.isConnected()) {
 			doJoin();
 		}
-		
+
 		// FIXED: ALWAYS listen for connects to handle dropped connections gracefully
 		const unsubConnect = socketService.on('connect', doJoin);
 
@@ -78,12 +85,13 @@ const GamePage: React.FC = () => {
 			unsubRole?.();
 			unsubState?.();
 			unsubTimer?.();
+			unsubGameOver?.();
 			unsubConnect?.();
 			socketService.leaveGame(gameId);
 			socketService.disconnect();
 			hasConnected.current = false;
 		};
-	// FIXED: Update dependency array
+		// FIXED: Update dependency array
 	}, [gameId, userId, tcKey, state.role]);
 
 	if (!gameId) {
@@ -94,7 +102,7 @@ const GamePage: React.FC = () => {
 		);
 	}
 
-if (waiting || role === null) {
+	if (waiting || role === null) {
 		return (
 			<div className="min-h-screen bg-background-light flex items-center justify-center font-body">
 				{/* Replaced the raw div with our Card component */}
@@ -123,6 +131,7 @@ if (waiting || role === null) {
 					initialState={initialState}
 					initialTimer={initialTimer}
 					incrementMs={timeControl.incrementMs}
+					initialGameOver={initialGameOver}
 				/>
 			</div>
 		);
@@ -137,6 +146,7 @@ if (waiting || role === null) {
 			initialState={initialState}
 			initialTimer={initialTimer}
 			incrementMs={timeControl.incrementMs}
+			initialGameOver={initialGameOver}
 		/>
 	);
 };

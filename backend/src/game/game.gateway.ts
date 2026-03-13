@@ -340,7 +340,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // Join a room$
   //@UseGuards(WsAuthGuard)
   @SubscribeMessage('game:join')
-  handleJoinGame(
+  async handleJoinGame(
     @MessageBody() data: { gameId: string; timeControlKey?: string, claimedRole?: 'white' | 'black' },
     @ConnectedSocket() client: Socket,
   ) {
@@ -349,6 +349,28 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.join(roomName);
 
     if (!this.activeGames.has(data.gameId)) {
+      const dbGame = await this.prisma.game.findUnique({
+        where: { id: data.gameId },
+        select: { status: true, result: true, winner: true, fen: true, pgn: true },
+      });
+
+      if (dbGame && (dbGame.status === 'COMPLETED' || dbGame.status === 'ABANDONED')) {
+        client.emit('game:role-assigned', {
+          gameId: data.gameId,
+          role: 'spectator',
+        });
+        client.emit('game:state', {
+          gameId: data.gameId,
+          fen: dbGame.fen ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+          pgn: dbGame.pgn ?? '',
+        });
+        client.emit('game:over', {
+          winner: dbGame.winner ?? 'Draw',
+          result: dbGame.result ?? 'Game ended',
+        });
+        return ({ success: true, gameId: data.gameId, role: 'spectator' });
+      }
+
       const { initialMs, incrementMs } = parseTc(data.timeControlKey);
       this.activeGames.set(data.gameId, {
         players: new Set(),
@@ -681,6 +703,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
 
     await this.persistGameResult(data.gameId, data.winner, data.result);
+    this.activeGames.delete(data.gameId);
 
     return { success: true };
   }
@@ -883,6 +906,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
 
       this.persistGameResult(gameId, winner, result);
+      this.activeGames.delete(gameId);
     }, 1000);
   }
 
