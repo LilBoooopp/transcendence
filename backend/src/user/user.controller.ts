@@ -3,19 +3,19 @@ import { Controller, Post, Patch, Get, Body, Param, Delete, UseGuards, Req, NotF
 import { UserService } from './user.service';
 import { AuthGuard } from '../auth/guards/auth.guards';
 import { Throttle } from '@nestjs/throttler';
+import { RateLimitGuard } from '../auth/guards/rate-limit.guard';
 
 @Controller('users')
+@UseGuards(RateLimitGuard, AuthGuard)
 @Throttle({ default: { limit: 60, ttl: 60_000 } })
 export class UserController {
   constructor(private userService: UserService) {}
 
-  @UseGuards(AuthGuard)
   @Get()
   async getAllUsers() {
     return this.userService.getAllUsers();
   }
 
-  @UseGuards(AuthGuard)
   @Delete()
   async deleteUser(@Req() req: any)
   {
@@ -23,7 +23,6 @@ export class UserController {
 	return this.userService.deleteUser(req.user.userId);
   }
 
-  @UseGuards(AuthGuard)
   @Patch()
   async modifyUser(@Req() req: any, @Body() body)
   {
@@ -31,14 +30,12 @@ export class UserController {
 	return this.userService.modifyUser(req.user.userId, body.bio, body.firstName);
   }
 
- @UseGuards(AuthGuard)
   @Get('me')
   async getUserProfile(@Req() req: any){
 	//console.log('in users/me');
 	return this.userService.getUserProfile(req.user.userId);
   }
 
-  @UseGuards(AuthGuard)
   @Get('email/:email')
   async getUserByEmail(@Param('email') email: string) {
     const user = await this.userService.findByEmail(email);
@@ -46,7 +43,6 @@ export class UserController {
     return user;
   }
 
- @UseGuards(AuthGuard)
   @Get('username/:username')
   async getUserByUsername(@Param('username') username: string) {
     const user = await this.userService.findByUsername(username);
@@ -54,7 +50,6 @@ export class UserController {
     return user;
   }
 
-  @UseGuards(AuthGuard)
   @Get(':id')
   async getUserById(@Param('id') id: string) {
     const user = await this.userService.findById(id);

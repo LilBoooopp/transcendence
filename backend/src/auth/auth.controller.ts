@@ -3,28 +3,30 @@ import { AuthService} from './auth.service';
 import { AuthGuard } from './guards/auth.guards';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { Throttle } from '@nestjs/throttler';
+import { RateLimitGuard } from './guards/rate-limit.guard';
 
+@UseGuards(RateLimitGuard)
 @Controller('auth')
 export class AuthController {
 	constructor(private authService: AuthService) {}
 
-	@HttpCode(HttpStatus.OK)
 	@Throttle({ default: { limit: 10, ttl: 60_000 } })
+	@HttpCode(HttpStatus.OK)
 	@Post('login')
 	login(@Body() input: {username: string; password: string}) {
 		return this.authService.authenticate(input);
 	}
 
-	@Post('register')
 	@Throttle({ default: { limit: 5, ttl: 60_000 } })
+	@Post('register')
 	@HttpCode(HttpStatus.CREATED)
 	async register(@Body() createUserDto: CreateUserDto){
 		const user = await this.authService.createUser(createUserDto);
 		return user;
 	}
 
-	@UseGuards(AuthGuard)
 	@Throttle({ default: { limit: 100, ttl: 60_000 } })
+	@UseGuards(AuthGuard)
 	@Get('me')
 	async isConnected(@Req() req: any){
 		console.log('in auth/me');
