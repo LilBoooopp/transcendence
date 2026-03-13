@@ -8,7 +8,7 @@ An online chess platform built as the final project of the 42 Common Core. The p
 
 **Key features:**
 - Real-time multiplayer chess with WebSocket-based game synchronization
-- Variable time controls (e.g., 3+2, 5+0, 10+%) with additive increment
+- Variable time controls (e.g., 3+2, 5+0, 10+0) with additive increment
 - AI opponent powered by Stockfish (UCI protocol, multiple difficulty levels)
 - Per-time-control matchmaking queues
 - Spectator mode for live games
@@ -17,7 +17,7 @@ An online chess platform built as the final project of the 42 Common Core. The p
 
 ## Instructions
 
-### Prerequisitets
+### Prerequisites
 
 - Docker and Docker Compose (v2+)
 - Git (with submode support)
@@ -172,9 +172,9 @@ cd backend && npm install && npm run start
 
 | Module | Type | Points | Implementation | Memeber(s) |
 |--------|------|--------|----------------|------------|
-| Frontend + Backend frameworks (React/NestJS) | Major | 2 | React/TypeScript SPA served via Vite; NestJS REST WS gateway | cbopp |
+| Frontend + Backend frameworks (React/NestJS) | Major | 2 | React/TypeScript SPA served via Vite; NestJS REST WS gateway | everyone |
 | Real-time WebSocket features | Major | 2 | Socket.IO gateway with rooms, matchmaking, psectator events | cbopp |
-| ORM (Prisma) | Minor | 1 | Prisma schema + migrations; type-safe DB access throughout backend | cbopp |
+| ORM (Prisma) | Minor | 1 | Prisma schema + migrations; type-safe DB access throughout backend | everyone |
 | Custom-made design, reusable components | Minor | 1 | Shared component library (GamePage, MatchmakingWaiting, etc.) with Tailwind | bschmid |
 
 *Not yet implemented:*
