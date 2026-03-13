@@ -5,10 +5,13 @@ interface MoveHistoryProps {
 }
 
 export const MoveHistory: React.FC<MoveHistoryProps> = ({ history }) => {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = containerRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
   }, [history]);
 
   const pairs: { n: number; white: string; black?: string }[] = [];
@@ -17,7 +20,7 @@ export const MoveHistory: React.FC<MoveHistoryProps> = ({ history }) => {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto min-h-0">
+    <div ref={containerRef} className="flex-1 overflow-y-auto min-h-0">
       {pairs.length === 0 ? (
         <div className="flex items-center justify-center h-full text-text-dark/30 text-sm font-body italic">
           No moves yet
@@ -39,7 +42,6 @@ export const MoveHistory: React.FC<MoveHistoryProps> = ({ history }) => {
           </tbody>
         </table>
       )}
-      <div ref={bottomRef} />
     </div>
   );
 };
