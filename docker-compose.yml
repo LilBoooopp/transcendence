@@ -10,8 +10,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "5432:5432"
     networks:
       - transcendence
     healthcheck:
@@ -35,8 +33,6 @@ services:
       JWT_EXPIRATION: ${JWT_EXPIRATION}
     volumes:
       - ./backend/src:/app/src
-    ports:
-      - "4000:4000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -56,8 +52,6 @@ services:
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
-    ports:
-      - "3000:3000"
     depends_on:
       - backend
     networks:
