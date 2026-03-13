@@ -1,11 +1,12 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 
+
 @Injectable()
 export class RateLimitGuard extends ThrottlerGuard {
-  protected getTracker(req: Record<string, any>, context: ExecutionContext): Promise<string> | string {
+  protected async getTracker(req: Record<string, any>): Promise<string> {
     // 1) Utilisateur authentifie -> quota par user
-    const userId = req.user?.id;
+    const userId = req.user?.userId;
     if (userId) return `user:${userId}`;
 
     // 2) Sinon quota par IP reelle (proxy-aware)

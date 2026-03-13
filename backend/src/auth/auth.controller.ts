@@ -2,18 +2,21 @@ import { Controller, Req, Request, Body, Get, HttpCode, HttpStatus, Post, UseGua
 import { AuthService} from './auth.service';
 import { AuthGuard } from './guards/auth.guards';
 import { CreateUserDto } from '../dto/create-user.dto';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('auth')
 export class AuthController {
 	constructor(private authService: AuthService) {}
 
 	@HttpCode(HttpStatus.OK)
+	@Throttle({ default: { limit: 10, ttl: 60_000 } })
 	@Post('login')
 	login(@Body() input: {username: string; password: string}) {
 		return this.authService.authenticate(input);
 	}
 
 	@Post('register')
+	@Throttle({ default: { limit: 5, ttl: 60_000 } })
 	@HttpCode(HttpStatus.CREATED)
 	async register(@Body() createUserDto: CreateUserDto){
 		const user = await this.authService.createUser(createUserDto);
@@ -21,6 +24,7 @@ export class AuthController {
 	}
 
 	@UseGuards(AuthGuard)
+	@Throttle({ default: { limit: 60, ttl: 60_000 } })
 	@Get('me')
 	async isConnected(@Req() req: any){
 		console.log('in auth/me');
@@ -28,6 +32,7 @@ export class AuthController {
 		return result;
 	}
 
+	@Throttle({ default: { limit: 5, ttl: 60_000 } })
 	@HttpCode(HttpStatus.OK)
 	@UseGuards(AuthGuard)
 	@Post('logout')
@@ -36,6 +41,7 @@ export class AuthController {
 		return this.authService.logout(req.user.userId);
 	}
 
+	@Throttle({ default: { limit: 30, ttl: 60_000 } })
 	@UseGuards(AuthGuard)
 	@Get('game')
 	getUserInfo(@Request() request) {

@@ -2,8 +2,10 @@
 import { Controller, Post, Patch, Get, Body, Param, Delete, UseGuards, Req, NotFoundException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthGuard } from '../auth/guards/auth.guards';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('users')
+@Throttle({ default: { limit: 60, ttl: 60_000 } })
 export class UserController {
   constructor(private userService: UserService) {}
 

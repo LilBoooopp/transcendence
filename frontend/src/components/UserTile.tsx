@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card } from './ui/Card';
 
-interface  {
+interface UserTileProps {
 	username: string;
 	avatarUrl?: string;
 	MemberSince?: string;
