@@ -3,35 +3,32 @@ import { UserService} from 'src/user/user.service'
 import { JwtService} from '@nestjs/jwt'
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
-import { IsEmail } from 'class-validator';
 
 type AuthInput = {username: string; password: string};
-type SignInData = {userId: string; username: string}; //nerver return the password
+type SignInData = {userId: string; username: string};
 type AuthResult = { accessToken: string; userId: string; username: string};
 
 @Injectable()
 export class AuthService {
-	//here we inject the user servci
-	//so we can use the user service to fetch the user by their username
+	//here we inject the user service
 	constructor(
 		private usersService: UserService,
 		private jwtService: JwtService,
 		private prisma: PrismaService,
 	) {}
 
+
+  ///////////////////////////////////////////////
 	async createUser(data: {
     email: string;
     username: string;
-    password: string;
-    firstName?: string;
-    lastName?: string;
-  })
-  
+    password: string;}): Promise<AuthResult>
   {
     if (!data.email || !data.username || !data.password) {
-      throw new BadRequestException('Email, username et password sont requis');
+      throw new BadRequestException('Email, username, and password are mandatory');
     }
 
+    //check exiting user
     const existingUser = await this.prisma.user.findFirst({
       where: {
         OR: [
@@ -40,43 +37,39 @@ export class AuthService {
         ]
       }
     });
-
     if (existingUser) {
-      throw new ConflictException('Email ou username déjà utilisé');
+      throw new ConflictException('Email or username is already taken');
     }
 
+    //check password
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-	//const unvalidMail = 
-
-    return this.prisma.user.create({
+    const createdUser = await this.prisma.user.create({
       data: {
         email: data.email,
-	//	userId: ,
         username: data.username,
         password: hashedPassword,
-        firstName: data.firstName,
-        lastName: data.lastName,
-		avatarUrl: "defaultAvatar.png",
-		bio: 'Basic bio',
-		isOnline: true,
+		    avatarUrl: "defaultAvatar.png",
+		    bio: 'I will be happy to play',
+		    isOnline: true,
         statistics: {
           create: {},
         },
       },
-      include: {
-        statistics: true,
-      },
+      select: {
+        id: true,
+        username: true,
+        },
     });
+    return this.signIn({ userId: createdUser.id, username: createdUser.username });
   }
+  ////////////////////////////////////////
 
-	//this method will return an authentication result object
+	//return the token. 
 	async authenticate(input: AuthInput): Promise<AuthResult>{
-		//first we validate the user
 		const user = await this.validateUser(input);
-		//does the user exist??
 		if (!user){
-			throw new UnauthorizedException();
+			throw new UnauthorizedException('Invalid username or password');
 		}
 		//if user is valid
 		await this.prisma.user.update({
@@ -86,24 +79,27 @@ export class AuthService {
 		return this.signIn(user)
 	}
 
-	async validateUser(input: AuthInput): Promise<SignInData | null>{
-		const user = await this.usersService.findByUsername(input.username);
+  //ok verify user and password
+	async validateUser(input: AuthInput): Promise<SignInData | null> {
 
-		//validate that the password is good
-		//if (user && user.password === input.password) 
-		if (user && await bcrypt.compare(input.password, user.password))
-		{
-			return {
-				userId: user.id,
-				username: user.username,
-			}
-		}
-		return null;
+		const user = await this.usersService.findAuthUser(input.username);
+
+		if (!user) return null;
+
+    const valid = await bcrypt.compare(input.password, user.password);
+
+    if (!valid) return null;
+
+    return {
+      userId: user.id,
+      username: user.username,
+    };
 	}
 
+  //jwt create token
 	async signIn(user: SignInData): Promise<AuthResult> {
 		const tokenPayload = {
-			sub: user.userId, //convention in jwt token payload
+			sub: user.userId,
 			username: user.username,
 		};
 		const accessToken = await this.jwtService.signAsync(tokenPayload);
@@ -111,27 +107,22 @@ export class AuthService {
 	}
 
 	async logout(userId:string){
-		console.log('In new logout');
 		await this.prisma.user.update({
 			where: { id : userId},
 			data: { isOnline: false}
 		});
-		return true;///??
+		return true;
 	}
 
 	async isConnected(userId: string): Promise<{ isConnected: boolean; username: string}>
 	{
-		console.log('in service auth/isConnected');
 		const user = await this.prisma.user.findUnique({
 			where: {id: userId},
-			//return only isOnline
 			select: { username: true, isOnline: true},
 		})
 		if (!user){
-			console.log('no user');
 			return {isConnected: false, username: ' '};
 		}
-		console.log('it is an user');
 		return {
 			isConnected: user.isOnline,
 			username: user.username,

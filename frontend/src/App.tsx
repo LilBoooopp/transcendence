@@ -12,6 +12,8 @@ import MatchmakingWaiting from './pages/Game/MatchmakingWaiting';
 import BotGameLauncher from './components/BotGameLauncher';
 import GamePage from './pages/Game/GamePage';
 
+import ProtectedRoute from './components/ProtectedRoute';
+
 function App() {
   return (
     <BrowserRouter>
@@ -23,9 +25,9 @@ function App() {
         <Route path="/dashboard" element={<WireframeLayout><WireframeDashboard /></WireframeLayout>} />
 				<Route path="/user" element={<WireframeLayout><ProfilePage /></WireframeLayout>} />
 
-        <Route path="/play" element={<MatchmakingWaiting />} />
-        <Route path="/bot-launch" element={<BotGameLauncher />} />
-        <Route path="/game/:gameId" element={<GamePage />} />
+        <Route path="/play" element={<ProtectedRoute><MatchmakingWaiting /></ProtectedRoute>} />
+        <Route path="/bot-launch" element={<ProtectedRoute><BotGameLauncher /></ProtectedRoute>} />
+        <Route path="/game/:gameId" element={<ProtectedRoute><GamePage /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

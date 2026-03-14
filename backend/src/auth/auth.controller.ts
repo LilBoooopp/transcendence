@@ -1,7 +1,7 @@
-import { Controller, Req, Request, Body, Get, HttpCode, HttpStatus, NotImplementedException, Post, UseGuards } from '@nestjs/common';
-
+import { Controller, Req, Request, Body, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { AuthService} from './auth.service';
 import { AuthGuard } from './guards/auth.guards';
+import { CreateUserDto } from '../dto/create-user.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -13,21 +13,11 @@ export class AuthController {
 		return this.authService.authenticate(input);
 	}
 
-	// a revoir
 	@Post('register')
 	@HttpCode(HttpStatus.CREATED)
-	async register(@Body() body: {
-		email: string;
-		username: string;
-		password: string;
-		firstName?: string;
-		lastName?: string;
-	}){
-		const user = await this.authService.createUser(body);
-		//const { password, ...userWithoutPassword} = user;
-		//return userWithoutPassword;
-		const signInData = { userId: user.id, username: user.username };
-		return this.authService.signIn(signInData);
+	async register(@Body() createUserDto: CreateUserDto){
+		const user = await this.authService.createUser(createUserDto);
+		return user;
 	}
 
 	@UseGuards(AuthGuard)
@@ -46,7 +36,6 @@ export class AuthController {
 		return this.authService.logout(req.user.userId);
 	}
 
-	// a déplacer dans games...
 	@UseGuards(AuthGuard)
 	@Get('game')
 	getUserInfo(@Request() request) {
