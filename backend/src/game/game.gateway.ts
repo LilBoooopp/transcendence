@@ -20,7 +20,7 @@ import { WsAuthGuard } from '../auth/guards/auth.guards';
 import { JwtService } from '@nestjs/jwt';
 import { JWT_SECRET } from '../auth/configs/jwtsecret';
 import { EloService } from '../elo/elo.service';
-import { timer } from 'rxjs';
+import { NotificationService } from '../notification/notification.service';
 
 type BotDifficulty = 'easy' | 'medium' | 'hard';
 
@@ -111,6 +111,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly stockfishService: StockfishService,
     private readonly jwtService: JwtService,
     private readonly eloService: EloService,
+    private readonly notificationService: NotificationService,
   ) { }
 
   async handleConnection(client: Socket) {
