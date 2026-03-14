@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Tile from '../../components/Tile_w_select';
 import * as Icons from 'lucide-react';
+import { isLoggedIn } from '../../services/auth.service';
 
 const BULLET_OPTIONS = ['1 min', '1 | 1', '2 | 1'];
 const BLITZ_OPTIONS = ['3 min', '3 | 2', '5 min', '5 | 3'];
@@ -31,7 +32,13 @@ export default function WireframeGameMode() {
 	const handlePlay = (label: string) => {
 		const key = LABEL_TO_KEY[label];
 		if (!key) return;
-
+		//Check if the user is still logged (can't navigate the matching page without token)
+		isLoggedIn().then(({ connected }) => {
+			if (!connected) {
+				navigate('/');
+				return;
+			}
+		});
 		const mm_token = crypto.randomUUID(); //random token for each "Start" click
 		sessionStorage.setItem('mm_flow', JSON.stringify({ mm_token, tcKey: key, ts: Date.now() }));
 		//console.log('Starting matchmaking with token:', mm_token, 'and time control:', key);
