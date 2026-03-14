@@ -8,6 +8,9 @@ import { join } from 'path';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);//create the next app using the AppModule
 
+	// Important derriere Nginx: fait confiance au 1er proxy
+  app.set('trust proxy', 1);
+
   app.useStaticAssets(join(__dirname, '..', 'src', 'uploads'), { prefix: '/uploads/' });
 
   app.enableCors({
