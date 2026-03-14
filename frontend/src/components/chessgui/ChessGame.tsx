@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Board from './Board';
 import PromotionPopup from './PromotionPopup';
 import GameEndPopup from './GameEndPopup';
@@ -72,6 +72,11 @@ const ReconnectOverlay: React.FC<{ secondsLeft: number }> = ({ secondsLeft }) =>
 };
 
 const ChessGame: React.FC<ChessGameProps> = (props) => {
+	//Handle gameType state for the "new game" button
+	const location = useLocation();
+	const gameType = (location.state as { gameType?: string })?.gameType;
+	const destination = { bot: '/botmode', online: '/gamemode', solo: '/' }[gameType ?? ''] ?? '/gamemode';
+
 	const { playerColor, isSpectator = false } = props;
 	const navigate = useNavigate();
 
@@ -169,7 +174,7 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 			</div>
 
 			{promotionMove && <PromotionPopup color={playerColor} theme={classicTheme} onSelect={completePromotion} />}
-			{showPopup && <GameEndPopup status={gameStatus} onHome={() => navigate('/')} onNewGame={() => navigate('/gamemode')} onClose={() => setShowPopup(false)} />}
+			{showPopup && <GameEndPopup status={gameStatus} onHome={() => navigate('/')} onNewGame={() => navigate(destination)} onClose={() => setShowPopup(false)} />}
 		</div>
 	);
 };
