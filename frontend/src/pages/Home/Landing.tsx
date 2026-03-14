@@ -5,38 +5,39 @@ import LoginTile from '../../components/LoginTile';
 import GameHistoryList, { GameHistoryItem } from '../../components/GameHistoryList';
 import * as Icons from 'lucide-react';
 import { isLoggedIn } from '../../services/auth.service';
+import { useNotification } from '../../notifications';
 
 
 export default function WireframeLanding() {
-    const navigate = useNavigate();
-    const [loggedIn, setLoggedIn] = useState(false);
+	const navigate = useNavigate();
+	const [loggedIn, setLoggedIn] = useState(false);
 
-    const checkAuth = () => {
-        isLoggedIn().then(({ connected }) => {
-            setLoggedIn(connected);
+	const checkAuth = () => {
+		isLoggedIn().then(({ connected }) => {
+			setLoggedIn(connected);
 			console.log("User is logged in:", connected);
-        });
-    };
+		});
+	};
 
-    useEffect(() => {
-        checkAuth();
-    }, []);
+	useEffect(() => {
+		checkAuth();
+	}, []);
 
 	const history: GameHistoryItem[] = [
 		{ id: '1', date: '2023-10-24', opponent: 'GrandMasterFlash', result: 'Win', moves: 34, mode: 'Blitz', accuracy: 89 },
 		{ id: '2', date: '2023-10-22', opponent: 'Rookie123', result: 'Loss', moves: 21, mode: 'Bullet', accuracy: 65 },
 		{ id: '3', date: '2023-10-20', opponent: 'ChessBot', result: 'Draw', moves: 55, mode: 'Rapid', accuracy: 92 },
 	];
-/*	//USERSYL
-	const handleLogin = async () => {
-  const response = await fetch('/api/users/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: '...', username: '...', password: '...' })
-  });
-  const data = await response.json();
-  // gérer la réponse
-	};*/
+	/*	//USERSYL
+		const handleLogin = async () => {
+		const response = await fetch('/api/users/register', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ email: '...', username: '...', password: '...' })
+		});
+		const data = await response.json();
+		// gérer la réponse
+		};*/
 
 
 	const features = [
@@ -60,6 +61,8 @@ export default function WireframeLanding() {
 		}
 	];
 
+	const { push } = useNotification();
+
 	return (
 		<div className="flex flex-col items-center justify-center min-h-[80vh] px-4 max-w-5xl mx-auto py-12">
 
@@ -79,42 +82,50 @@ export default function WireframeLanding() {
 				))}
 			</div>
 
-        	{/* HISTORY / LOGIN SECTION */}
-        	<div className="w-full mt-12">
+			{/* HISTORY / LOGIN SECTION */}
+			<div className="w-full mt-12">
 
-        	    {loggedIn ? (
-        	        <>
-        	            <GameHistoryList history={history} />
+				{loggedIn ? (
+					<>
+						<GameHistoryList history={history} />
 						{/*Test button to logout (waiting for bastian to add a clean one)*/}
-        	            <button
-        	                className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
-        	                onClick={async () => {
-        	                    try {
-        	                        await fetch('/api/auth/logout', {
-        	                            method: 'POST',
-        	                            headers: {
-        	                                'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        	                            },
-        	                        });
-        	                        localStorage.removeItem('token');
-        	                        setLoggedIn(false);
-        	                    } catch (error) {
-        	                        console.error('Logout failed', error);
-        	                    }
-        	                }}
-        	            >
-        	                Logout
-        	            </button>
-        	        </>
-        	    ) : (
-        	        <LoginTile 
-        	            onLogin={() => console.log('Login clicked')} 
-        	            onRegister={() => console.log('Register clicked')}
+						<button
+							className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
+							onClick={async () => {
+								try {
+									await fetch('/api/auth/logout', {
+										method: 'POST',
+										headers: {
+											'Authorization': `Bearer ${localStorage.getItem('token')}`,
+										},
+									});
+									localStorage.removeItem('token');
+									setLoggedIn(false);
+								} catch (error) {
+									console.error('Logout failed', error);
+								}
+							}}
+						>
+							Logout
+						</button>
+					</>
+				) : (
+					<LoginTile
+						onLogin={() => console.log('Login clicked')}
+						onRegister={() => console.log('Register clicked')}
 						onLoginSuccess={checkAuth}
-        	        />
-        	    )}
-        	</div>
+					/>
+				)}
+			</div>
 
+			<button onClick={() => push({
+				type: 'success',
+				title: 'Test',
+				message: 'frontend works',
+				duration: 5000,
+			})}>
+				TESTING NOTIF
+			</button>
 		</div>
 	);
 }

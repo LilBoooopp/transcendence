@@ -7,13 +7,14 @@ import {
   Info,
   XCircle,
   Swords,
+  type LucideIcon,
 } from 'lucide-react';
 import { Toast as ToastType } from './types';
 
 const TOAST_CONFIG: Record<
   string,
   {
-    icon: React.ComponentType<{ size?: number; className?: string }>;
+    icon: LucideIcon;
     accent: string;
     iconBg: string;
     border: string;

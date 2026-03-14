@@ -220,6 +220,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           result: 'Game abandoned - opponent left before game began',
         });
 
+        this.notificationService.gameOver(
+          gameId,
+          'Game abandoned - opponent left before game began',
+        );
+
         this.activeGames.delete(gameId);
 
         this.prisma.game
@@ -234,6 +239,17 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         reconnectSeconds: HUMAN_RECONNECT_SECONDS,
       });
 
+      // notification
+      const remainingUserId = isWhite
+        ? gameRoom.blackUserId
+        : gameRoom.whiteUserId;
+      if (remainingUserId) {
+        this.notificationService.opponentDisconnected(
+          remainingUserId,
+          HUMAN_RECONNECT_SECONDS,
+        );
+      }
+
       const timerId = setTimeout(async () => {
         this.reconnectTimers.delete(timerKey);
         const room = this.activeGames.get(gameId);
@@ -247,6 +263,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         this.server.to(`game:${gameId}`).emit('game:over', { winner, result: resultStr });
         console.log(`Game ${gameId}: reconnect window expired - ${resultStr}`);
+
+        this.notificationService.gameOver(gameId, resultStr, winner);
 
         await this.persistGameResult(gameId, winner, resultStr, true).catch((e) =>
           console.warn(`Failed to persist abandoned game ${gameId}:`, e.message),
@@ -308,6 +326,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // notify players of game
       this.server.to(whiteEntry.clientId).emit('matchmaking:found', { gameId, role: 'white', timeControlKey: tcKey });
       this.server.to(blackEntry.clientId).emit('matchmaking:found', { gameId, role: 'black', timeControlKey: tcKey });
+
+      this.notificationService.gameCreated(whiteEntry.userId, gameId);
+      this.notificationService.gameCreated(blackEntry.userId, gameId);
 
       console.log(`Matchmaking [${tcKey}]: paired ${whiteEntry.clientId} (W) vs ${blackEntry.clientId} (B) -> game ${gameId}`);
 
@@ -411,6 +432,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (gameRoom.blackUserId === userId) gameRoom.black = client.id;
 
       this.server.to(roomName).emit('game:opponent-reconnected', {});
+
+      // notification
+      const otherUserId = gameRoom.whiteUserId === userId
+        ? gameRoom.blackUserId
+        : gameRoom.whiteUserId;
+      if (otherUserId) {
+        this.notificationService.opponentReconnected(otherUserId);
+      }
     }
 
     let assignedRole: 'white' | 'black' | 'spectator';
@@ -703,6 +732,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       result: data.result,
     });
 
+    this.notificationService.gameOver(data.gameId, data.result, data.winner);
+
     await this.persistGameResult(data.gameId, data.winner, data.result);
     this.activeGames.delete(data.gameId);
 
@@ -730,6 +761,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       result: resultStr,
     });
 
+    this.notificationService.gameOver(data.gameId, resultStr, winner);
+
     await this.persistGameResult(data.gameId, winner, resultStr);
 
     return ({ success: true });
@@ -747,6 +780,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.to(`game:${data.gameId}`).emit('game:draw-offered', {
       gameId: data.gameId,
     });
+
+    // notifications
+    const gameRoomDraw = this.activeGames.get(data.gameId);
+    if (gameRoomDraw) {
+      const offererIsWhite = gameRoomDraw.white === client.id;
+      const opponentUserId = offererIsWhite
+        ? gameRoomDraw.blackUserId
+        : gameRoomDraw.whiteUserId;
+      if (opponentUserId) {
+        this.notificationService.drawOffered(opponentUserId, client.data.username);
+      }
+    }
 
     return ({ success: true });
   }
@@ -770,11 +815,24 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         result: resultStr,
       });
 
+      this.notificationService.gameOver(data.gameId, resultStr);
+
       await this.persistGameResult(data.gameId, 'Draw', resultStr);
     } else {
       client.to(`game:${data.gameId}`).emit('game:draw-declined', {
         gameId: data.gameId,
       });
+
+      const drawRoom = this.activeGames.get(data.gameId);
+      if (drawRoom) {
+        const declinerIsWhite = drawRoom.white === client.id;
+        const offererUserId = declinerIsWhite
+          ? drawRoom.blackUserId
+          : drawRoom.whiteUserId;
+        if (offererUserId) {
+          this.notificationService.drawDeclined(offererUserId);
+        }
+      }
     }
 
     return ({ success: true });
@@ -897,6 +955,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       gameRoom.timerInterval = null;
 
       this.server.to(`game:${gameId}`).emit('game:over', { winner, result });
+
+      this.notificationService.gameOver(gameId, result, winner);
 
       this.server.to(`game:${gameId}`).emit('game:timer', {
         whiteTimeMs: gameRoom.whiteTimeMs,

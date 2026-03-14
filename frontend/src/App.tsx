@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'; // 1. Import Router
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 // Wireframe Imports pages Bastian
 import WireframeLayout from './pages/Header & Footer/Layout';
