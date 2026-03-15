@@ -77,7 +77,7 @@ cd backend && npm install && npm run start
 
 - **bschmid (Project Manager, Developer)** - Facilitated team coordination, tracked progress, and organized sprints. [PLACEHOLDER: list technical contributions]
 
-- **sforster (Technical Lead, Developer)** - Defined the technical architecture and made key technology decisinos. Ensured code quality and reviewed critical changes. [PLACEHOLDER: list technical contributions]
+- **sforster (Technical Lead, Developer)** - Defined the technical architecture and made key technology decisions. Ensured code quality and reviewed critical changes. [PLACEHOLDER: list technical contributions]
 
 - **beboccas (Developer)** - [PLACEHOLDER: list technical contributions]
 
@@ -213,7 +213,10 @@ cd backend && npm install && npm run start
 [PLACEHOLDER]
 
 ### sforster (Sylvie Forster)
-[PLACEHOLDER]
+- Design and implement the entire API routes. 
+- backend for user authentication
+- Prototype html page for login and users (for api call)
+- Git template
 
 ### beboccas (Bertrand Boccassino)
 [PLACEHOLDER]
@@ -229,7 +232,33 @@ cd backend && npm install && npm run start
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 - [Elo Rating System](https://en.wikipedia.org/wiki/Elo_rating_system)
 
+### Tutorials
+
+- [NestJS Controllers](https://docs.nestjs.com/controllers)
+- [NestJS Concepts](https://youtu.be/IdsBwplQAMw?si=oAu46pcgzciqx4dj)
+- [NestJS Authentication](https://youtu.be/i-howKMrtCM?si=pm7ZRD6mTZmuodSb)
+- [NestJS Architecture](https://youtu.be/vIP0iH3q3oc?si=4kuGUW-mNGS-Nkzj)
+- [Node Package Manager](https://www.w3schools.com/whatis/whatis_npm.asp)
+- [TypeScript](https://www.w3schools.com/typescript)
+- [JavaScript](https://www.w3schools.com/js/js_intro.asp)
+- [NodeJS Concepts](https://www.youtube.com/watch?v=q-xS25lsN3I)
+- [REST API](https://www.geeksforgeeks.org/node-js/rest-api-introduction)
+- [REST API](https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design)
+- [Prisma Concepts](https://youtu.be/rLRIB6AF2Dg?si=Mq9R75zedI5CHr4q)
+- [Prisma Relationships](https://youtu.be/fpBYj55-zd8?si=kyxVMuKvGfTI3tyr)
+- [JWT Concepts](https://www.youtube.com/watch?v=7Q17ubqLfaM)
+
+
 ### AI Usage
+
+AI tools were used during the development of this project for the following purposes:
+
+- Understand the project stack and architecture
+- Explore the codebase and component interactions
+- Assist with debugging
+- Help implement some TypeScript functions
+
+All generated suggestions were reviewed, tested, and adapted before being integrated into the project
 
 [PLACEHOLDER]
 
