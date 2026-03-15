@@ -20,10 +20,10 @@ function App() {
       <Routes>
         <Route path="/" element={<WireframeLayout><WireframeLanding /></WireframeLayout>} />
         <Route path="/home" element={<WireframeLayout><WireframeLanding /></WireframeLayout>} />
-        <Route path="/gamemode" element={<WireframeLayout><WireframeGameMode /></WireframeLayout>} />
-        <Route path="/botmode" element={<WireframeLayout><WireframeBotMode /></WireframeLayout>} />
-        <Route path="/dashboard" element={<WireframeLayout><WireframeDashboard /></WireframeLayout>} />
-				<Route path="/user" element={<WireframeLayout><ProfilePage /></WireframeLayout>} />
+        <Route path="/gamemode" element={<ProtectedRoute><WireframeLayout><WireframeGameMode /></WireframeLayout></ProtectedRoute>} />
+        <Route path="/botmode" element={<ProtectedRoute><WireframeLayout><WireframeBotMode /></WireframeLayout></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><WireframeLayout><WireframeDashboard /></WireframeLayout></ProtectedRoute>} />
+				<Route path="/user" element={<ProtectedRoute><WireframeLayout><ProfilePage /></WireframeLayout></ProtectedRoute>} />
 
         <Route path="/play" element={<ProtectedRoute><MatchmakingWaiting /></ProtectedRoute>} />
         <Route path="/bot-launch" element={<ProtectedRoute><BotGameLauncher /></ProtectedRoute>} />
