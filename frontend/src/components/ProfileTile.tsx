@@ -75,7 +75,12 @@ export default function ProfileTile({
   onUpdateField 
 }: ProfileTileProps) {
   const placeholderImage = "https://ui-avatars.com/api/?name=" + username + "&background=random";
-  
+	//avatar add by syl
+  const avatarSrc =
+    avatarUrl && avatarUrl.trim() !== ''
+      ? `/api/uploads/${avatarUrl}`
+      : placeholderImage;
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleOverlayClick = () => {
@@ -95,9 +100,12 @@ export default function ProfileTile({
       {/* Profile Picture */}
       <div className="flex-shrink-0 relative group cursor-pointer" onClick={handleOverlayClick}>
         <img
-          src={avatarUrl || placeholderImage}
+			src={avatarSrc}
+      alt={`${username}'s avatar`}
+      className="w-24 h-24 rounded-full object-cover shadow-sm border-2 border-accent"
+          /*src={avatarUrl || placeholderImage}
           alt={`${username}'s avatar`}
-          className="w-24 h-24 rounded-full object-cover shadow-sm border-2 border-accent"
+          className="w-24 h-24 rounded-full object-cover shadow-sm border-2 border-acce"*/
         />
         
         {/* Camera Overlay */}

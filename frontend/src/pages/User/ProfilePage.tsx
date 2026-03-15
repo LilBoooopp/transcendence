@@ -1,49 +1,110 @@
-import React, { useState } from 'react';
-import * as Icons from 'lucide-react';
-import ProfileTile from '../../components/ProfileTile'; 
+import React, { useState, useEffect } from 'react';
+import ProfileTile from '../../components/ProfileTile';
+
+type ProfileData = {
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  bio: string;
+  avatarUrl: string;
+};
 
 const ProfilePage = () => {
-	const [profileData, setProfileData] = useState({
-		username: "lilboooopp",
-		email: "lilboooopp@example.com",
-		firstName: "Lil",
-		lastName: "Boo",
-		bio: "I love playing chess and building web apps!",
-		avatarUrl: ""
-	});
+  const [profileData, setProfileData] = useState<ProfileData>({
+    username: 'lilboooopp',
+    email: 'lilboooopp@example.com',
+    firstName: 'Lil',
+    lastName: 'Boo',
+    bio: 'I love playing chess and building web apps!',
+    avatarUrl: '',
+  });
 
-	const handleUpdateProfileField = (field: string, newValue: string) => {
-		setProfileData((prevData) => ({
-			...prevData,
-			[field]: newValue
-		}));
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
 
-		// TODO: Send this to your backend!
-		// Example:
-		// fetch('/api/users/update', { 
-		//   method: 'PATCH', 
-		//   body: JSON.stringify({ [field]: newValue }) 
-		// }).catch(err => console.error("Failed to update db:", err));
-		console.log(`Updated ${field} to: ${newValue} in database!`);
-	};
+    fetch('/api/users/me', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Not ok');
+        return res.json();
+      })
+      .then((user) => {
+        setProfileData({
+          username: user.username ?? '',
+          email: user.email ?? '',
+          firstName: user.firstName ?? '',
+          lastName: user.lastName ?? '',
+          bio: user.bio ?? '',
+          avatarUrl: user.avatarUrl ?? '',
+        });
+      })
+      .catch(() => {
+        // gérer l'erreur si besoin
+      });
+  }, []);
 
-	return (
-		<div className="flex flex-col gap-8 items-center w-full max-w-4xl mx-auto py-8 px-4">
-			
-			{/* TOP SECTION: User Profile Tile */}
-			<div className="w-full flex justify-center">
-				<ProfileTile 
-					username={profileData.username}
-					email={profileData.email}
-					firstName={profileData.firstName}
-					lastName={profileData.lastName}
-					bio={profileData.bio}
-					avatarUrl={profileData.avatarUrl}
-					onUpdateField={handleUpdateProfileField}
-				/>
-			</div>
-		</div>
-	);
+  const handleUpdateProfileField = async (field: string, newValue: string) => {
+    const token = localStorage.getItem('token');
+    const previous = profileData;
+
+    setProfileData((prev) => ({
+      ...prev,
+      [field]: newValue,
+    }));
+
+    const body: { bio?: string; firstName?: string } = {};
+    if (field === 'bio') body.bio = newValue;
+    if (field === 'firstName') body.firstName = newValue;
+	//NOW UPDATE DATAS
+
+    if (Object.keys(body).length === 0) {
+      console.log(`Field "${field}" pas encore géré côté backend.`);
+      return;
+    }
+
+    try {
+      if (!token) throw new Error('No token');
+
+      const res = await fetch('/api/users', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) throw new Error('PATCH failed');
+
+      console.log(`Updated ${field} to: ${newValue} in database!`);
+    } catch (error) {
+      setProfileData(previous);
+      console.error('Error on PATCH /api/users', error);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-8 items-center w-full max-w-4xl mx-auto py-8 px-4">
+      <div className="w-full flex justify-center">
+        <ProfileTile
+          username={profileData.username}
+          email={profileData.email}
+          firstName={profileData.firstName}
+          lastName={profileData.lastName}
+          bio={profileData.bio}
+          avatarUrl={profileData.avatarUrl}
+          onUpdateField={handleUpdateProfileField}
+        />
+      </div>
+    </div>
+  );
 };
 
 export default ProfilePage;

@@ -56,4 +56,12 @@ export class UserController {
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
+
+  @UseGuards(AuthGuard)
+  @Get('history')
+  async getUserHistory(@Req() req: any)
+  {
+	const history = this.userService.getUserHistory(req.user.userId);
+	return history;
+  }
 }

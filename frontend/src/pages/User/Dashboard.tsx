@@ -42,6 +42,18 @@ const history: GameHistoryItem[] = [
 ];
 
 
+export interface GameHistoryItem {
+  id: string;
+  date: string;
+  opponent: string;
+  result: "Win" | "Loss" | "Draw";
+  moves: number;
+  mode: "Bullet" | "Blitz" | "Rapid";
+  side: "Black" | "White";
+}
+
+
+
 const StatsView = () => {
 	return (
 		<div className="flex flex-col gap-6 w-full">
