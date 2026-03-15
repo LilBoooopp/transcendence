@@ -8,6 +8,7 @@ import { Card } from '../ui/Card';
 import { classicTheme } from './themes';
 import { useChessGame } from './hooks/useChessGame';
 import { ChessGameProps } from './types';
+import { useEffect, useState } from 'react';
 
 // Import our newly extracted UI components
 import { Clock } from './Clock';
@@ -95,6 +96,12 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 	const bottomLabel = bottomColor === 'w' ? 'White' : 'Black';
 	const topTimeMs = topColor === 'w' ? whiteTimeMs : blackTimeMs;
 	const bottomTimeMs = bottomColor === 'w' ? whiteTimeMs : blackTimeMs;
+	const [showPopup, setShowPopup] = useState(false);
+	useEffect(() => {
+		if (gameOver) {
+			setShowPopup(true);
+		}
+	}, [gameOver]);
 
 	return (
 		<div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 p-4 w-full max-w-7xl mx-auto font-body relative">
