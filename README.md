@@ -77,7 +77,7 @@ cd backend && npm install && npm run start
 
 - **bschmid (Project Manager, Developer)** - Facilitated team coordination, tracked progress, and organized sprints. [PLACEHOLDER: list technical contributions]
 
-- **sforster (Technical Lead, Developer)** - Defined the technical architecture and made key technology decisions. Ensured code quality and reviewed critical changes. [PLACEHOLDER: list technical contributions]
+- **sforster (Technical Lead, Developer)** - Defined the technical architecture and made key technology decisions. Ensured code quality and reviewed critical changes. (Backend API routes, NestJS architecture (services, controllers, guards), authentication system, rate limiting, user management, friends management)
 
 - **beboccas (Developer)** - [PLACEHOLDER: list technical contributions]
 
@@ -178,11 +178,11 @@ cd backend && npm install && npm run start
 | Custom-made design, reusable components | Minor | 1 | Shared component library (GamePage, MatchmakingWaiting, etc.) with Tailwind | bschmid |
 
 *Not yet implemented:*
-- Major: Public API (2pt)
+- Major: Public API (2pt) *-> Sylvie will do this!*
 - Minor: Notification system (1pt)
 
 ### User Management (3 points)
-
+*-> Sylvie will do this!*
 | Module | Type | Points | Implementation | Member(s) |
 |--------|------|--------|----------------|-----------|
 | Standard user management | Major | 2 | [PLACEHOLDER] | everyone |
@@ -214,9 +214,15 @@ cd backend && npm install && npm run start
 
 ### sforster (Sylvie Forster)
 - Design and implement the entire API routes. 
-- backend for user authentication
+- Structured the backend architecture (services, controllers, guards, DTO validation)
+- Built the user authentication flow using NestJS, including login/logout logic, JWT handling, and route protection with guards
+- Implemented rate limiting and security hardening on both NestJS and Nginx
+- Developed user management features such as profile access, profile updates, and user deletion
 - Prototype html page for login and users (for api call)
 - Git template
+- Participate to docker implementation
+- Contributed to Docker integration and overall backend setup
+- Implement friends management
 
 ### beboccas (Bertrand Boccassino)
 [PLACEHOLDER]
@@ -248,7 +254,6 @@ cd backend && npm install && npm run start
 - [Prisma Relationships](https://youtu.be/fpBYj55-zd8?si=kyxVMuKvGfTI3tyr)
 - [JWT Concepts](https://www.youtube.com/watch?v=7Q17ubqLfaM)
 
-
 ### AI Usage
 
 AI tools were used during the development of this project for the following purposes:
@@ -259,8 +264,6 @@ AI tools were used during the development of this project for the following purp
 - Help implement some TypeScript functions
 
 All generated suggestions were reviewed, tested, and adapted before being integrated into the project
-
-[PLACEHOLDER]
 
 ## Project Structure
 ```
