@@ -127,10 +127,10 @@ export class EloService {
     if (!match) return ('RAPID');
 
     const effectiveMinutes =
-      (parseInt(match[1], 10) * 60 + 40 * parseInt(match[2] ?? '0', 10)) / 60;
+      (parseInt(match[1], 10) + 40 * parseInt(match[2] ?? '0', 10)) / 60;
 
     if (effectiveMinutes < 3) return ('BULLET');
-    if (effectiveMinutes <= 10) return ('BLITZ');
+    if (effectiveMinutes < 10) return ('BLITZ');
     return ('RAPID');
   }
 
