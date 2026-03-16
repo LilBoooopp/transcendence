@@ -5,16 +5,19 @@ import LoginTile from '../../components/LoginTile';
 import GameHistoryList, { GameHistoryItem } from '../../components/GameHistoryList';
 import * as Icons from 'lucide-react';
 import { isLoggedIn } from '../../services/auth.service';
+import { useNotification } from '../../notifications';
 
 export default function WireframeLanding() {
 	const navigate = useNavigate();
 	const [loggedIn, setLoggedIn] = useState(false);
 		const [history, setHistory] = useState<GameHistoryItem[]>([]);
 
+	const [username, setUsername] = useState<string | null>(null);
 
 	const checkAuth = () => {
-		isLoggedIn().then(({ connected }) => {
+		isLoggedIn().then(({ connected, username }) => {
 			setLoggedIn(connected);
+			setUsername(username ?? null);
 			console.log("User is logged in:", connected);
 		});
 	};
@@ -70,11 +73,13 @@ export default function WireframeLanding() {
 		}
 	];
 
+	const { push } = useNotification();
+
 	return (
 		<div className="flex flex-col items-center justify-center min-h-[80vh] px-4 max-w-5xl mx-auto py-12">
 
 			<h1 className="text-4xl font-heading font-bold mb-12 text-center">
-				Welcome to 42 Chess!
+				{username ? `Welcome ${username} to 42 Chess!` : 'Welcome to 42 Chess!'}
 			</h1>
 
 			<div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-2xl lg:max-w-full">
@@ -125,6 +130,18 @@ export default function WireframeLanding() {
 				)}
 			</div>
 
+			<button onClick={() => push({
+				type: 'success',
+				title: 'Test',
+				message: 'frontend works',
+				duration: 5000,
+				action: {
+					label: 'Testing',
+					route: '/gamemode',
+				}
+			})}>
+				TESTING NOTIF
+			</button>
 		</div>
 	);
 }

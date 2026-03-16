@@ -5,9 +5,12 @@ SSL_DIR = nginx/ssl
 KEY = $(SSL_DIR)/key.pem
 CERT = $(SSL_DIR)/cert.pem
 
+# .env file generation
+ENV_FILE = .env
+
 COMPOSE_CMD = docker compose 
 
-all:$(CERT)
+all: $(CERT) $(ENV_FILE)
 	@printf "Launch configuration ${name}...\n"
 	@$(COMPOSE_CMD) up --build
 #	@printf "Server listening on ...https://localhost:4443 and frontend landing page https://localhost:4443/wireframe/landing\n"
@@ -18,6 +21,11 @@ $(CERT):
 		-keyout $(KEY) \
 		-out $(CERT) \
 		-subj "/CN=localhost"
+
+$(ENV_FILE):
+	@cp .env.example .env
+	@JWT=$$(openssl rand -base64 48); sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$$JWT|" .env
+	@printf "Generated new JWT_SECRET in .env\n"
 
 down:
 	@printf "Stopping configuration ${name}...\n"
@@ -34,5 +42,6 @@ fclean: clean
 	@$(COMPOSE_CMD) down --rmi local -v
 	rm -f $(KEY) $(CERT)
 	rm -rf nginx/ssl
+	rm -f .env
 
-.PHONY: all down re clean fclean
+ PHONY: all down re clean fclean

@@ -30,7 +30,7 @@ const Tile = (props: TileProps) => {
     })
   }))
   const { rank, file } = props
-  const isLight = (rank + file) % 2 !== 0
+  const isLight = (rank + file) % 2 === 0
 
   const backgroundColor = props.isPremove
     ? (isLight ? '#f0b7b7' : '#d4756b')
@@ -55,7 +55,7 @@ const Tile = (props: TileProps) => {
         justifyContent: 'center',
       }}
     >
-      {props.piece && <Piece type={props.piece} theme={props.theme} rank={rank} file={file} onDragStart={props.onDragStart}/>}
+      {props.piece && <Piece type={props.piece} theme={props.theme} rank={rank} file={file} onDragStart={props.onDragStart} />}
       {/* Possible moves */}
       {props.isHighlighted && (
         <div

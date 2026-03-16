@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import * as Icons from 'lucide-react';
-import { LineChart } from '../../components/charts/LineChart'; 
 import { GameModeStatsCard } from '../../components/GameModeStatsCard';
 import GameHistoryList, { GameHistoryItem } from '../../components/GameHistoryList';
 import UserTile from '../../components/UserTile'; 
+import FriendsTile from '../../components/FriendsTile';
 
 interface ChartDataPoint {
   date: string;
@@ -54,7 +54,7 @@ const StatsView = ({ chartData }: StatsViewProps) => {
 	);
 };
 
-// --- 3. MAIN DASHBOARD COMPONENT ---
+// --- MAIN DASHBOARD COMPONENT ---
 const WireframeDashboard = () => {
     const [view, setView] = useState<'menu' | 'time-selection'>('menu');
     const [history, setHistory] = useState<GameHistoryItem[]>([]);
@@ -166,5 +166,4 @@ useEffect(() => {
     );
 };
 
-// We only EXPORT the main Dashboard component, so App.tsx can use it.
 export default WireframeDashboard;
