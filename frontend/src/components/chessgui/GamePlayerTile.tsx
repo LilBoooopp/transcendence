@@ -1,4 +1,3 @@
-// frontend/src/components/chessgui/GamePlayerTile.tsx
 import React from 'react';
 
 interface GamePlayerTileProps {
@@ -9,28 +8,28 @@ interface GamePlayerTileProps {
   isActive?: boolean;
 }
 
-const GamePlayerTile: React.FC<GamePlayerTileProps> = ({ 
-  username, 
+const GamePlayerTile: React.FC<GamePlayerTileProps> = ({
+  username,
   avatarUrl,
-  color, 
-  isActive 
+  color,
+  isActive
 }) => {
   const fallbackAvatar = `https://ui-avatars.com/api/?name=${username}&background=random`;
 
-  const gradientClass = color === 'white' 
-    ? 'bg-gradient-to-r from-primary to-white' 
+  const gradientClass = color === 'white'
+    ? 'bg-gradient-to-r from-primary to-white'
     : 'bg-gradient-to-r from-primary to-black';
 
   return (
-    <div 
+    <div
       className={[
         'flex items-center justify-between p-2 sm:p-3 rounded-lg transition-all duration-300 w-full h-full',
         gradientClass,
       ].join(' ')}
     >
       <div className="flex items-center gap-3 overflow-hidden">
-        <img 
-          src={avatarUrl || fallbackAvatar} 
+        <img
+          src={avatarUrl || fallbackAvatar}
           alt={`${username}'s avatar`}
           className="w-10 h-10 shrink-0 rounded-full object-cover shadow-inner border border-accent"
         />

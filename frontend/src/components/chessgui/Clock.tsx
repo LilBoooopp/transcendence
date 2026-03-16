@@ -1,4 +1,3 @@
-// frontend/src/components/chessgui/Clock.tsx
 import React from 'react';
 
 const formatTime = (ms: number): string => {
@@ -16,7 +15,7 @@ interface ClockProps {
 
 export const Clock: React.FC<ClockProps> = ({ timeMs, isActive }) => {
   const isCritical = timeMs < 30_000 && timeMs > 0;
-  
+
   return (
     <div
       className={[
