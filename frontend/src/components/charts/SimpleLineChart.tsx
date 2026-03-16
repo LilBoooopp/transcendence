@@ -19,6 +19,7 @@ export const SimpleLineChart: React.FC<BaseChartProps> = ({
 						axisLine={false}
 						tickLine={false}
 						tick={{ fontSize: 10 }}
+						interval={4}
 					/>
 					<YAxis 
 						stroke="#AEC3B0" 
