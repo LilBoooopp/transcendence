@@ -116,19 +116,19 @@ export class AuthService {
 
 	async isConnected(userId: string): Promise<{ isConnected: boolean; username: string}>
 	{
-		const user = await this.prisma.user.findUnique({
-			where: {id: userId},
-			select: { username: true, isOnline: true},
-		})
-		if (!user){
-			return {isConnected: false, username: ' '};
-		}
-		return {
-			isConnected: user.isOnline,
-			username: user.username,
-		}
+    	const user = await this.prisma.user.findUnique({
+    	    where: {id: userId},
+    	    select: { username: true, isOnline: true},
+    	})
+    	if (!user){
+    	    throw new UnauthorizedException('User not found');
+    	}
+    	return {
+    	    isConnected: user.isOnline,
+    	    username: user.username,
+    	}
 	}
 
 }
 
-	
+
