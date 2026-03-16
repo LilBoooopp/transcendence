@@ -122,6 +122,7 @@ model Game {
   pgn   String @default("") // Portable Game Notation
   fen   String @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") // Forsyth-Edwards Notation
   moves Json   @default("[]") // Array of moves
+  totalMoves Int?
 
   //settings
   timeControl String? // e.g, "10+0" "15+10"

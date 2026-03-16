@@ -109,7 +109,13 @@ async modifyUser(@Req() req: any, @Body() body)
   @Get('me')
   async getUserProfile(@Req() req: any){
 	//console.log('in users/me');
-	return this.userService.getUserProfile(req.user.userId);
+	return await this.userService.getUserProfile(req.user.userId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('stats')
+  async getUserStat(@Req() req: any){
+    return await this.userService.getUserStat(req.user.userId);
   }
 
   @Get('email/:email')
@@ -126,6 +132,16 @@ async modifyUser(@Req() req: any, @Body() body)
     return user;
   }
 
+
+
+  @UseGuards(AuthGuard)
+  @Get('history')
+  async getUserHistory(@Req() req: any)
+  {
+	const history = await this.userService.getUserHistory(req.user.userId);
+	return history;
+  }
+
   @Get(':id')
   async getUserById(@Param('id') id: string) {
     const user = await this.userService.findById(id);
@@ -133,11 +149,5 @@ async modifyUser(@Req() req: any, @Body() body)
     return user;
   }
 
-  @UseGuards(AuthGuard)
-  @Get('history')
-  async getUserHistory(@Req() req: any)
-  {
-	const history = this.userService.getUserHistory(req.user.userId);
-	return history;
-  }
+
 }

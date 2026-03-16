@@ -24,10 +24,18 @@ type UserHistoryItem = {
   result: 'Win' | 'Loss' | 'Draw';
   moves: number;
   mode: 'Bullet' | 'Blitz' | 'Rapid';
-  accuracy: number;
+  side: 'White' | 'Black';
 };
 type UserHistory = UserHistoryItem[];
-
+type UserStat = {
+  username: string;
+  memberSince: string;
+  totalGames: number;    // ← petit t
+  avgScore: number;      // ← petit a
+  bulletRating?: number;
+  blitzRating?: number;
+  rapidRating?: number;
+};
 const DEFAULT_AVATAR_FILENAME = 'defaultAvatar.png';
 const UPLOADS_DIR = join(process.cwd(), 'src', 'uploads');
 
@@ -126,6 +134,43 @@ export class UserService {
     }
 	}
 
+async getUserStat(id: string): Promise<UserStat> {
+  const user = await this.prisma.user.findUnique({
+    where: { id },
+    select: { 
+      username: true, 
+      createdAt: true,
+      statistics: true,  // ← Récupère les statistiques via la relation
+    },
+  });
+
+  if (!user) {
+    throw new NotFoundException('User not found');
+  }
+
+  // Format memberSince (e.g., "Oct 2023")
+  const memberSince = user.createdAt.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+  });
+
+  // Calculate average Elo from all modes
+  const avgScore = user.statistics
+    ? Math.round((user.statistics.bulletElo + user.statistics.blitzElo + user.statistics.rapidElo) / 3)
+    : 1200;
+
+  return {
+  username: user.username,
+  memberSince,
+  totalGames: user.statistics?.totalGames ?? 0,  // ← petit t
+  avgScore,
+  bulletRating: user.statistics?.bulletElo,
+  blitzRating: user.statistics?.blitzElo,
+  rapidRating: user.statistics?.rapidElo,
+};
+}
+
+
 	  private async deleteAvatarIfCustom(avatarUrl?: string | null): Promise<void> {
     if (!avatarUrl || avatarUrl === DEFAULT_AVATAR_FILENAME) {
       return;
@@ -175,7 +220,7 @@ export class UserService {
 		});
 	}
 
-		async getUserHistory(id: string): Promise<UserHistory >
+	async getUserHistory(id: string): Promise<UserHistory >
 	{
 	// Get 10 latest completed games where user is white or black
 	  const games = await this.prisma.game.findMany({
@@ -212,10 +257,9 @@ export class UserService {
     'Unknown';
 
 	// choisir une date (endedAt si possible, sinon startedAt, sinon createdAt)
-    const refDate = game.endedAt;
-    const dateStr = refDate.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const refDate = game.endedAt || game.createdAt;
+	const dateStr = refDate.toISOString().slice(0, 10);
 
-	// pas sure que ca fonctionne. 
 	let result: 'Win' | 'Loss' | 'Draw' = 'Draw';
 	if (game.winner === 'white') {
       if (isWhite) result = 'Win';
@@ -227,8 +271,9 @@ export class UserService {
       // a mettre plus de possibilites?
       result = 'Draw';
     }
-	let moves = 0; // a refaire voir fonction a la fin du jeux. 
-	// a revoirs
+	// pas terrible
+	let moves = game.totalMoves; // a refaire voir fonction a la fin du jeux. 
+	// pas terrible
 	const mode: 'Bullet' | 'Blitz' | 'Rapid' = (() => {
       const tc = game.timeControl;
       if (!tc) return 'Rapid';
@@ -240,7 +285,7 @@ export class UserService {
       return 'Rapid';
     })();;
 
-	const accuracy = 0;// a retirer. 
+	const side: 'White' | 'Black' = isWhite ? 'White' : 'Black';
 	const item: UserHistoryItem = {
       id: game.id,
       date: dateStr,
@@ -248,7 +293,7 @@ export class UserService {
       result,
       moves,
       mode,
-      accuracy,
+      side,
     };
     return item;
   });

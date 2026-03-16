@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as Icons from 'lucide-react';
 import { LineChart } from '../../components/charts/LineChart'; 
 import { GameModeStatsCard } from '../../components/GameModeStatsCard';
@@ -34,24 +34,6 @@ const rapidHistory = [
 	{ date: 'Jun', rating: 1285 },
 	{ date: 'Jul', rating: 1260 },
 ];
-
-const history: GameHistoryItem[] = [
-		{ id: '1', date: '2023-10-24', opponent: 'GrandMasterFlash', result: 'Win', moves: 34, mode: 'Blitz', accuracy: 89 },
-		{ id: '2', date: '2023-10-22', opponent: 'Rookie123', result: 'Loss', moves: 21, mode: 'Bullet', accuracy: 65 },
-		{ id: '3', date: '2023-10-20', opponent: 'ChessBot', result: 'Draw', moves: 55, mode: 'Rapid', accuracy: 92 },
-];
-
-
-export interface GameHistoryItem {
-  id: string;
-  date: string;
-  opponent: string;
-  result: "Win" | "Loss" | "Draw";
-  moves: number;
-  mode: "Bullet" | "Blitz" | "Rapid";
-  side: "Black" | "White";
-}
-
 
 
 const StatsView = () => {
@@ -92,31 +74,92 @@ const StatsView = () => {
 
 // --- 3. MAIN DASHBOARD COMPONENT ---
 const WireframeDashboard = () => {
-	const [view, setView] = useState<'menu' | 'time-selection'>('menu');
+    const [view, setView] = useState<'menu' | 'time-selection'>('menu');
+    const [history, setHistory] = useState<GameHistoryItem[]>([]);
 
-	return (
-		<div className="flex flex-col gap-8 items-center w-full max-w-4xl mx-auto py-8 px-4">
-			
-			{/* TOP SECTION: User Profile Tile */}
-			<div className="w-full flex justify-center">
-				<UserTile 
-					username="lilboooopp"
-					MemberSince="Oct 2023"
-					TotalGames={342}
-					AvgScore={1234}
-				/>
-			</div>
+	//user state
+	const [stats, setStats] = useState({
+	username: '',
+	memberSince: '',
+	totalGames: 0,
+	avgScore: 0,
+	blitzRating: 0,
+	rapidRating: 0,
+	bulletRating: 0,
+});
 
-			{/* BOTTOM SECTION: Statistics Dashboard */}
-			<div className="w-full mt-8">        
-				<div className="flex justify-center mb-8"> 
-					<StatsView /> 
-				</div>
-				<GameHistoryList history={history} />
-			</div>
-			
-		</div>
-	);
+// useEffect pour fetcher les stats
+useEffect(() => {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+
+  fetch('/api/users/stats', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error('Failed to fetch stats');
+      return res.json();
+    })
+    .then((data) => {
+      setStats(data);
+    })
+    .catch((error) => {
+      console.error('Error fetching stats:', error);
+    });
+}, []);
+
+	// history
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        fetch('/api/users/history', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error('Failed to fetch history');
+                return res.json();
+            })
+            .then((data) => {
+                setHistory(data);
+            })
+            .catch((error) => {
+                console.error('Error fetching game history:', error);
+                setHistory([]);
+            });
+    }, []);
+
+    return (
+        <div className="flex flex-col gap-8 items-center w-full max-w-4xl mx-auto py-8 px-4">
+            
+            {/* TOP SECTION: User Profile Tile */}
+            <div className="w-full flex justify-center">
+                <UserTile 
+                    username={stats.username}
+					MemberSince={stats.memberSince}
+					TotalGames={stats.totalGames}
+					AvgScore={stats.avgScore}
+                />
+            </div>
+
+            {/* BOTTOM SECTION: Statistics Dashboard */}
+            <div className="w-full mt-8">        
+                <div className="flex justify-center mb-8"> 
+                    <StatsView /> 
+                </div>
+                <GameHistoryList history={history} />
+            </div>
+            
+        </div>
+    );
 };
 
 // We only EXPORT the main Dashboard component, so App.tsx can use it.
