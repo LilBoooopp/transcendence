@@ -32,7 +32,6 @@ export class UserController {
 
   @Get('me')
   async getUserProfile(@Req() req: any){
-	//console.log('in users/me');
 	return this.userService.getUserProfile(req.user.userId);
   }
 

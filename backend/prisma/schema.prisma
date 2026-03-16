@@ -35,8 +35,12 @@ model User {
 
   gamesAsWhite Game[]                  @relation("WhitePlayer")
   gamesAsBlack Game[]                  @relation("BlackPlayer")
-  friends      User[]                  @relation("Friendship")
-  friendOf     User[]                  @relation("Friendship")
+
+  friendRequestsFrom Friend[]           @relation("FriendsFrom")
+  friendRequestsTo   Friend[]           @relation("FriendsTo")
+
+//  friends      User[]                  @relation("Friendship")
+ // friendOf     User[]                  @relation("Friendship")
   chatMessages ChatMessage[]
   tournaments  TournamentParticipant[]
   statistics   UserStatistics?
@@ -45,6 +49,35 @@ model User {
   @@index([email])
   @@index([username])
 }
+
+//friends
+model Friend {
+  id          String   @id @default(uuid())
+  fromUserId  String
+  toUserId    String
+  fromUser    User     @relation("FriendsFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser      User     @relation("FriendsTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  status      FriendStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  respondedAt DateTime?
+  updatedAt   DateTime @updatedAt
+
+  @@unique([fromUserId, toUserId])
+  @@index([toUserId])
+  @@index([status])
+}
+
+enum FriendStatus {
+  PENDING          // requête d'ami en attente
+  ACCEPTED         // amis acceptés
+  REJECTED         // requête d'ami refusée
+//  BLOCKED          // bloqué
+  GAME_INVITED     // invitation à jouer
+  GAME_ACCEPTED    // a accepté de jouer
+  GAME_REJECTED    // a refusé de jouer
+}
+
 
 // user statistics
 model UserStatistics {
@@ -163,7 +196,7 @@ enum GameResult {
   RESIGNATION
 }
 
-// Chat messages
+// Chat message
 model ChatMessage {
   id         String  @id @default(uuid())
   senderId   String

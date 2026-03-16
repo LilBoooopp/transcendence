@@ -1,4 +1,3 @@
-// pas trop mal
 
 import { Injectable, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -74,5 +73,7 @@ export class UserService {
 			where: {id}
 		});
 	}
+
+	
 
 }
