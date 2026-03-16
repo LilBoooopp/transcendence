@@ -16,8 +16,6 @@ import SoloLauncher from './pages/Game/SoloLauncher';
 import SoloGamePage from './pages/Game/SoloGamePage';
 
 import ProtectedRoute from './components/ProtectedRoute';
-import ProtectedGameRoute from './components/ProtectedGameRoute';
-
 function NotificationListener({ children }: { children: React.ReactNode }) {
   useSocketNotification();
   return <>{children}</>;
@@ -38,7 +36,7 @@ function App() {
 
             <Route path="/play" element={<ProtectedRoute><WireframeLayout><MatchmakingWaiting /></WireframeLayout></ProtectedRoute>} />
             <Route path="/bot-launch" element={<ProtectedRoute><WireframeLayout><BotGameLauncher /></WireframeLayout></ProtectedRoute>} />
-            <Route path="/game/:gameId" element={<ProtectedRoute><ProtectedGameRoute><WireframeLayout><GamePage /></WireframeLayout></ProtectedGameRoute></ProtectedRoute>} />
+            <Route path="/game/:gameId" element={<ProtectedRoute><WireframeLayout><GamePage /></WireframeLayout></ProtectedRoute>} />
 
             <Route path="/solo" element={<ProtectedRoute><WireframeLayout><SoloLauncher /></WireframeLayout></ProtectedRoute>} />
             <Route path="/solo-game" element={<ProtectedRoute><WireframeLayout><SoloGamePage /></WireframeLayout></ProtectedRoute>} />
