@@ -9,7 +9,6 @@ export async function isLoggedIn(): Promise<{ connected: boolean; username?: str
                 'Authorization': `Bearer ${token}`,
             },
         });
-
         if (!res.ok) {
             localStorage.removeItem('token');
             return { connected: false };

@@ -1,0 +1,156 @@
+import React, { useState, useEffect } from 'react';
+import ProfileTile from '../../components/ProfileTile';
+
+type ProfileData = {
+	username: string;
+	email: string;
+	firstName: string;
+	lastName: string;
+	bio: string;
+	avatarUrl: string;
+};
+
+type UpdateUserBody = {
+	username?: string;
+	bio?: string;
+	firstName?: string;
+	lastName?: string;
+	email?: string;
+};
+
+const ProfilePage = () => {
+	const [profileData, setProfileData] = useState<ProfileData>({
+		username: '',
+		email: '@example.com',
+		firstName: '',
+		lastName: '',
+		bio: '',
+		avatarUrl: '',
+	});
+
+	useEffect(() => {
+		const token = localStorage.getItem('token');
+		if (!token) return;
+
+		fetch('/api/users/me', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`,
+			},
+		})
+			.then((res) => {
+				if (!res.ok) throw new Error('Not ok');
+				return res.json();
+			})
+			.then((user) => {
+				setProfileData({
+					username: user.username ?? '',
+					email: user.email ?? '',
+					firstName: user.firstName ?? '',
+					lastName: user.lastName ?? '',
+					bio: user.bio ?? '',
+					avatarUrl: user.avatarUrl ?? '',
+				});
+			})
+			.catch(() => {
+				// gérer l'erreur si besoin
+			});
+	}, []);
+
+	const handleUpdateProfileField = async (field: string, newValue: string) => {
+		const token = localStorage.getItem('token');
+		const previous = profileData;
+
+		setProfileData((prev) => ({
+			...prev,
+			[field]: newValue,
+		}));
+
+		const body: UpdateUserBody = {};
+		if (field === 'username') body.username = newValue;
+		if (field === 'email') body.email = newValue;
+		if (field === 'firstName') body.firstName = newValue;
+		if (field === 'lastName') body.lastName = newValue;
+		if (field === 'bio') body.bio = newValue;
+
+		//NOW UPDATE DATAS
+
+		if (Object.keys(body).length === 0) {
+			console.log(`Field "${field}" pas encore géré côté backend.`);
+			return;
+		}
+
+		try {
+			if (!token) throw new Error('No token');
+
+			const res = await fetch('/api/users', {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify(body),
+			});
+
+			if (!res.ok) throw new Error('PATCH failed');
+			// a mettre aussi dans modif password
+			const data = await res.json();
+
+			if (data.accessToken) {
+        		localStorage.setItem('token', data.accessToken);
+      		}
+
+			console.log(`Updated ${field} to: ${newValue} in database!`);
+		} catch (error) {
+			setProfileData(previous);
+			console.error('Error on PATCH /api/users', error);
+		}
+	};
+
+	const handleAvatarUpload = async (file: File) => {
+		const token = localStorage.getItem('token');
+		if (!token) throw new Error('No token');
+		console.log('want to change avatar');
+
+		const formData = new FormData();
+		formData.append('avatar', file);
+
+		const res = await fetch('/api/users/avatar', {
+			method: 'PATCH',
+			headers: {
+				Authorization: `Bearer ${token}`,
+			},
+			body: formData,
+		});
+
+		if (!res.ok) {
+			throw new Error('Avatar upload failed');
+		}
+
+		const updatedUser = await res.json();
+		setProfileData((prev) => ({
+			...prev,
+			avatarUrl: updatedUser.avatarUrl ?? prev.avatarUrl,
+		}));
+	};
+
+	return (
+		<div className="flex flex-col gap-8 items-center w-full max-w-4xl mx-auto py-8 px-4">
+			<div className="w-full flex justify-center">
+				<ProfileTile
+					username={profileData.username}
+					email={profileData.email}
+					firstName={profileData.firstName}
+					lastName={profileData.lastName}
+					bio={profileData.bio}
+					avatarUrl={profileData.avatarUrl}
+					onUpdateField={handleUpdateProfileField}
+					onUploadAvatar={handleAvatarUpload}
+				/>
+			</div>
+		</div>
+	);
+};
+
+export default ProfilePage;

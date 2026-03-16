@@ -27,6 +27,10 @@ module.exports = {
           DEFAULT: '#435646',
           hover: '#566e5a',
         },
+				tertiary: {
+          DEFAULT: '#42120f',
+          hover: '#6b1b16',
+        },
         accent: {
           DEFAULT: '#AEC3B0',
           hover: '#c4d6c6',

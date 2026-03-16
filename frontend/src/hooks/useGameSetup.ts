@@ -62,6 +62,8 @@ export function useGameSetup({
   useEffect(() => { gameIdRef.current = gameId; }, [gameId]);
 
   useEffect(() => {
+    
+
     if (hasSetupRef.current) return;
     hasSetupRef.current = true;
 

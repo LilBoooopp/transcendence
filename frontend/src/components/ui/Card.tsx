@@ -4,7 +4,7 @@ interface CardProps {
 	children: ReactNode;
 	className?: string;
 	onClick?: () => void;
-	variant?: 'primary' | 'surface'; // Add variants here
+	variant?: 'primary' | 'surface';
 }
 
 export const Card: React.FC<CardProps> = ({ 
@@ -18,8 +18,7 @@ export const Card: React.FC<CardProps> = ({
 	
 	const variants = {
 		primary: "bg-primary hover:bg-primary-hover text-text-default",
-		// Surface is for static layout containers (white bg, subtle border)
-		surface: "bg-white border border-accent/30 text-text-dark" 
+		surface: "bg-primary text-text-dark" 
 	};
 
 	return (

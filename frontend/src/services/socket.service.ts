@@ -2,6 +2,8 @@ import { io, Socket } from 'socket.io-client';
 
 class SocketService {
   private socket: Socket | null = null;
+  private persistentListeners: Map<string, Set<(...args: any[]) => void>> = new Map();
+
 
   connect(userId?: string): void {
     if (this.socket?.connected) {
@@ -21,6 +23,12 @@ class SocketService {
         token: localStorage.getItem('token') ?? '',
       },
     });
+
+    for (const [event, callbacks] of this.persistentListeners) {
+      for (const cb of callbacks) {
+        this.socket.on(event, cb);
+      }
+    }
 
     this.socket.on('connect', () => {
       console.log('Connected to Websocket server, socket ID:', this.socket?.id);
@@ -156,6 +164,22 @@ class SocketService {
 
   onTimer(callback: (data: { whiteTimeMs: number; blackTimeMs: number; currentTurn: string; timerRunning: boolean }) => void): void {
     this.on('game:timer', callback);
+  }
+
+  onPersistent(event: string, callback: (...args: any[]) => void): () => void {
+    if (!this.persistentListeners.has(event)) {
+      this.persistentListeners.set(event, new Set());
+    }
+    this.persistentListeners.get(event)!.add(callback);
+
+    if (this.socket) {
+      this.socket.on(event, callback);
+    }
+
+    return () => {
+      this.persistentListeners.get(event)?.delete(callback);
+      this.socket?.off(event, callback);
+    }
   }
 
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Board from './Board';
 import PromotionPopup from './PromotionPopup';
 import GameEndPopup from './GameEndPopup';
@@ -72,6 +72,11 @@ const ReconnectOverlay: React.FC<{ secondsLeft: number }> = ({ secondsLeft }) =>
 };
 
 const ChessGame: React.FC<ChessGameProps> = (props) => {
+	//Handle gameType state for the "new game" button
+	const location = useLocation();
+	const gameType = (location.state as { gameType?: string })?.gameType;
+	const destination = { bot: '/botmode', online: '/gamemode', solo: '/' }[gameType ?? ''] ?? '/gamemode';
+
 	const { playerColor, isSpectator = false } = props;
 	const navigate = useNavigate();
 
@@ -96,80 +101,91 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 	const topTimeMs = topColor === 'w' ? whiteTimeMs : blackTimeMs;
 	const bottomTimeMs = bottomColor === 'w' ? whiteTimeMs : blackTimeMs;
 
-	return (
-		<div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 p-4 w-full max-w-7xl mx-auto font-body relative">
+return (
+		<div className="flex flex-col items-center justify-center font-body w-full p-4 max-w-7xl mx-auto relative">
+			
+			{/* FIXED: Changed lg:items-start back to lg:items-stretch so both columns are equal height on desktop */}
+			<div className="flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-6 w-full">
 
-			{/* Left Column: Player Top, Board, Player Bottom */}
-			<div className="flex flex-col w-full max-w-[600px] flex-shrink-0">
-				<GamePlayerTile
-					username={topLabel}
-					color={topColor === 'w' ? 'white' : 'black'}
-					isActive={currentTurn === topColor && timerRunning}
-				/>
+				{/* LEFT COLUMN: Players, Clocks, and Board */}
+				<div className="flex flex-col gap-2" style={{ width: BOARD_SIZE }}>
+					
+					{/* Top Player + Clock Row */}
+					<div className="flex items-stretch justify-between gap-2 w-full h-14 sm:h-[68px]">
+						<div className="flex-1 min-w-0">
+							<GamePlayerTile username={topLabel} color={topColor === 'w' ? 'white' : 'black'} isActive={currentTurn === topColor && timerRunning} />
+						</div>
+						<div className="flex-shrink-0">
+							{/* Clock */}
+							<Clock timeMs={topTimeMs} isActive={currentTurn === topColor && timerRunning} />
+						</div>
+					</div>
 
-				{/* 2. FIXED: Added 'relative' to this div so the absolute overlay stays inside it */}
-				<div style={{ width: BOARD_SIZE, height: BOARD_SIZE }} className="relative rounded-xl overflow-hidden shadow-xl flex-shrink-0 border-4 border-accent/20">
-					<Board
-						board={board}
-						theme={classicTheme}
-						highlighted={highlighted}
-						onTileClick={onTileClick}
-						onDrop={onDrop}
-						onDragStart={onDragStart}
-						playerColor={playerColor}
-						lastMove={lastMove}
-						premoves={premoves}
-					/>
+					{/* The Board Container */}
+					<div style={{ width: BOARD_SIZE, height: BOARD_SIZE }} className="relative rounded-xl overflow-hidden shadow-xl flex-shrink-0 border-4 border-accent/20">
+						<Board
+							board={board}
+							theme={classicTheme}
+							highlighted={highlighted}
+							onTileClick={onTileClick}
+							onDrop={onDrop}
+							onDragStart={onDragStart}
+							playerColor={playerColor}
+							lastMove={lastMove}
+							premoves={premoves}
+						/>
 
-					{/* Reconnect overlay - shown when opponent drops connection */}
-					{opponentDisconnected && !gameOver && (
-						<ReconnectOverlay secondsLeft={reconnectSecondsLeft} />
-					)}
+						{opponentDisconnected && !gameOver && (
+							<ReconnectOverlay secondsLeft={reconnectSecondsLeft} />
+						)}
+					</div>
+
+					{/* Bottom Player + Clock Row */}
+					<div className="flex items-stretch justify-between gap-2 w-full h-14 sm:h-[68px]">
+						<div className="flex-1 min-w-0">
+							<GamePlayerTile username={bottomLabel} color={bottomColor === 'w' ? 'white' : 'black'} isActive={currentTurn === bottomColor && timerRunning} />
+						</div>
+						<div className="flex-shrink-0">
+							{/* Clock */}
+							<Clock timeMs={bottomTimeMs} isActive={currentTurn === bottomColor && timerRunning} />
+						</div>
+					</div>
 				</div>
 
-				<GamePlayerTile
-					username={bottomLabel}
-					color={bottomColor === 'w' ? 'white' : 'black'}
-					isActive={currentTurn === bottomColor && timerRunning}
-					isBottom
-				/>
-			</div>
-
-			{/* Right Column: Game Panel */}
-			<div style={{ height: 'min(calc(100vh - 2rem), 600px)' }} className="flex-shrink-0">
-				<Card variant="surface" className="flex flex-col gap-2 w-full lg:w-[280px] flex-shrink-0 h-full">
-					<div className="px-3 pt-3 flex-shrink-0">
-						<Clock timeMs={topTimeMs} label="Opponent Time" isActive={currentTurn === topColor && timerRunning} />
-					</div>
-
-					<div className="flex items-center justify-center px-3 flex-shrink-0 pt-2">
-						<StatusBadge status={gameStatus} gameOver={gameOver} />
-					</div>
-
-					<div className="flex flex-col min-h-0 flex-1 overflow-hidden border-t border-b border-accent/30 mt-2">
-						<div className="px-4 py-2 bg-accent/10 flex items-center justify-between flex-shrink-0">
-							<span className="text-xs font-heading text-primary font-bold uppercase tracking-widest">History</span>
-							<span className="text-xs font-body text-text-dark/50">{Math.ceil(moveHistory.length / 2)} moves</span>
+				{/* RIGHT COLUMN: Game Panel (Status, History, Controls) */}
+				{/* Layout fix: lg:!w-[240px] keeps it slim on desktop, style={{width: BOARD_SIZE}} matches board on mobile */}
+				<div className="flex flex-col flex-shrink-0 gap-4 lg:!w-[240px]" style={{ width: BOARD_SIZE }}>
+						
+						{/* Status Badge */}
+						<div className="flex items-center justify-center flex-shrink-0 mt-2 lg:mt-0 w-full">
+							<StatusBadge status={gameStatus} gameOver={gameOver} />
 						</div>
-						<MoveHistory history={moveHistory} />
-					</div>
 
-					<div className="px-3 flex-shrink-0">
-						<Clock timeMs={bottomTimeMs} label="Your Time" isActive={currentTurn === bottomColor && timerRunning} />
-					</div>
+						{/* Move History Container (Restored your exact original colors!) */}
+						<div className="flex flex-col flex-1 min-h-[160px] lg:min-h-0 overflow-hidden rounded-lg bg-primary">
+							<div className="px-3 py-2 bg-accent/10 flex items-center justify-between flex-shrink-0 border-b border-accent/20">
+								<span className="text-xs font-heading text-text-default font-bold uppercase tracking-widest">History</span>
+								<span className="text-xs font-body text-text-default">{Math.ceil(moveHistory.length / 2)} moves</span>
+							</div>
+							<div className="p-2 flex-1 overflow-hidden flex flex-col">
+								<MoveHistory history={moveHistory} />
+							</div>
+						</div>
 
-					<div className="px-3 pb-3 flex-shrink-0 pt-2">
-						<GameControls
-							isSpectator={isSpectator} gameOver={gameOver} drawOffered={drawOffered}
-							drawOfferSent={drawOfferSent} onResign={handleResign} onDrawOffer={handleDrawOffer}
-							onDrawResponse={handleDrawResponse}
-						/>
-					</div>
-				</Card>
+						{/* Controls */}
+						<div className="flex-shrink-0 w-full">
+							<GameControls
+								isSpectator={isSpectator} gameOver={gameOver} drawOffered={drawOffered}
+								drawOfferSent={drawOfferSent} onResign={handleResign} onDrawOffer={handleDrawOffer}
+								onDrawResponse={handleDrawResponse}
+							/>
+						</div>
+				</div>
+
 			</div>
 
 			{promotionMove && <PromotionPopup color={playerColor} theme={classicTheme} onSelect={completePromotion} />}
-			{showPopup && <GameEndPopup status={gameStatus} onHome={() => navigate('/')} onNewGame={() => navigate('/gamemode')} onClose={() => setShowPopup(false)} />}
+			{showPopup && <GameEndPopup status={gameStatus} onHome={() => navigate('/')} onNewGame={() => navigate(destination)} onClose={() => setShowPopup(false)} />}
 		</div>
 	);
 };

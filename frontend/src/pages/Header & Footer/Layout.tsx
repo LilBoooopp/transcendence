@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../../components/Navbar";
+import { useSocketNotification } from "../../notifications";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 export default function WireframeLayout({ children }: LayoutProps) {
+  useSocketNotification();
   const [isDarkMode, setIsDarkMode] = useState(true);
 
   useEffect(() => {
@@ -18,10 +20,10 @@ export default function WireframeLayout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      
-      <Navbar 
-        isDarkMode={isDarkMode} 
-        toggleDarkMode={() => setIsDarkMode(!isDarkMode)} 
+
+      <Navbar
+        isDarkMode={isDarkMode}
+        toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-6">
