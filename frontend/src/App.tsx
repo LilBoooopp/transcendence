@@ -31,8 +31,8 @@ function App() {
         <Route path="/bot-launch" element={<ProtectedRoute><BotGameLauncher /></ProtectedRoute>} />
         <Route path="/game/:gameId" element={<ProtectedRoute><GamePage /></ProtectedRoute>} />
 
-        <Route path="/solo" element={<ProtectedRoute><SoloLauncher /></ProtectedRoute>} />
-        <Route path="/solo-game" element={<ProtectedRoute><SoloGamePage /></ProtectedRoute>} />
+        <Route path="/solo" element={<ProtectedRoute><WireframeLayout><SoloLauncher /></WireframeLayout></ProtectedRoute>} />
+        <Route path="/solo-game" element={<ProtectedRoute><WireframeLayout><SoloGamePage /></WireframeLayout></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );
