@@ -45,6 +45,8 @@ export class NotificationService {
    */
   notifyUser(userId: string, payload: NotificationPayload): void {
     if (!this.server) return;
+    const room = this.server.sockets.adapter.rooms.get(`user:${userId}`);
+    console.log(`[Notification] notifyUser(${userId}) - room has ${room?.size ?? 0} sockets`);
     this.server.to(`user:${userId}`).emit('notification:push', payload);
   }
 

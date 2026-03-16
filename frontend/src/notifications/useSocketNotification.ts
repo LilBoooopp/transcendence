@@ -19,14 +19,14 @@ export function useSocketNotification(): void {
 
   useEffect(() => {
     // backend pushed notifications
-    const unsubNotification = socketService.on(
+    const unsubNotification = socketService.onPersistent(
       'notification:push',
       (payload: NotificationPayload) => {
         pushRef.current(payload);
       },
     );
 
-    const unsubConnect = socketService.on('connect', () => {
+    const unsubConnect = socketService.onPersistent('connect', () => {
       if (hasConnectedRef.current) {
         // this is a re-connectiono not the initial connection
         pushRef.current({
@@ -39,7 +39,7 @@ export function useSocketNotification(): void {
       hasConnectedRef.current = true;
     });
 
-    const unsubDisconnect = socketService.on('disconnect', (reason: string) => {
+    const unsubDisconnect = socketService.onPersistent('disconnect', (reason: string) => {
       // only show if the disconnect was unexpected
       if (reason !== 'io client disconnect') {
         pushRef.current({
@@ -51,7 +51,7 @@ export function useSocketNotification(): void {
       }
     });
 
-    const unsubError = socketService.on('connect_error', () => {
+    const unsubError = socketService.onPersistent('connect_error', () => {
       pushRef.current({
         type: 'error',
         title: 'Connection Error',

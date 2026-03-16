@@ -43,6 +43,7 @@ export class NotificationGateway implements OnGatewayInit, OnGatewayConnection, 
    */
   async handleConnection(client: Socket): Promise<void> {
     let userId = client.data?.userId;
+    console.log(`[NotificationGateway] handleConnection - userId from data: ${userId}`);
 
     if (!userId) {
       const token = client.handshake.auth?.token;
