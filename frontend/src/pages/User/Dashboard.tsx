@@ -142,27 +142,31 @@ useEffect(() => {
     }, []);
 
     return (
-        <div className="flex flex-col gap-8 items-center w-full max-w-4xl mx-auto py-8 px-4">
-            
-            {/* TOP SECTION: User Profile Tile */}
-            <div className="w-full flex justify-center">
-                <UserTile 
-                    username={stats.username}
-					MemberSince={stats.memberSince}
-					TotalGames={stats.totalGames}
-					AvgScore={stats.avgScore}
-                />
-            </div>
+			<div className="w-full max-w-5xl mx-auto py-8 px-4">
+       <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-stretch">
+				{/* User Profile Tile */}
+				<div className="order-1 sm:order-1 sm:col-span-5 lg:col-span-4 flex">
+					<UserTile 
+						username={stats.username}
+						MemberSince={stats.memberSince}
+						TotalGames={stats.totalGames}
+						AvgScore={stats.avgScore}
+					/>
+        </div>
 
             {/* BOTTOM SECTION: Statistics Dashboard */}
-            <div className="w-full mt-8">        
-                <div className="flex justify-center mb-8"> 
-                    <StatsView chartData={chartData} /> 
-                </div>
-                <GameHistoryList history={history} />
-            </div>
-            
+				<div className="order-2 sm:order-3 sm:col-span-12 flex flex-col gap-8 mt-4 w-full">        
+						<div className="flex justify-center"> 
+							<StatsView chartData={chartData} /> 
+						</div>
+					<GameHistoryList history={history} />
+				</div>
+
+				<div className="order-3 sm:order-2 sm:col-span-7 lg:col-span-8 flex">
+          <FriendsTile />
         </div>
+      </div>        
+    </div>
     );
 };
 
