@@ -1,20 +1,11 @@
 import React, { useState } from 'react';
 import * as Icons from 'lucide-react';
-import { LineChart } from '../../components/charts/LineChart'; 
 import { GameModeStatsCard } from '../../components/GameModeStatsCard';
 import GameHistoryList, { GameHistoryItem } from '../../components/GameHistoryList';
 import UserTile from '../../components/UserTile'; 
+import FriendsTile from '../../components/FriendsTile';
 
-// DUMMY DATA
-const myRatingData = [
-	{ date: 'Week 1', rapid: 1100, blitz: 1050 },
-	{ date: 'Week 2', rapid: 1150, blitz: 1080 },
-	{ date: 'Week 3', rapid: 1130, blitz: 1120 },
-	{ date: 'Week 4', rapid: 1210, blitz: 1190 },
-	{ date: 'Week 5', rapid: 1240, blitz: 1205 },
-	{ date: 'Week 6', rapid: 1260, blitz: 1214 },
-];
-
+// --- DUMMY DATA ---
 const blitzHistory = [
 	{ date: 'Jan', rating: 1050 },
 	{ date: 'Feb', rating: 1080 },
@@ -36,12 +27,12 @@ const rapidHistory = [
 ];
 
 const history: GameHistoryItem[] = [
-		{ id: '1', date: '2023-10-24', opponent: 'GrandMasterFlash', result: 'Win', moves: 34, mode: 'Blitz', accuracy: 89 },
-		{ id: '2', date: '2023-10-22', opponent: 'Rookie123', result: 'Loss', moves: 21, mode: 'Bullet', accuracy: 65 },
-		{ id: '3', date: '2023-10-20', opponent: 'ChessBot', result: 'Draw', moves: 55, mode: 'Rapid', accuracy: 92 },
+	{ id: '1', date: '2023-10-24', opponent: 'GrandMasterFlash', result: 'Win', moves: 34, mode: 'Blitz', accuracy: 89 },
+	{ id: '2', date: '2023-10-22', opponent: 'Rookie123', result: 'Loss', moves: 21, mode: 'Bullet', accuracy: 65 },
+	{ id: '3', date: '2023-10-20', opponent: 'ChessBot', result: 'Draw', moves: 55, mode: 'Rapid', accuracy: 92 },
 ];
 
-
+// --- STATS VIEW COMPONENT ---
 const StatsView = () => {
 	return (
 		<div className="flex flex-col gap-6 w-full">
@@ -52,7 +43,7 @@ const StatsView = () => {
 				currentRating={1214}
 				ratingDelta={+114}
 				chartData={blitzHistory}
-				chartColor="#AEC3B0" // Replaced themeColors with actual hex
+				chartColor="#AEC3B0"
 			/>
 
 			{/* Blitz Card */}
@@ -62,7 +53,7 @@ const StatsView = () => {
 				currentRating={1260}
 				ratingDelta={-40}
 				chartData={rapidHistory}
-				chartColor="#AEC3B0" // Replaced themeColors with actual hex
+				chartColor="#AEC3B0"
 			/>
 
 			{/* Rapid Card */}
@@ -72,40 +63,55 @@ const StatsView = () => {
 				currentRating={1260}
 				ratingDelta={-40}
 				chartData={rapidHistory}
-				chartColor="#AEC3B0" // Replaced themeColors with actual hex
+				chartColor="#AEC3B0"
 			/>
 		</div>
 	);
 };
 
-// --- 3. MAIN DASHBOARD COMPONENT ---
+// --- MAIN DASHBOARD COMPONENT ---
 const WireframeDashboard = () => {
-	const [view, setView] = useState<'menu' | 'time-selection'>('menu');
+  const [view, setView] = useState<'menu' | 'time-selection'>('menu');
 
-	return (
-		<div className="flex flex-col gap-8 items-center w-full max-w-4xl mx-auto py-8 px-4">
-			
-			{/* TOP SECTION: User Profile Tile */}
-			<div className="w-full flex justify-center">
-				<UserTile 
-					username="lilboooopp"
-					MemberSince="Oct 2023"
-					TotalGames={342}
-					AvgScore={1234}
-				/>
-			</div>
+  return (
+    <div className="w-full max-w-5xl mx-auto py-8 px-4">
+      
+      {/* CSS Grid handles the responsive layout:
+        - Mobile (grid-cols-1, < 640px): 
+          Order: User (1), Stats (2), Friends (3)
+        - Tablet & Desktop (sm:grid-cols-12, >= 640px): 
+          Row 1: User (col 1-5/4), Friends (col 6-12/8)
+          Row 2: Stats (full width)
+      */}
+      <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-stretch">
+        
+        {/* 1. USER TILE (Top on mobile, Left on tablet/desktop) */}
+        <div className="order-1 sm:order-1 sm:col-span-5 lg:col-span-4 flex">
+          <UserTile 
+            username="lilboooopp"
+            MemberSince="Oct 2023"
+            TotalGames={342}
+            AvgScore={1234}
+          />
+        </div>
 
-			{/* BOTTOM SECTION: Statistics Dashboard */}
-			<div className="w-full mt-8">        
-				<div className="flex justify-center mb-8"> 
-					<StatsView /> 
-				</div>
-				<GameHistoryList history={history} />
-			</div>
-			
-		</div>
-	);
+        {/* 2. STATS & HISTORY (Middle on mobile, Bottom full-width on tablet/desktop) */}
+        <div className="order-2 sm:order-3 sm:col-span-12 flex flex-col gap-8 mt-4 w-full">        
+          <div className="flex justify-center"> 
+            <StatsView /> 
+          </div>
+          <GameHistoryList history={history} />
+        </div>
+
+        {/* 3. FRIENDS TILE (Bottom on mobile, Right on tablet/desktop) */}
+        <div className="order-3 sm:order-2 sm:col-span-7 lg:col-span-8 flex">
+          <FriendsTile />
+        </div>
+
+      </div>
+      
+    </div>
+  );
 };
 
-// We only EXPORT the main Dashboard component, so App.tsx can use it.
 export default WireframeDashboard;
