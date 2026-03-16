@@ -62,7 +62,7 @@ return (
     <div className="flex flex-col items-center font-body w-full">
       <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6">
         <div className="flex flex-col items-center gap-2" style={{ width: BOARD_SIZE }}>
-          <div className="w-full rounded-md bg-accent text-text-dark text-center py-2 px-1 text-[10px] sm:text-xs font-semibold font-body tracking-wide">
+          <div className="w-full rounded-md bg-secondary text-text-default text-center py-2 px-1 text-[10px] sm:text-xs font-semibold font-body tracking-wide">
             SOLO BOARD - No click · No premoves · You control both sides
           </div>
           <div className="relative rounded-lg overflow-hidden shadow-xl" style={{ width: BOARD_SIZE, height: BOARD_SIZE }}>
@@ -102,7 +102,7 @@ return (
                 New Game
               </Button>
               <Button 
-                variant="secondary" 
+                variant="tertiary" 
                 onClick={() => navigate('/')} 
                 className="text-[10px] min-[425px]:text-sm !px-2 min-[425px]:!px-4 !py-1 min-[425px]:!py-2 !h-fit !min-h-0 !min-w-0 whitespace-nowrap"
               >
