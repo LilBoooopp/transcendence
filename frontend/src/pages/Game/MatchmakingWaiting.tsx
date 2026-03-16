@@ -65,7 +65,6 @@ const MatchmakingWaiting: React.FC = () => {
 
     const doMatchmaking = () => {
       socketService.on('matchmaking:found', (data: { gameId: string; role: 'white' | 'black' }) => {
-        //beboccas: I may use the same system or even the same flow with different UUID without time check to avoid unauthorized access to the game page
         navigate(`/game/${data.gameId}`, {
           state: { userId, role: data.role, tcKey, gameType: "online" },
         });
