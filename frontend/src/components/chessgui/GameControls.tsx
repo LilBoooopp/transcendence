@@ -38,13 +38,13 @@ export const GameControls: React.FC<GameControlsProps> = ({
   }
 
   return (
-    <div className="flex gap-2 pt-2 border-t border-accent/30">
+    <div className="flex gap-2">
       <button
         onClick={onDrawOffer}
         disabled={drawOfferSent}
         className={[
           'flex-1 py-1.5 rounded-lg text-xs font-body font-semibold transition-colors',
-          drawOfferSent ? 'bg-accent/20 text-text-dark/30 cursor-not-allowed' : 'bg-primary/10 hover:bg-primary/20 text-primary',
+          drawOfferSent ? 'bg-secondary-hover text-text-default cursor-not-allowed' : 'bg-secondary hover:bg-secondary-hover text-text-default',
         ].join(' ')}
         title={drawOfferSent ? 'Draw offer sent, waiting...' : 'Offer a draw'}
       >
@@ -52,7 +52,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
       </button>
       <button
         onClick={onResign}
-        className="flex-1 py-1.5 rounded-lg text-xs font-body font-semibold bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
+        className="flex-1 py-1.5 rounded-lg text-xs font-body font-semibold bg-tertiary hover:bg-tertiary-hover text-text-default transition-colors"
         title="Resign the game"
       >
         ⚑ Resign

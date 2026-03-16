@@ -11,9 +11,8 @@ export const MoveHistory: React.FC<MoveHistoryProps> = ({ history }) => {
   useEffect(() => {
     const el = containerRef.current;
     if (el) {
-      // Auto-scroll logic for both vertical (desktop) and horizontal (mobile)
+      // Auto-scroll logic for vertical scrolling only
       el.scrollTop = el.scrollHeight;
-      el.scrollLeft = el.scrollWidth;
     }
   }, [history]);
 
@@ -25,26 +24,27 @@ export const MoveHistory: React.FC<MoveHistoryProps> = ({ history }) => {
   return (
     <div 
       ref={containerRef} 
-      // Mobile: flex-row (horizontal scroll) | Desktop: flex-col (vertical scroll)
-      className="flex flex-row lg:flex-col gap-1.5 w-full h-full overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto custom-scrollbar pb-2 lg:pb-0"
+      // Mobile: 2 columns (2 rounds per row) | Desktop: 1 column
+      // align-content-start ensures the items pack at the top instead of spacing out vertically
+      className="grid grid-cols-3 lg:grid-cols-1 gap-x-2 gap-y-1 w-full h-full overflow-y-auto overflow-x-hidden custom-scrollbar pr-1 content-start"
     >
       {pairs.length === 0 ? (
-        <div className="flex items-center justify-center w-full h-full text-text-default/50 text-sm font-body italic min-h-[40px]">
+        <div className="col-span-2 lg:col-span-1 flex items-center justify-center w-full h-full text-text-default/50 text-sm font-body italic min-h-[40px]">
           No moves yet
         </div>
       ) : (
         pairs.map(({ n, white, black }) => (
           <div 
             key={n} 
-            className="flex items-center shrink-0 lg:shrink py-1.5 px-2 rounded-md hover:bg-accent/10 bg-primary/5 lg:bg-transparent border border-accent/10 lg:border-transparent transition-colors duration-100"
+            className="flex items-center py-1.5 px-2 rounded-md hover:bg-accent/10 bg-primary/5 lg:bg-transparent border border-accent/10 lg:border-transparent transition-colors duration-100"
           >
-            <span className="w-6 text-text-default/50 font-body text-xs select-none text-right pr-2">
+            <span className="w-5 sm:w-6 text-text-default/50 font-body text-[10px] sm:text-xs select-none text-right pr-1.5 sm:pr-2 shrink-0">
               {n}.
             </span>
-            <span className="w-12 lg:w-16 font-semibold text-text-default text-sm">
+            <span className="w-10 sm:w-12 lg:w-16 font-semibold text-text-default text-xs sm:text-sm truncate">
               {white}
             </span>
-            <span className="w-12 lg:w-16 font-semibold text-text-default text-sm">
+            <span className="w-10 sm:w-12 lg:w-16 font-semibold text-text-default text-xs sm:text-sm truncate">
               {black ?? ''}
             </span>
           </div>

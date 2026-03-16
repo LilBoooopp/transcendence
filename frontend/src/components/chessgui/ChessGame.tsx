@@ -104,18 +104,20 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 return (
 		<div className="flex flex-col items-center justify-center font-body w-full p-4 max-w-7xl mx-auto relative">
 			
-			<div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-6 w-full">
+			{/* FIXED: Changed lg:items-start back to lg:items-stretch so both columns are equal height on desktop */}
+			<div className="flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-6 w-full">
 
-				{/* TOP ROW Players, Clocks, and Board */}
+				{/* LEFT COLUMN: Players, Clocks, and Board */}
 				<div className="flex flex-col gap-2" style={{ width: BOARD_SIZE }}>
 					
-					{/* Top Player + Clock */}
+					{/* Top Player + Clock Row */}
 					<div className="flex items-stretch justify-between gap-2 w-full h-14 sm:h-[68px]">
 						<div className="flex-1 min-w-0">
 							<GamePlayerTile username={topLabel} color={topColor === 'w' ? 'white' : 'black'} isActive={currentTurn === topColor && timerRunning} />
 						</div>
 						<div className="flex-shrink-0">
-							<Clock timeMs={topTimeMs} isActive={currentTurn === topColor && timerRunning} />
+							{/* FIXED: Added the color prop to the clock */}
+							<Clock timeMs={topTimeMs} isActive={currentTurn === topColor && timerRunning} color={topColor === 'w' ? 'white' : 'black'} />
 						</div>
 					</div>
 
@@ -144,25 +146,26 @@ return (
 							<GamePlayerTile username={bottomLabel} color={bottomColor === 'w' ? 'white' : 'black'} isActive={currentTurn === bottomColor && timerRunning} />
 						</div>
 						<div className="flex-shrink-0">
-							<Clock timeMs={bottomTimeMs} isActive={currentTurn === bottomColor && timerRunning} />
+							{/* FIXED: Added the color prop to the clock */}
+							<Clock timeMs={bottomTimeMs} isActive={currentTurn === bottomColor && timerRunning} color={bottomColor === 'w' ? 'white' : 'black'} />
 						</div>
 					</div>
 				</div>
 
 				{/* RIGHT COLUMN: Game Panel (Status, History, Controls) */}
-				<div className="w-full lg:w-[320px] flex flex-col flex-shrink-0" style={{ maxWidth: BOARD_SIZE }}>
-					<Card className="flex flex-col gap-4 w-full h-full p-4 lg:p-5 shadow-lg">
+				{/* FIXED: Re-added lg:w-[240px] so it's slim on desktop, but kept maxWidth: BOARD_SIZE so it aligns nicely on mobile */}
+				<div className="w-full lg:w-[240px] flex flex-col flex-shrink-0" style={{ maxWidth: BOARD_SIZE }}>
 						
 						{/* Status Badge */}
-						<div className="flex items-center justify-center flex-shrink-0">
+						<div className="flex mt-2 mb-2 items-center justify-center flex-shrink-0">
 							<StatusBadge status={gameStatus} gameOver={gameOver} />
 						</div>
 
 						{/* Move History Container */}
-						<div className="flex flex-col flex-1 min-h-[120px] lg:min-h-0 overflow-hidden border border-accent/20 rounded-lg bg-background-light/30">
+						<div className="flex flex-col flex-1 min-h-[160px] lg:min-h-0 overflow-hidden rounded-lg bg-primary">
 							<div className="px-3 py-2 bg-accent/10 flex items-center justify-between flex-shrink-0 border-b border-accent/20">
-								<span className="text-xs font-heading text-primary font-bold uppercase tracking-widest">History</span>
-								<span className="text-xs font-body text-text-dark/50">{Math.ceil(moveHistory.length / 2)} moves</span>
+								<span className="text-xs font-heading text-text-default font-bold uppercase tracking-widest">History</span>
+								<span className="text-xs font-body text-text-default">{Math.ceil(moveHistory.length / 2)} moves</span>
 							</div>
 							<div className="p-2 flex-1 overflow-hidden flex flex-col">
 								<MoveHistory history={moveHistory} />
@@ -170,14 +173,13 @@ return (
 						</div>
 
 						{/* Controls */}
-						<div className="flex-shrink-0 pt-2 border-t border-accent/20">
+						<div className="flex-shrink-0 pt-2">
 							<GameControls
 								isSpectator={isSpectator} gameOver={gameOver} drawOffered={drawOffered}
 								drawOfferSent={drawOfferSent} onResign={handleResign} onDrawOffer={handleDrawOffer}
 								onDrawResponse={handleDrawResponse}
 							/>
 						</div>
-					</Card>
 				</div>
 
 			</div>
