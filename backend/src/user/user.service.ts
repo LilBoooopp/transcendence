@@ -1,8 +1,11 @@
 // pas trop mal
 
-import { Injectable, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { promises as fs } from 'fs';
+import { join } from 'path';
+
 
 type UserProfile = {
   username: string;
@@ -24,6 +27,9 @@ type UserHistoryItem = {
   accuracy: number;
 };
 type UserHistory = UserHistoryItem[];
+
+const DEFAULT_AVATAR_FILENAME = 'defaultAvatar.png';
+const UPLOADS_DIR = join(process.cwd(), 'src', 'uploads');
 
 @Injectable()
 export class UserService {
@@ -71,7 +77,7 @@ export class UserService {
 	});
 }
   async modifyUser(id: string, newUsername?:string, newEmail?:string, newFirstName?: string, newLastName?: string, newBio?: string, newAvatar?: string ) : Promise<UserProfile | null > {
-    const data: { username?:string, email?:string, firstName?: string, lastName?: string, bio?: string, Avatar?:string } = {};
+    const data: { username?:string, email?:string, firstName?: string, lastName?: string, bio?: string, avatarUrl?:string } = {};
 
 	if (newUsername !== undefined && newUsername !== null && newUsername !== '') {
       data.username = newUsername;
@@ -89,7 +95,7 @@ export class UserService {
       data.bio = newBio;
     }
     if (newAvatar !== undefined && newAvatar !== null && newAvatar !== '') {
-      data.bio = newBio;
+      data.avatarUrl = newAvatar;
     }
 	
 	    if (Object.keys(data).length === 0) {
@@ -119,6 +125,49 @@ export class UserService {
       throw error;
     }
 	}
+
+	  private async deleteAvatarIfCustom(avatarUrl?: string | null): Promise<void> {
+    if (!avatarUrl || avatarUrl === DEFAULT_AVATAR_FILENAME) {
+      return;
+    }
+
+    const avatarPath = join(UPLOADS_DIR, avatarUrl);
+    try {
+      await fs.unlink(avatarPath);
+    } catch (error: any) {
+      if (error?.code !== 'ENOENT') {
+        throw error;
+      }
+    }
+  }
+
+  async updateAvatar(id: string, filename: string): Promise<UserProfile | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: { avatarUrl: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    try {
+      const updated = await this.prisma.user.update({
+        where: { id },
+        data: { avatarUrl: filename },
+        select: { username: true, id: true, firstName: true, bio: true, isOnline: true, avatarUrl: true },
+      });
+
+      if (user.avatarUrl && user.avatarUrl !== filename) {
+        await this.deleteAvatarIfCustom(user.avatarUrl);
+      }
+
+      return updated;
+    } catch (error) {
+      await this.deleteAvatarIfCustom(filename);
+      throw error;
+    }
+  }
 
 	async deleteUser(id: string){
 		return await this.prisma.user.delete({
