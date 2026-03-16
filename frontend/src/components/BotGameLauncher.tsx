@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { socketService } from '../services/socket.service';
 import { getTimeControl } from '../types/timeControl';
 import { TimerState } from './chessgui';
@@ -14,6 +14,7 @@ const DIFFICULTY_LABELS: Record<Difficulty, string> = {
 
 const BotGameLauncher: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
 
   const difficulty = (searchParams.get('difficulty') ?? 'easy') as Difficulty;
@@ -26,7 +27,43 @@ const BotGameLauncher: React.FC = () => {
 
   const hasLaunched = useRef(false);
 
+  const [isAllowed, setIsAllowed] = useState(false);
+  const validatedRef = React.useRef(false); // to avoid double mm_flow consumption (if the page rerender or triggers two times useEffect[[location.state, navigate, tcKey]])
+
+ useEffect(() => {
+    if (validatedRef.current) return;
+    const nav = location.state as { fromBotMode?: boolean; mm_token?: string } | null;
+    const raw = sessionStorage.getItem('mm_flow');
+
+    if (!nav?.fromBotMode || !nav.mm_token || !raw) {
+      console.log("DEBUG : ❌ No mm_token or invalid access to matchmaking.");
+      navigate('/botmode');
+      return;
+    }
+    try {
+      const parsed = JSON.parse(raw) as { mm_token: string; tcKey: string; ts: number };
+      const toOld = Date.now() - parsed.ts > 20000; //2s - validity time for the token (changeable)
+      const tokenMismatch = nav.mm_token !== parsed.mm_token || parsed.tcKey !== "600%2B0";
+
+      if (toOld || tokenMismatch) {
+        console.log("DEBUG : ❌ Flow mm_token expired or invalid.");
+        sessionStorage.removeItem('mm_flow');
+        navigate('/botmode', { replace: true });
+        return;
+      }
+      validatedRef.current = true;
+      sessionStorage.removeItem('mm_flow');
+      console.log('DEBUG : ✅ Matchmaking flow token validated successfully.');
+      setIsAllowed(true);
+    } catch (error) {
+      sessionStorage.removeItem('mm_flow');
+      navigate('/botmode');
+    }
+  }, [location.state, navigate, tcKey]);
+
+
   useEffect(() => {
+    if (!isAllowed) return;
     if (hasLaunched.current) return;
     hasLaunched.current = true;
 
@@ -48,6 +85,7 @@ const BotGameLauncher: React.FC = () => {
               initialTimer: receivedTimer,
               isBot: true,
               difficulty,
+              gameType: "bot",
             },
           });
         }
@@ -78,7 +116,7 @@ const BotGameLauncher: React.FC = () => {
       socketService.off('game:role-assigned');
       socketService.off('game:timer');
     };
-  }, [userId, gameId, difficulty, tcKey, navigate]);
+  }, [isAllowed, userId, gameId, difficulty, tcKey, navigate]);
 
   return (
     <div className="min-h-screen bg-background-light flex items-center justify-center font-body">
