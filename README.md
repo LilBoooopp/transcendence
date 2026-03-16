@@ -194,7 +194,7 @@ cd backend && npm install && npm run start
 |--------|------|--------|----------------|-----------|
 | Web-based chess game | Major | 2 | Custom TS engine (flat 64-array board, fullrules) | cbopp |
 | Remote players | Major | 2 | Socket.IO rooms with role assignment (white/black/spectator) and reconnect handling | cbopp |
-| AI opponent (stockfish) | Major | 2 | Stockfish binary as persisten UCI subprocess per bot game | cbopp |
+| AI opponent (stockfish) | Major | 2 | Stockfish binary as persistent UCI subprocess per bot game | cbopp |
 | Watch live games | Minor | 1 | Spectators join game rooms in read-only mode | cbopp |
 
 *Not yet implemented:*
