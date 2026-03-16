@@ -332,7 +332,7 @@ export function useChessGame({
       }
     } else {
       // Premove
-      if (selectedTile) {
+      if (selectedTile && !(selectedTile.rank === rank && selectedTile.file === file)) {
         setPremoves(prev => [...prev, {
           from: { rank: selectedTile.rank, file: selectedTile.file },
           to: { rank, file },
@@ -370,12 +370,14 @@ export function useChessGame({
     if (!isPlayerTurn()) {
       const from = squareToCoord(sourceSquare);
       const to = squareToCoord(targetSquare);
-      const piece = premoveBoardRef.current[from.rank][from.file];
-      if (!piece || !isOwnPiece(piece)) return (false);
-      setPremoves(prev => [...prev, { from, to }]);
-      setSelectedTile(null);
-      clearHighlights();
-      return (true);
+      if (from !== to) {
+        const piece = premoveBoardRef.current[from.rank][from.file];
+        if (!piece || !isOwnPiece(piece)) return (false);
+        setPremoves(prev => [...prev, { from, to }]);
+        setSelectedTile(null);
+        clearHighlights();
+        return (true);
+      }
     }
 
     try {
