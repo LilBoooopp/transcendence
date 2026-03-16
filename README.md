@@ -77,7 +77,7 @@ cd backend && npm install && npm run start
 
 - **bschmid (Project Manager, Developer)** - Facilitated team coordination, tracked progress, and organized sprints. [PLACEHOLDER: list technical contributions]
 
-- **sforster (Technical Lead, Developer)** - Defined the technical architecture and made key technology decisions. Ensured code quality and reviewed critical changes. (Backend API routes, NestJS architecture (services, controllers, guards), authentication system, rate limiting, user management, friends management)
+- **sforster (Technical Lead, Developer)** - Defined the technical architecture and made key technology decisions. (Backend API routes, NestJS architecture (services, controllers, guards), authentication system, rate limiting, user management, friends management)
 
 - **beboccas (Developer)** - [PLACEHOLDER: list technical contributions]
 
@@ -166,9 +166,9 @@ cd backend && npm install && npm run start
 
 ## Modules
 
-**Total: 13 points** (7 major x 2pts + 3 minor * 1pt - see breakdown below)
+**Total: 17 points** (6 major x 2pts + 5 minor * 1pt - see breakdown below)
 
-### Web (9 points)
+### Web (7 points)
 
 | Module | Type | Points | Implementation | Memeber(s) |
 |--------|------|--------|----------------|------------|
@@ -176,10 +176,10 @@ cd backend && npm install && npm run start
 | Real-time WebSocket features | Major | 2 | Socket.IO gateway with rooms, matchmaking, psectator events | cbopp |
 | ORM (Prisma) | Minor | 1 | Prisma schema + migrations; type-safe DB access throughout backend | everyone |
 | Custom-made design, reusable components | Minor | 1 | Shared component library (GamePage, MatchmakingWaiting, etc.) with Tailwind | bschmid |
+| Notification system | Minor | 1 | Implemented Toast-type notifications to inform user of various events. | cbopp |
 
 *Not yet implemented:*
 - Major: Public API (2pt) *-> Sylvie will do this!*
-- Minor: Notification system (1pt)
 
 ### User Management (3 points)
 *-> Sylvie will do this!*
@@ -188,7 +188,7 @@ cd backend && npm install && npm run start
 | Standard user management | Major | 2 | [PLACEHOLDER] | everyone |
 | Game statistics | Minor | 1 | | [PLACEHOLDER] | bschmid, sforster |
 
-### Gaming (8 points)
+### Gaming (7 points)
 
 | Module | Type | Points | Implementation | Member(s) |
 |--------|------|--------|----------------|-----------|
