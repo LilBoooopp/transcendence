@@ -123,6 +123,10 @@ export default function WireframeLanding() {
 				title: 'Test',
 				message: 'frontend works',
 				duration: 5000,
+				action: {
+					label: 'Testing',
+					route: '/gamemode',
+				}
 			})}>
 				TESTING NOTIF
 			</button>
