@@ -49,9 +49,9 @@ export default function WireframeLanding() {
 		},
 		{
 			title: "Solo",
-			description: "Play single player puzzles and challenges.",
+			description: "Play single player.",
 			icon: <Icons.User size={36} />,
-			action: () => navigate('/wireframe/social')
+			action: () => navigate('/solo')
 		},
 		{
 			title: "AI oponent",
