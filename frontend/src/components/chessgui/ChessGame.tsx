@@ -116,8 +116,8 @@ return (
 							<GamePlayerTile username={topLabel} color={topColor === 'w' ? 'white' : 'black'} isActive={currentTurn === topColor && timerRunning} />
 						</div>
 						<div className="flex-shrink-0">
-							{/* FIXED: Added the color prop to the clock */}
-							<Clock timeMs={topTimeMs} isActive={currentTurn === topColor && timerRunning} color={topColor === 'w' ? 'white' : 'black'} />
+							{/* Clock */}
+							<Clock timeMs={topTimeMs} isActive={currentTurn === topColor && timerRunning} />
 						</div>
 					</div>
 
@@ -146,22 +146,22 @@ return (
 							<GamePlayerTile username={bottomLabel} color={bottomColor === 'w' ? 'white' : 'black'} isActive={currentTurn === bottomColor && timerRunning} />
 						</div>
 						<div className="flex-shrink-0">
-							{/* FIXED: Added the color prop to the clock */}
-							<Clock timeMs={bottomTimeMs} isActive={currentTurn === bottomColor && timerRunning} color={bottomColor === 'w' ? 'white' : 'black'} />
+							{/* Clock */}
+							<Clock timeMs={bottomTimeMs} isActive={currentTurn === bottomColor && timerRunning} />
 						</div>
 					</div>
 				</div>
 
 				{/* RIGHT COLUMN: Game Panel (Status, History, Controls) */}
-				{/* FIXED: Re-added lg:w-[240px] so it's slim on desktop, but kept maxWidth: BOARD_SIZE so it aligns nicely on mobile */}
-				<div className="w-full lg:w-[240px] flex flex-col flex-shrink-0" style={{ maxWidth: BOARD_SIZE }}>
+				{/* Layout fix: lg:!w-[240px] keeps it slim on desktop, style={{width: BOARD_SIZE}} matches board on mobile */}
+				<div className="flex flex-col flex-shrink-0 gap-4 lg:!w-[240px]" style={{ width: BOARD_SIZE }}>
 						
 						{/* Status Badge */}
-						<div className="flex mt-2 mb-2 items-center justify-center flex-shrink-0">
+						<div className="flex items-center justify-center flex-shrink-0 mt-2 lg:mt-0 w-full">
 							<StatusBadge status={gameStatus} gameOver={gameOver} />
 						</div>
 
-						{/* Move History Container */}
+						{/* Move History Container (Restored your exact original colors!) */}
 						<div className="flex flex-col flex-1 min-h-[160px] lg:min-h-0 overflow-hidden rounded-lg bg-primary">
 							<div className="px-3 py-2 bg-accent/10 flex items-center justify-between flex-shrink-0 border-b border-accent/20">
 								<span className="text-xs font-heading text-text-default font-bold uppercase tracking-widest">History</span>
@@ -173,7 +173,7 @@ return (
 						</div>
 
 						{/* Controls */}
-						<div className="flex-shrink-0 pt-2">
+						<div className="flex-shrink-0 w-full">
 							<GameControls
 								isSpectator={isSpectator} gameOver={gameOver} drawOffered={drawOffered}
 								drawOfferSent={drawOfferSent} onResign={handleResign} onDrawOffer={handleDrawOffer}

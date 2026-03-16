@@ -26,7 +26,7 @@ export const MoveHistory: React.FC<MoveHistoryProps> = ({ history }) => {
       ref={containerRef} 
       // Mobile: 2 columns (2 rounds per row) | Desktop: 1 column
       // align-content-start ensures the items pack at the top instead of spacing out vertically
-      className="grid grid-cols-3 lg:grid-cols-1 gap-x-2 gap-y-1 w-full h-full overflow-y-auto overflow-x-hidden custom-scrollbar pr-1 content-start"
+      className="grid grid-cols-2 lg:grid-cols-1 gap-x-2 gap-y-1 w-full h-full overflow-y-auto overflow-x-hidden custom-scrollbar pr-1 content-start"
     >
       {pairs.length === 0 ? (
         <div className="col-span-2 lg:col-span-1 flex items-center justify-center w-full h-full text-text-default/50 text-sm font-body italic min-h-[40px]">
