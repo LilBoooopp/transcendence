@@ -8,7 +8,7 @@ type ColorChoice = 'white' | 'black' | 'random';
 
 export default function SoloLauncher() {
   const navigate = useNavigate();
-  const [selected, setSelected] = useState<Colorchoice>('white');
+  const [selected, setSelected] = useState<ColorChoice>('white');
 
   const handleStart = () => {
     let color: 'white' | 'black';
