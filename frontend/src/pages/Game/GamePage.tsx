@@ -5,7 +5,6 @@ import { socketService } from '../../services/socket.service';
 import { getTimeControl } from '../../types/timeControl';
 import type { TimerState } from '../../components/chessgui/types';
 import { Card } from '../../components/ui/Card';
-import { useNotification } from '../../notifications';
 
 
 interface LocationState {
@@ -21,7 +20,6 @@ const GamePage: React.FC = () => {
 	const { gameId } = useParams<{ gameId: string }>();
 	const location = useLocation();
 	const navigate = useNavigate();
-	const { push } = useNotification();
 
 	const state = (location.state ?? {}) as LocationState;
 	const [userId] = useState(() => state.userId ?? localStorage.getItem('userId') ?? '');
@@ -46,14 +44,12 @@ const GamePage: React.FC = () => {
 		let unsubState: (() => void) | undefined;
 		let unsubTimer: (() => void) | undefined;
 		let unsubGameOver: (() => void) | undefined;
-		let unsubError: (() => void) | undefined;
 
 		const doJoin = () => {
 			unsubRole?.();
 			unsubState?.();
 			unsubTimer?.();
 			unsubGameOver?.();
-			unsubError?.();
 
 			unsubRole = socketService.on('game:role-assigned', (data: { gameId: string; role: 'white' | 'black' | 'spectator' }) => {
 				setRole(data.role);
@@ -72,16 +68,6 @@ const GamePage: React.FC = () => {
 				setInitialGameOver(data);
 			});
 
-			unsubError = socketService.on('game:error', (data: { message: string }) => {
-				push({
-					type: 'error',
-					title: 'Game not found',
-					message: data.message || 'This game does not exist or has ended.',
-					duration: 5000,
-				});
-				navigate('/gamemode', { replace: true });
-			});
-
 			socketService.joinGame(gameId, tcKey, state.role ?? undefined);
 		};
 
@@ -96,13 +82,12 @@ const GamePage: React.FC = () => {
 			unsubState?.();
 			unsubTimer?.();
 			unsubGameOver?.();
-			unsubError?.();
 			unsubConnect?.();
 			socketService.leaveGame(gameId);
 			socketService.disconnect();
 			hasConnected.current = false;
 		};
-	}, [gameId, userId, tcKey, state.role, navigate, push]);
+	}, [gameId, userId, tcKey, state.role]);
 
 	if (!gameId) {
 		return (
