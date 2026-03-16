@@ -1,4 +1,3 @@
-// frontend/src/components/UserTile.tsx
 import React from 'react';
 import { Card } from './ui/Card';
 import { Pencil } from 'lucide-react';
@@ -29,8 +28,8 @@ export default function UserTile({ username, avatarUrl, MemberSince, TotalGames,
     >
       {/* Edit Profile Button (Pencil Icon) */}
       {/* We use e.stopPropagation() so clicking the pencil doesn't also trigger the Card's onClick if it has one */}
-      <Link 
-        to="/user" 
+      <Link
+        to="/user"
         onClick={(e) => e.stopPropagation()}
         className="absolute top-4 right-4 p-2 rounded-full text-gray-400 hover:text-accent hover:bg-primary/30 transition-all z-10"
         title="Edit Profile"
@@ -52,7 +51,7 @@ export default function UserTile({ username, avatarUrl, MemberSince, TotalGames,
         <h3 className="text-3xl font-heading font-bold text-text-default m-0 truncate w-full">
           {username}
         </h3>
-        
+
         {displayInfoParts.length > 0 && (
           <div className="text-body text-gray-400 mt-2 flex flex-col gap-1 text-sm">
             {displayInfoParts.map((part, index) => (
