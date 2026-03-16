@@ -1,3 +1,4 @@
+// frontend/src/components/chessgui/MoveHistory.tsx
 import React, { useEffect, useRef } from 'react';
 
 interface MoveHistoryProps {
@@ -10,7 +11,9 @@ export const MoveHistory: React.FC<MoveHistoryProps> = ({ history }) => {
   useEffect(() => {
     const el = containerRef.current;
     if (el) {
+      // Auto-scroll logic for both vertical (desktop) and horizontal (mobile)
       el.scrollTop = el.scrollHeight;
+      el.scrollLeft = el.scrollWidth;
     }
   }, [history]);
 
@@ -20,27 +23,32 @@ export const MoveHistory: React.FC<MoveHistoryProps> = ({ history }) => {
   }
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto min-h-0">
+    <div 
+      ref={containerRef} 
+      // Mobile: flex-row (horizontal scroll) | Desktop: flex-col (vertical scroll)
+      className="flex flex-row lg:flex-col gap-1.5 w-full h-full overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto custom-scrollbar pb-2 lg:pb-0"
+    >
       {pairs.length === 0 ? (
-        <div className="flex items-center justify-center h-full text-text-default text-sm font-body italic">
+        <div className="flex items-center justify-center w-full h-full text-text-default/50 text-sm font-body italic min-h-[40px]">
           No moves yet
         </div>
       ) : (
-        <table className="w-full text-sm font-mono">
-          <tbody>
-            {pairs.map(({ n, white, black }) => (
-              <tr key={n} className="group hover:bg-accent/10 transition-colors duration-100">
-                <td className="w-8 pl-3 py-0.5 text-text-default font-body text-xs select-none">{n}</td>
-                <td className="w-1/2 py-0.5 pr-3 font-semibold text-text-default">
-                  {white}
-                </td>
-                <td className="w-1/2 py-0.5 pr-3 font-semibold text-text-default">
-                  {black ?? ''}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        pairs.map(({ n, white, black }) => (
+          <div 
+            key={n} 
+            className="flex items-center shrink-0 lg:shrink py-1.5 px-2 rounded-md hover:bg-accent/10 bg-primary/5 lg:bg-transparent border border-accent/10 lg:border-transparent transition-colors duration-100"
+          >
+            <span className="w-6 text-text-default/50 font-body text-xs select-none text-right pr-2">
+              {n}.
+            </span>
+            <span className="w-12 lg:w-16 font-semibold text-text-default text-sm">
+              {white}
+            </span>
+            <span className="w-12 lg:w-16 font-semibold text-text-default text-sm">
+              {black ?? ''}
+            </span>
+          </div>
+        ))
       )}
     </div>
   );
