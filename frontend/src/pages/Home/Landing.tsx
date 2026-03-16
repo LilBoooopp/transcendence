@@ -5,6 +5,7 @@ import LoginTile from '../../components/LoginTile';
 import GameHistoryList, { GameHistoryItem } from '../../components/GameHistoryList';
 import * as Icons from 'lucide-react';
 import { isLoggedIn } from '../../services/auth.service';
+import { useNotification } from '../../notifications';
 
 
 export default function WireframeLanding() {
@@ -59,6 +60,8 @@ export default function WireframeLanding() {
 			action: () => navigate('/botmode')
 		}
 	];
+
+	const { push } = useNotification();
 
 	return (
 		<div className="flex flex-col items-center justify-center min-h-[80vh] px-4 max-w-5xl mx-auto py-12">
@@ -115,6 +118,14 @@ export default function WireframeLanding() {
 				)}
 			</div>
 
+			<button onClick={() => push({
+				type: 'success',
+				title: 'Test',
+				message: 'frontend works',
+				duration: 5000,
+			})}>
+				TESTING NOTIF
+			</button>
 		</div>
 	);
 }

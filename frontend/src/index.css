@@ -30,3 +30,14 @@
 		@apply font-body text-base leading-relaxed mb-4;
 	}
 }
+
+@keyframes toast-slide-in {
+	0% {
+		opacity: 0;
+		transform: translateX(100%) scale(0.95);
+	}
+	100% {
+		opacity: 1;
+		transform: translateX(0) scale(1);
+	}
+}
