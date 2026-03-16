@@ -173,7 +173,7 @@ cd backend && npm install && npm run start
 | Module | Type | Points | Implementation | Memeber(s) |
 |--------|------|--------|----------------|------------|
 | Frontend + Backend frameworks (React/NestJS) | Major | 2 | React/TypeScript SPA served via Vite; NestJS REST WS gateway | everyone |
-| Real-time WebSocket features | Major | 2 | Socket.IO gateway with rooms, matchmaking, psectator events | cbopp |
+| Real-time WebSocket features | Major | 2 | Socket.IO gateway with rooms, matchmaking, spectator events | cbopp |
 | ORM (Prisma) | Minor | 1 | Prisma schema + migrations; type-safe DB access throughout backend | everyone |
 | Custom-made design, reusable components | Minor | 1 | Shared component library (GamePage, MatchmakingWaiting, etc.) with Tailwind | bschmid |
 | Notification system | Minor | 1 | Implemented Toast-type notifications to inform user of various events. | cbopp |
