@@ -5,14 +5,29 @@ import { GameModeStatsCard } from '../../components/GameModeStatsCard';
 import GameHistoryList, { GameHistoryItem } from '../../components/GameHistoryList';
 import UserTile from '../../components/UserTile'; 
 
+/*
+*/
+
+
 // DUMMY DATA
-const myRatingData = [
+/*const myRatingData = [
 	{ date: 'Week 1', rapid: 1100, blitz: 1050 },
 	{ date: 'Week 2', rapid: 1150, blitz: 1080 },
 	{ date: 'Week 3', rapid: 1130, blitz: 1120 },
 	{ date: 'Week 4', rapid: 1210, blitz: 1190 },
 	{ date: 'Week 5', rapid: 1240, blitz: 1205 },
 	{ date: 'Week 6', rapid: 1260, blitz: 1214 },
+];*/
+
+/*
+const bulletHistory = [
+	{ date: 'Jan', rating: 1050 },
+	{ date: 'Feb', rating: 1080 },
+	{ date: 'Mar', rating: 1120 },
+	{ date: 'Apr', rating: 1090 },
+	{ date: 'May', rating: 1150 },
+	{ date: 'Jun', rating: 1180 },
+	{ date: 'Jul', rating: 1214 },
 ];
 
 const blitzHistory = [
@@ -32,42 +47,54 @@ const rapidHistory = [
 	{ date: 'Apr', rating: 1305 },
 	{ date: 'May', rating: 1290 },
 	{ date: 'Jun', rating: 1285 },
-	{ date: 'Jul', rating: 1260 },
-];
+	{ date: 'Glou', rating: 1260 },
+];*/
 
+interface ChartDataPoint {
+  date: string;
+  rating: number;
+}
 
-const StatsView = () => {
+interface StatsViewProps {
+  chartData: {
+    bullet: ChartDataPoint[];
+    blitz: ChartDataPoint[];
+    rapid: ChartDataPoint[];
+  };
+}
+
+const StatsView = ({ chartData }: StatsViewProps) => {
 	return (
 		<div className="flex flex-col gap-6 w-full">
 			{/* Bullet Card */}
-			<GameModeStatsCard 
-				title="Bullet"
-				icon={<Icons.Zap size={36} />}
-				currentRating={1214}
-				ratingDelta={+114}
-				chartData={blitzHistory}
-				chartColor="#AEC3B0" // Replaced themeColors with actual hex
-			/>
+			            <GameModeStatsCard 
+                title="Bullet"
+                icon={<Icons.Zap size={36} />}
+                currentRating={chartData.bullet[chartData.bullet.length - 1]?.rating || 1200}
+                ratingDelta={chartData.bullet.length > 1 ? chartData.bullet[chartData.bullet.length - 1].rating - chartData.bullet[0].rating : 0}
+                chartData={chartData.bullet}
+                chartColor="#AEC3B0"
+            />
 
-			{/* Blitz Card */}
-			<GameModeStatsCard 
-				title="Blitz"
-				icon={<Icons.Flame size={36} />}
-				currentRating={1260}
-				ratingDelta={-40}
-				chartData={rapidHistory}
-				chartColor="#AEC3B0" // Replaced themeColors with actual hex
-			/>
+            {/* Blitz Card */}
+            <GameModeStatsCard 
+                title="Blitz"
+                icon={<Icons.Flame size={36} />}
+                currentRating={chartData.blitz[chartData.blitz.length - 1]?.rating || 1200}
+                ratingDelta={chartData.blitz.length > 1 ? chartData.blitz[chartData.blitz.length - 1].rating - chartData.blitz[0].rating : 0}
+                chartData={chartData.blitz}
+                chartColor="#AEC3B0"
+            />
 
-			{/* Rapid Card */}
-			<GameModeStatsCard 
-				title="Rapid"
-				icon={<Icons.Timer size={36} />}
-				currentRating={1260}
-				ratingDelta={-40}
-				chartData={rapidHistory}
-				chartColor="#AEC3B0" // Replaced themeColors with actual hex
-			/>
+            {/* Rapid Card */}
+            <GameModeStatsCard 
+                title="Rapid"
+                icon={<Icons.Timer size={36} />}
+                currentRating={chartData.rapid[chartData.rapid.length - 1]?.rating || 1200}
+                ratingDelta={chartData.rapid.length > 1 ? chartData.rapid[chartData.rapid.length - 1].rating - chartData.rapid[0].rating : 0}
+                chartData={chartData.rapid}
+                chartColor="#AEC3B0"
+            />
 		</div>
 	);
 };
@@ -77,6 +104,11 @@ const WireframeDashboard = () => {
     const [view, setView] = useState<'menu' | 'time-selection'>('menu');
     const [history, setHistory] = useState<GameHistoryItem[]>([]);
 
+        const [chartData, setChartData] = useState({
+      bullet: [],
+      blitz: [],
+      rapid: [],
+    });
 	//user state
 	const [stats, setStats] = useState({
 	username: '',
@@ -110,6 +142,23 @@ useEffect(() => {
     .catch((error) => {
       console.error('Error fetching stats:', error);
     });
+}, []);
+
+   //Elo
+ useEffect(() => {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+
+  fetch('/api/users/elo-history', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  })
+    .then(r => r.json())
+    .then(data => setChartData(data))
+    .catch(error => console.error('Error:', error));
 }, []);
 
 	// history
@@ -153,7 +202,7 @@ useEffect(() => {
             {/* BOTTOM SECTION: Statistics Dashboard */}
             <div className="w-full mt-8">        
                 <div className="flex justify-center mb-8"> 
-                    <StatsView /> 
+                    <StatsView chartData={chartData} /> 
                 </div>
                 <GameHistoryList history={history} />
             </div>

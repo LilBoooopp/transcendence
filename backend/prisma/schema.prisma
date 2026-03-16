@@ -83,6 +83,7 @@ model EloHistory {
   gameId   String
   gameType GameType // bullet, etc
 
+
   eloBefore   Int
   eloAfter    Int
   eloChange   Int
@@ -97,7 +98,6 @@ model EloHistory {
   @@index([userId, gameType])
   @@index([createdAt])
 }
-
 enum GameType {
   BULLET
   BLITZ

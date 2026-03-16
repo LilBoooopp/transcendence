@@ -171,6 +171,77 @@ async getUserStat(id: string): Promise<UserStat> {
 }
 
 
+async getUserElo(id: string): Promise<{
+  bullet: { date: string; rating: number }[];
+  blitz: { date: string; rating: number }[];
+  rapid: { date: string; rating: number }[];
+}> {
+  // 1. Récupérer les EloHistory des 30 derniers jours
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const eloHistory = await this.prisma.eloHistory.findMany({
+    where: {
+      userId: id,
+      createdAt: { gte: thirtyDaysAgo }
+    },
+    orderBy: { createdAt: 'asc' }
+  });
+
+  // 2. Créer les 30 derniers jours (du plus ancien au plus récent)
+  const days: Date[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    date.setHours(0, 0, 0, 0);
+    days.push(date);
+  }
+
+  // 3. Grouper EloHistory par jour et gameType, prendre le MAX eloAfter
+  const eloByDayAndType: Map<string, Map<string, number>> = new Map();
+  
+  for (const elo of eloHistory) {
+    const dayKey = elo.createdAt.toISOString().split('T')[0]; // "2026-03-16"
+    const gameType = elo.gameType; // BULLET, BLITZ, RAPID
+
+    if (!eloByDayAndType.has(dayKey)) {
+      eloByDayAndType.set(dayKey, new Map());
+    }
+    
+    const currentMax = eloByDayAndType.get(dayKey)!.get(gameType) || 0;
+    eloByDayAndType.get(dayKey)!.set(gameType, Math.max(currentMax, elo.eloAfter));
+  }
+
+  // 4. Construire les arrays pour chaque mode, avec fallback au jour précédent
+  const buildChartData = (gameType: string) => {
+    const result: { date: string; rating: number }[] = [];
+    let lastRating = 1200; // default rating
+
+    for (const day of days) {
+      const dayKey = day.toISOString().split('T')[0];
+      const rating = eloByDayAndType.get(dayKey)?.get(gameType) ?? lastRating;
+      lastRating = rating;
+
+      // Formater la date : "16 Mar", "15 Mar", etc.
+      const dateStr = day.toLocaleDateString('en-US', {
+        day: '2-digit',
+        month: 'short'
+      }).replace(/0(\d)/, '$1'); // "16 Mar" au lieu de "016 Mar"
+
+      result.push({ date: dateStr, rating });
+    }
+
+    return result;
+  };
+
+  return {
+    bullet: buildChartData('BULLET'),
+    blitz: buildChartData('BLITZ'),
+    rapid: buildChartData('RAPID')
+  };
+}
+
+
+
+
 	  private async deleteAvatarIfCustom(avatarUrl?: string | null): Promise<void> {
     if (!avatarUrl || avatarUrl === DEFAULT_AVATAR_FILENAME) {
       return;

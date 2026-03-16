@@ -118,6 +118,12 @@ async modifyUser(@Req() req: any, @Body() body)
     return await this.userService.getUserStat(req.user.userId);
   }
 
+  @UseGuards(AuthGuard)
+  @Get('elo-history')
+  async getUserElo(@Req() req: any){
+    return await this.userService.getUserElo(req.user.userId);
+  }
+
   @Get('email/:email')
   async getUserByEmail(@Param('email') email: string) {
     const user = await this.userService.findByEmail(email);
@@ -131,8 +137,6 @@ async modifyUser(@Req() req: any, @Body() body)
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
-
-
 
   @UseGuards(AuthGuard)
   @Get('history')
