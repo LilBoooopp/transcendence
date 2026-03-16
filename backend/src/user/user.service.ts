@@ -140,7 +140,7 @@ async getUserStat(id: string): Promise<UserStat> {
     select: { 
       username: true, 
       createdAt: true,
-      statistics: true,  // ← Récupère les statistiques via la relation
+      statistics: true,
     },
   });
 
@@ -297,6 +297,7 @@ async getUserElo(id: string): Promise<{
 	  const games = await this.prisma.game.findMany({
     where: {
       status: 'COMPLETED',
+	  isAiGame: false,
       OR: [
         { whitePlayerId: id },
         { blackPlayerId: id },

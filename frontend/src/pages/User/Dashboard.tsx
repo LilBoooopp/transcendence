@@ -5,51 +5,6 @@ import { GameModeStatsCard } from '../../components/GameModeStatsCard';
 import GameHistoryList, { GameHistoryItem } from '../../components/GameHistoryList';
 import UserTile from '../../components/UserTile'; 
 
-/*
-*/
-
-
-// DUMMY DATA
-/*const myRatingData = [
-	{ date: 'Week 1', rapid: 1100, blitz: 1050 },
-	{ date: 'Week 2', rapid: 1150, blitz: 1080 },
-	{ date: 'Week 3', rapid: 1130, blitz: 1120 },
-	{ date: 'Week 4', rapid: 1210, blitz: 1190 },
-	{ date: 'Week 5', rapid: 1240, blitz: 1205 },
-	{ date: 'Week 6', rapid: 1260, blitz: 1214 },
-];*/
-
-/*
-const bulletHistory = [
-	{ date: 'Jan', rating: 1050 },
-	{ date: 'Feb', rating: 1080 },
-	{ date: 'Mar', rating: 1120 },
-	{ date: 'Apr', rating: 1090 },
-	{ date: 'May', rating: 1150 },
-	{ date: 'Jun', rating: 1180 },
-	{ date: 'Jul', rating: 1214 },
-];
-
-const blitzHistory = [
-	{ date: 'Jan', rating: 1050 },
-	{ date: 'Feb', rating: 1080 },
-	{ date: 'Mar', rating: 1120 },
-	{ date: 'Apr', rating: 1090 },
-	{ date: 'May', rating: 1150 },
-	{ date: 'Jun', rating: 1180 },
-	{ date: 'Jul', rating: 1214 },
-];
-
-const rapidHistory = [
-	{ date: 'Jan', rating: 1250 },
-	{ date: 'Feb', rating: 1280 },
-	{ date: 'Mar', rating: 1300 },
-	{ date: 'Apr', rating: 1305 },
-	{ date: 'May', rating: 1290 },
-	{ date: 'Jun', rating: 1285 },
-	{ date: 'Glou', rating: 1260 },
-];*/
-
 interface ChartDataPoint {
   date: string;
   rating: number;
