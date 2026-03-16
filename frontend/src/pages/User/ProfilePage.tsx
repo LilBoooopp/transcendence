@@ -10,13 +10,21 @@ type ProfileData = {
   avatarUrl: string;
 };
 
+type UpdateUserBody = {
+  username?: string;
+  bio?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+};
+
 const ProfilePage = () => {
   const [profileData, setProfileData] = useState<ProfileData>({
-    username: 'lilboooopp',
-    email: 'lilboooopp@example.com',
-    firstName: 'Lil',
-    lastName: 'Boo',
-    bio: 'I love playing chess and building web apps!',
+    username: '',
+    email: '@example.com',
+    firstName: '',
+    lastName: '',
+    bio: '',
     avatarUrl: '',
   });
 
@@ -59,9 +67,13 @@ const ProfilePage = () => {
       [field]: newValue,
     }));
 
-    const body: { bio?: string; firstName?: string } = {};
-    if (field === 'bio') body.bio = newValue;
+    const body: UpdateUserBody = {};
+	if (field === 'username') body.username = newValue;
+	if (field === 'email') body.email = newValue;
     if (field === 'firstName') body.firstName = newValue;
+	if (field === 'lastName') body.lastName = newValue;
+	if (field === 'bio') body.bio = newValue;
+
 	//NOW UPDATE DATAS
 
     if (Object.keys(body).length === 0) {
@@ -90,6 +102,32 @@ const ProfilePage = () => {
     }
   };
 
+  const handleAvatarUpload = async (file: File) => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token');
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    const res = await fetch('/api/users/avatar', {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      throw new Error('Avatar upload failed');
+    }
+
+    const updatedUser = await res.json();
+    setProfileData((prev) => ({
+      ...prev,
+      avatarUrl: updatedUser.avatarUrl ?? prev.avatarUrl,
+    }));
+  };
+
   return (
     <div className="flex flex-col gap-8 items-center w-full max-w-4xl mx-auto py-8 px-4">
       <div className="w-full flex justify-center">
@@ -101,6 +139,7 @@ const ProfilePage = () => {
           bio={profileData.bio}
           avatarUrl={profileData.avatarUrl}
           onUpdateField={handleUpdateProfileField}
+          onUploadAvatar={handleAvatarUpload}
         />
       </div>
     </div>

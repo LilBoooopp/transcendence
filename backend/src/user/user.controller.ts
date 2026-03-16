@@ -27,7 +27,7 @@ export class UserController {
   async modifyUser(@Req() req: any, @Body() body)
   {
 	console.log('In patch/user/');
-	return this.userService.modifyUser(req.user.userId, body.bio, body.firstName);
+	return this.userService.modifyUser(req.user.userId, body.username, body.email, body.firstName, body.lastName, body.bio, body.avatarUrl );
   }
 
   @Get('me')

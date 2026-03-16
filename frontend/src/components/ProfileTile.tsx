@@ -10,6 +10,7 @@ export interface ProfileTileProps {
   bio: string;
   avatarUrl?: string;
   onUpdateField: (field: keyof ProfileTileProps, newValue: string) => void; 
+  onUploadAvatar: (file: File) => Promise<void>;
 }
 
 function EditableField({ 
@@ -72,7 +73,8 @@ export default function ProfileTile({
   lastName, 
   bio, 
   avatarUrl, 
-  onUpdateField 
+  onUpdateField,
+  onUploadAvatar,
 }: ProfileTileProps) {
   const placeholderImage = "https://ui-avatars.com/api/?name=" + username + "&background=random";
 	//avatar add by syl
@@ -87,11 +89,16 @@ export default function ProfileTile({
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      console.log("Selected file for avatar:", file.name);
-      // TODO: File upload to backend
+      try {
+        await onUploadAvatar(file);
+      } catch (error) {
+        console.error('Avatar upload failed', error);
+      } finally {
+        event.target.value = '';
+      }
     }
   };
 

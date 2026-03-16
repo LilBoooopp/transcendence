@@ -2,6 +2,7 @@
 
 import { Injectable, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 type UserProfile = {
   username: string;
@@ -69,22 +70,54 @@ export class UserService {
     select: { username: true, id: true, email: true, firstName: true, lastName: true, bio: true, avatarUrl: true},  
 	});
 }
-  async modifyUser(id: string, newBio?: string, newFirstName?: string) : Promise<UserProfile | null > {
-    const data: { bio?: string; firstName?: string } = {};
+  async modifyUser(id: string, newUsername?:string, newEmail?:string, newFirstName?: string, newLastName?: string, newBio?: string, newAvatar?: string ) : Promise<UserProfile | null > {
+    const data: { username?:string, email?:string, firstName?: string, lastName?: string, bio?: string, Avatar?:string } = {};
 
+	if (newUsername !== undefined && newUsername !== null && newUsername !== '') {
+      data.username = newUsername;
+    }
+	if (newEmail !== undefined && newEmail !== null && newEmail !== '') {
+      data.email = newEmail;
+    }
+	if (newFirstName !== undefined && newFirstName !== null && newFirstName !== '') {
+      data.firstName = newFirstName;
+    }
+	if (newLastName !== undefined && newLastName !== null && newLastName !== '') {
+      data.lastName = newLastName;
+    }
     if (newBio !== undefined && newBio !== null && newBio !== '') {
       data.bio = newBio;
     }
-
-    if (newFirstName !== undefined && newFirstName !== null && newFirstName !== '') {
-      data.firstName = newFirstName;
+    if (newAvatar !== undefined && newAvatar !== null && newAvatar !== '') {
+      data.bio = newBio;
     }
-
-    return this.prisma.user.update ({
-      where: { id },
-      data,
-      select: { username: true, id: true, firstName: true, bio: true, isOnline: true, avatarUrl: true},
-    });
+	
+	    if (Object.keys(data).length === 0) {
+      throw new BadRequestException('No fields to update');
+    }
+    
+    try {
+      return await this.prisma.user.update({
+        where: { id },
+        data,
+        select: { username: true, id: true, firstName: true, bio: true, isOnline: true, avatarUrl: true },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        const target = Array.isArray(error.meta?.target) ? error.meta.target : [];
+        if (target.includes('username')) {
+          throw new ConflictException('Username already taken');
+        }
+        if (target.includes('email')) {
+          throw new ConflictException('Email already taken');
+        }
+        throw new ConflictException('Unique field already taken');
+      }
+      throw error;
+    }
 	}
 
 	async deleteUser(id: string){
