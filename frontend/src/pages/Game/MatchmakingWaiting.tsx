@@ -12,8 +12,6 @@ const MatchmakingWaiting: React.FC = () => {
   const timeControl = getTimeControl(tcKey);
 
   const [userId] = useState(() => `player-${Math.random().toString(36).substr(2, 9)}`);
-  // const [dots, setDots] = useState('');
-  // const [waitSeconds, setWaitSeconds] = useState(0);
 
   const [isAllowed, setIsAllowed] = useState(false);
   const validatedRef = React.useRef(false); // to avoid double mm_flow consumption (if the page rerender or triggers two times useEffect[[location.state, navigate, tcKey]])
@@ -49,14 +47,6 @@ const MatchmakingWaiting: React.FC = () => {
       navigate('/gamemode');
     }
   }, [location.state, navigate, tcKey]);
-
-  // useEffect(() => {
-  //   const dotInterval = setInterval(() => {
-  //     setDots(d => d.length >= 3 ? '' : d + '.');
-  //   }, 500);
-  //   const timeInterval = setInterval(() => setWaitSeconds(s => s + 1), 1000);
-  //   return () => { clearInterval(dotInterval); clearInterval(timeInterval); };
-  // }, []);
 
   useEffect(() => {
     if (!isAllowed) return;

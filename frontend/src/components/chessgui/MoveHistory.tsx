@@ -1,4 +1,3 @@
-// frontend/src/components/chessgui/MoveHistory.tsx
 import React, { useEffect, useRef } from 'react';
 
 interface MoveHistoryProps {
@@ -22,8 +21,8 @@ export const MoveHistory: React.FC<MoveHistoryProps> = ({ history }) => {
   }
 
   return (
-    <div 
-      ref={containerRef} 
+    <div
+      ref={containerRef}
       // Mobile: 2 columns (2 rounds per row) | Desktop: 1 column
       // align-content-start ensures the items pack at the top instead of spacing out vertically
       className="grid grid-cols-2 lg:grid-cols-1 gap-x-2 gap-y-1 w-full h-full overflow-y-auto overflow-x-hidden custom-scrollbar pr-1 content-start"
@@ -34,8 +33,8 @@ export const MoveHistory: React.FC<MoveHistoryProps> = ({ history }) => {
         </div>
       ) : (
         pairs.map(({ n, white, black }) => (
-          <div 
-            key={n} 
+          <div
+            key={n}
             className="flex items-center py-1.5 px-2 rounded-md hover:bg-accent/10 bg-primary/5 lg:bg-transparent border border-accent/10 lg:border-transparent transition-colors duration-100"
           >
             <span className="w-5 sm:w-6 text-text-default/50 font-body text-[10px] sm:text-xs select-none text-right pr-1.5 sm:pr-2 shrink-0">
