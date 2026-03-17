@@ -70,8 +70,7 @@ export class UserController {
     return response;
   }
 
-  @UseGuards(AuthGuard)
-  @Get('password')
+  @Patch('password')
   async uploadPassword(@Req() req: any, @Body() body) {
 
     const updatedUser = await this.userService.modifyPassword(req.user.userId, body.oldPassword, body.newPassword);

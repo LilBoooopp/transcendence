@@ -49,7 +49,7 @@ export class AuthService {
         email: data.email,
         username: data.username,
         password: hashedPassword,
-        avatarUrl: "defaultAvatar.png",
+        avatarUrl: "",
         bio: 'I will be happy to play',
         isOnline: true,
         statistics: {
