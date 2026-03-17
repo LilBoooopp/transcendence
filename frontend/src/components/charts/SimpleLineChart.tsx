@@ -9,25 +9,37 @@ export const SimpleLineChart: React.FC<BaseChartProps> = ({
 	data, xAxisKey, series, height = 100
 }) => {
 
-	const yTicks = useMemo(() => {
-		if (!data || data.length === 0 || !series || series.length === 0) return undefined;
+	const { yDomain, yTicks } = useMemo(() => {
+		if (!data || data.length === 0 || !series || series.length === 0) {
+			return { yDomain: ['auto', 'auto'], yTicks: undefined };
+		}
 		
 		const allValues = data.flatMap(item => 
 			series.map(s => Number(item[s.dataKey]))
 		).filter(val => !isNaN(val));
 
-		if (allValues.length === 0) return undefined;
+		if (allValues.length === 0) {
+			return { yDomain: ['auto', 'auto'], yTicks: undefined };
+		}
 
 		const min = Math.min(...allValues);
 		const max = Math.max(...allValues);
 		
-		return min === max ? [min] : [min, max];
+		const range = max - min;
+		const buffer = range === 0 ? 10 : Math.ceil(range * 0.15); 
+		const yMin = Math.max(0, min - buffer); 
+		const yMax = max + buffer;
+
+		return {
+			yDomain: [yMin, yMax],
+			yTicks: [yMin, yMax]
+		};
 	}, [data, series]);
 
 	return (
 		<div className="w-full flex flex-col" style={{ height }}>
 			<ResponsiveContainer width="100%" height="100%">
-				<RechartsLineChart data={data} margin={{ top: 10, right: 5, left: 0, bottom: 0 }}>
+				<RechartsLineChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
 					
 					<XAxis 
 						dataKey={xAxisKey} 
@@ -38,17 +50,17 @@ export const SimpleLineChart: React.FC<BaseChartProps> = ({
 						minTickGap={30}
 						tickMargin={5}
 					/>
+					
 					<YAxis 
 						stroke="#AEC3B0" 
 						axisLine={false}
 						tickLine={false}
 						tick={{ fontSize: 10 }}
 						width={35}
-						domain={['dataMin', 'dataMax']} 
-						ticks={yTicks} 
+						domain={yDomain}
+						ticks={yTicks}
 						interval={0}
 						allowDecimals={false}
-						padding={{ top: 10, bottom: 10 }}
 					/>
 	
 					<Tooltip 

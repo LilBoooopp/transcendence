@@ -17,14 +17,31 @@ export default function WireframeLanding() {
 	const checkAuth = () => {
 		isLoggedIn().then(({ connected, username }) => {
 			setLoggedIn(connected);
-			setUsername(username ?? null);
+			if (connected) {
+				setUsername(username ?? null);
+			} else {
+				setUsername(null);
+				setHistory([]);
+			}
 			console.log("User is logged in:", connected);
 		});
 	};
 
 	useEffect(() => {
+		const handleAuthChange = () => {
+			checkAuth();
+		};
+		window.addEventListener('auth-change', handleAuthChange);
+		checkAuth();
+		return () => {
+			window.removeEventListener('auth-change', handleAuthChange);
+		};
+	}, []);
+
+	useEffect(() => {
 		const token = localStorage.getItem('token');
-		if (!token) return;
+		// If no token or not logged in, don't fetch
+		if (!token || !loggedIn) return; 
 
 		fetch('/api/users/history', {
 			method: 'GET',
@@ -45,10 +62,6 @@ export default function WireframeLanding() {
 				setHistory([]);
 			});
 	}, [loggedIn]);
-
-	useEffect(() => {
-		checkAuth();
-	}, []);
 
 	const features = [
 		{
@@ -91,14 +104,17 @@ export default function WireframeLanding() {
 			</div>
 
 			{/* HISTORY / LOGIN SECTION */}
-			<div className="w-full mt-12">
+			<div className="w-full mt-12 flex justify-center">
 				{loggedIn ? (
 					<GameHistoryList history={history} />
 				) : (
 					<LoginTile
 						onLogin={() => console.log('Login clicked')}
 						onRegister={() => console.log('Register clicked')}
-						onLoginSuccess={checkAuth}
+						onLoginSuccess={() => {
+							checkAuth();
+							window.dispatchEvent(new Event('auth-change'));
+						}}
 					/>
 				)}
 			</div>
