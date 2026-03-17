@@ -29,7 +29,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', onLo
 	    const { username, password, email } = formData;
 		console.log('Validating form with:', { username, password, email });
 
-		if (!email.includes('@') || !email.includes('.') || !emailRegex.test(email)) {
+		if (!isLoginView && (!email.includes('@') || !email.includes('.') || !emailRegex.test(email))) {
 	        return 'Please enter a valid email address';
 	    }
 	    if (username.length < 3 || username.length > 20) {

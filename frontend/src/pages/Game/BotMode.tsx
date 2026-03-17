@@ -59,8 +59,8 @@ export default function WireframeBotMode() {
         Choose your difficulty level
       </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-3xl">
-        {DIFFICULTIES.map(({ difficulty, title, description, icon }) => (
+<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 w-full max-w-4xl">
+	{DIFFICULTIES.map(({ difficulty, title, description, icon }) => (
           <Tile
             key={difficulty}
             title={title}

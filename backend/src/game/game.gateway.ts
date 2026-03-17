@@ -275,6 +275,21 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  /**
+   * Check if a user is already in a matchmaking queue or in an active game.
+   */
+  private isUserBusy(userId: string): boolean {
+    // Check all matchmaking queues
+    for (const entry of this.matchmakingQueues.values()) {
+      if (entry.userId === userId) return true;
+    }
+    // Check all active games (as a player, not spectator)
+    for (const room of this.activeGames.values()) {
+      if (room.whiteUserId === userId || room.blackUserId === userId) return true;
+    }
+    return false;
+  }
+
   @SubscribeMessage('matchmaking:join')
   async handleMatchmakingJoin(
     @MessageBody() data: { timeControlKey: string },
@@ -282,6 +297,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const userId = client.data.userId;
     const tcKey = data.timeControlKey ?? DEFAULT_TIME_KEY;
+
+    // Prevent duplicate matchmaking / playing
+    if (this.isUserBusy(userId)) {
+      client.emit('matchmaking:error', {
+        message: 'You are already in a game or in matchmaking.',
+      });
+      console.log(`Matchmaking [${tcKey}]: ${client.id} (${userId}) rejected - already busy`);
+      return { success: false };
+    }
+
     const waiting = this.matchmakingQueues.get(tcKey);
 
     if (waiting && waiting.clientId !== client.id) {
@@ -376,7 +401,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         select: { status: true, result: true, winner: true, fen: true, pgn: true },
       });
 
-      if (dbGame && (dbGame.status === 'COMPLETED' || dbGame.status === 'ABANDONED')) {
+      if (!dbGame) {
+        client.emit('game:error', {
+          gameId: data.gameId,
+          message: 'This game does not exist.',
+        });
+        client.leave(roomName);
+        return { success: false, error: 'Game not found' };
+      }
+
+      if (dbGame.status === 'COMPLETED' || dbGame.status === 'ABANDONED') {
         client.emit('game:role-assigned', {
           gameId: data.gameId,
           role: 'spectator',
