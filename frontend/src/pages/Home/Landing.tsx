@@ -10,9 +10,9 @@ import { useNotification } from '../../notifications';
 export default function WireframeLanding() {
 	const navigate = useNavigate();
 	const [loggedIn, setLoggedIn] = useState(false);
-		const [history, setHistory] = useState<GameHistoryItem[]>([]);
-
+	const [history, setHistory] = useState<GameHistoryItem[]>([]);
 	const [username, setUsername] = useState<string | null>(null);
+	const { push } = useNotification();
 
 	const checkAuth = () => {
 		isLoggedIn().then(({ connected, username }) => {
@@ -23,34 +23,32 @@ export default function WireframeLanding() {
 	};
 
 	useEffect(() => {
-  const token = localStorage.getItem('token');
-  if (!token) return;
+		const token = localStorage.getItem('token');
+		if (!token) return;
 
-  fetch('/api/users/history', {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-  })
-    .then((res) => {
-      if (!res.ok) throw new Error('Failed to fetch history');
-      return res.json();
-    })
-    .then((data) => {
-      setHistory(data);
-    })
-    .catch((error) => {
-      console.error('Error fetching game history:', error);
-      setHistory([]);
-    });
-}, [loggedIn]);
+		fetch('/api/users/history', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`,
+			},
+		})
+			.then((res) => {
+				if (!res.ok) throw new Error('Failed to fetch history');
+				return res.json();
+			})
+			.then((data) => {
+				setHistory(data);
+			})
+			.catch((error) => {
+				console.error('Error fetching game history:', error);
+				setHistory([]);
+			});
+	}, [loggedIn]);
 
 	useEffect(() => {
 		checkAuth();
 	}, []);
-
-	
 
 	const features = [
 		{
@@ -73,16 +71,20 @@ export default function WireframeLanding() {
 		}
 	];
 
-	const { push } = useNotification();
-
 	return (
 		<div className="flex flex-col items-center justify-center min-h-[80vh] px-4 max-w-5xl mx-auto py-12">
 
 			<h1 className="text-4xl font-heading font-bold mb-12 text-center">
-				{username ? `Welcome ${username} to 42 Chess!` : 'Welcome to 42 Chess!'}
+				{username ? (
+					<>
+						Welcome <span className="text-accent">{username}</span>!
+					</>
+				) : (
+					'Welcome to 42 Chess!'
+				)}
 			</h1>
 
-			<div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-2xl lg:max-w-full">
+			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full max-w-4xl">
 				{features.map((feature, index) => (
 					<Tile
 						key={index}
@@ -96,31 +98,8 @@ export default function WireframeLanding() {
 
 			{/* HISTORY / LOGIN SECTION */}
 			<div className="w-full mt-12">
-
 				{loggedIn ? (
-					<>
-						<GameHistoryList history={history} />
-						{/*Test button to logout (waiting for bastian to add a clean one)*/}
-						<button
-							className="mt-4 px-4 py-2 bg-red-500 text-white rounded"
-							onClick={async () => {
-								try {
-									await fetch('/api/auth/logout', {
-										method: 'POST',
-										headers: {
-											'Authorization': `Bearer ${localStorage.getItem('token')}`,
-										},
-									});
-									localStorage.removeItem('token');
-									setLoggedIn(false);
-								} catch (error) {
-									console.error('Logout failed', error);
-								}
-							}}
-						>
-							Logout
-						</button>
-					</>
+					<GameHistoryList history={history} />
 				) : (
 					<LoginTile
 						onLogin={() => console.log('Login clicked')}
@@ -130,18 +109,6 @@ export default function WireframeLanding() {
 				)}
 			</div>
 
-			<button onClick={() => push({
-				type: 'success',
-				title: 'Test',
-				message: 'frontend works',
-				duration: 5000,
-				action: {
-					label: 'Testing',
-					route: '/gamemode',
-				}
-			})}>
-				TESTING NOTIF
-			</button>
 		</div>
 	);
 }

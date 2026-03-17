@@ -40,7 +40,7 @@ export class UserController {
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   @Get()
   async getAllUsers() {
@@ -48,31 +48,29 @@ export class UserController {
   }
 
   @Delete()
-  async deleteUser(@Req() req: any)
-  {
-	//console.log('Delete User');
-	return this.userService.deleteUser(req.user.userId);
+  async deleteUser(@Req() req: any) {
+    //console.log('Delete User');
+    return this.userService.deleteUser(req.user.userId);
   }
 
-@Patch()
-async modifyUser(@Req() req: any, @Body() body)
-{
-  console.log('In patch/user/');
-  const updatedUser = await this.userService.modifyUser(req.user.userId, body.username, body.email, body.firstName, body.lastName, body.bio, body.avatarUrl);
-  
-  const response: any = { user: updatedUser };
-  
-  // Regénérer le token uniquement si le username a changé
-  if (updatedUser.username !== req.user.username) {
-    const tokenPayload = {
-      sub: req.user.userId,
-      username: updatedUser.username,
-    };
-    response.accessToken = await this.jwtService.signAsync(tokenPayload);
+  @Patch()
+  async modifyUser(@Req() req: any, @Body() body) {
+    console.log('In patch/user/');
+    const updatedUser = await this.userService.modifyUser(req.user.userId, body.username, body.email, body.firstName, body.lastName, body.bio, body.avatarUrl);
+
+    const response: any = { user: updatedUser };
+
+    // Regénérer le token uniquement si le username a changé
+    if (updatedUser.username !== req.user.username) {
+      const tokenPayload = {
+        sub: req.user.userId,
+        username: updatedUser.username,
+      };
+      response.accessToken = await this.jwtService.signAsync(tokenPayload);
+    }
+
+    return response;
   }
-  
-  return response;
-}
 
   @Patch('avatar')
   @UseInterceptors(
@@ -99,7 +97,7 @@ async modifyUser(@Req() req: any, @Body() body)
     }),
   )
 
-  async uploadAvatar(@Req() req: any, @UploadedFile() file: UploadedFile){
+  async uploadAvatar(@Req() req: any, @UploadedFile() file: UploadedFile) {
     if (!file) {
       throw new BadRequestException('No avatar file uploaded');
     }
@@ -107,20 +105,20 @@ async modifyUser(@Req() req: any, @Body() body)
   }
 
   @Get('me')
-  async getUserProfile(@Req() req: any){
-	//console.log('in users/me');
-	return await this.userService.getUserProfile(req.user.userId);
+  async getUserProfile(@Req() req: any) {
+    //console.log('in users/me');
+    return await this.userService.getUserProfile(req.user.userId);
   }
 
   @UseGuards(AuthGuard)
   @Get('stats')
-  async getUserStat(@Req() req: any){
+  async getUserStat(@Req() req: any) {
     return await this.userService.getUserStat(req.user.userId);
   }
 
   @UseGuards(AuthGuard)
   @Get('elo-history')
-  async getUserElo(@Req() req: any){
+  async getUserElo(@Req() req: any) {
     return await this.userService.getUserElo(req.user.userId);
   }
 
@@ -140,10 +138,9 @@ async modifyUser(@Req() req: any, @Body() body)
 
   @UseGuards(AuthGuard)
   @Get('history')
-  async getUserHistory(@Req() req: any)
-  {
-	const history = await this.userService.getUserHistory(req.user.userId);
-	return history;
+  async getUserHistory(@Req() req: any) {
+    const history = await this.userService.getUserHistory(req.user.userId);
+    return history;
   }
 
   @Get(':id')
@@ -152,6 +149,4 @@ async modifyUser(@Req() req: any, @Body() body)
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
-
-
 }

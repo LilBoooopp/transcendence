@@ -9,7 +9,6 @@ import { classicTheme } from './themes';
 import { useChessGame } from './hooks/useChessGame';
 import { ChessGameProps } from './types';
 
-// Import our newly extracted UI components
 import { Clock } from './Clock';
 import { StatusBadge } from './StatusBadge';
 import { MoveHistory } from './MoveHistory';
@@ -101,15 +100,14 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 	const topTimeMs = topColor === 'w' ? whiteTimeMs : blackTimeMs;
 	const bottomTimeMs = bottomColor === 'w' ? whiteTimeMs : blackTimeMs;
 
-return (
+	return (
 		<div className="flex flex-col items-center justify-center font-body w-full p-4 max-w-7xl mx-auto relative">
-			
-			{/* FIXED: Changed lg:items-start back to lg:items-stretch so both columns are equal height on desktop */}
+
 			<div className="flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-6 w-full">
 
 				{/* LEFT COLUMN: Players, Clocks, and Board */}
 				<div className="flex flex-col gap-2" style={{ width: BOARD_SIZE }}>
-					
+
 					{/* Top Player + Clock Row */}
 					<div className="flex items-stretch justify-between gap-2 w-full h-14 sm:h-[68px]">
 						<div className="flex-1 min-w-0">
@@ -155,31 +153,31 @@ return (
 				{/* RIGHT COLUMN: Game Panel (Status, History, Controls) */}
 				{/* Layout fix: lg:!w-[240px] keeps it slim on desktop, style={{width: BOARD_SIZE}} matches board on mobile */}
 				<div className="flex flex-col flex-shrink-0 gap-4 lg:!w-[240px]" style={{ width: BOARD_SIZE }}>
-						
-						{/* Status Badge */}
-						<div className="flex items-center justify-center flex-shrink-0 mt-2 lg:mt-0 w-full">
-							<StatusBadge status={gameStatus} gameOver={gameOver} />
-						</div>
 
-						{/* Move History Container (Restored your exact original colors!) */}
-						<div className="flex flex-col flex-1 min-h-[160px] lg:min-h-0 overflow-hidden rounded-lg bg-primary">
-							<div className="px-3 py-2 bg-accent/10 flex items-center justify-between flex-shrink-0 border-b border-accent/20">
-								<span className="text-xs font-heading text-text-default font-bold uppercase tracking-widest">History</span>
-								<span className="text-xs font-body text-text-default">{Math.ceil(moveHistory.length / 2)} moves</span>
-							</div>
-							<div className="p-2 flex-1 overflow-hidden flex flex-col">
-								<MoveHistory history={moveHistory} />
-							</div>
-						</div>
+					{/* Status Badge */}
+					<div className="flex items-center justify-center flex-shrink-0 mt-2 lg:mt-0 w-full">
+						<StatusBadge status={gameStatus} gameOver={gameOver} />
+					</div>
 
-						{/* Controls */}
-						<div className="flex-shrink-0 w-full">
-							<GameControls
-								isSpectator={isSpectator} gameOver={gameOver} drawOffered={drawOffered}
-								drawOfferSent={drawOfferSent} onResign={handleResign} onDrawOffer={handleDrawOffer}
-								onDrawResponse={handleDrawResponse}
-							/>
+					{/* Move History Container (Restored your exact original colors!) */}
+					<div className="flex flex-col flex-1 min-h-[160px] lg:min-h-0 overflow-hidden rounded-lg bg-primary">
+						<div className="px-3 py-2 bg-accent/10 flex items-center justify-between flex-shrink-0 border-b border-accent/20">
+							<span className="text-xs font-heading text-text-default font-bold uppercase tracking-widest">History</span>
+							<span className="text-xs font-body text-text-default">{Math.ceil(moveHistory.length / 2)} moves</span>
 						</div>
+						<div className="p-2 flex-1 overflow-hidden flex flex-col">
+							<MoveHistory history={moveHistory} />
+						</div>
+					</div>
+
+					{/* Controls */}
+					<div className="flex-shrink-0 w-full">
+						<GameControls
+							isSpectator={isSpectator} gameOver={gameOver} drawOffered={drawOffered}
+							drawOfferSent={drawOfferSent} onResign={handleResign} onDrawOffer={handleDrawOffer}
+							onDrawResponse={handleDrawResponse}
+						/>
+					</div>
 				</div>
 
 			</div>

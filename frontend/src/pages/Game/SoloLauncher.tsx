@@ -74,8 +74,8 @@ const options: { value: ColorChoice; label: string; icon: React.ReactNode; descr
             Choose your board orientation
           </p>
           {/* Reduced gap to gap-2 on mobile, gap-3 on sm */}
-          <div className="flex gap-2 sm:gap-3">
-            {options.map(opt => (
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 w-full">
+  					{options.map(opt => (
               <button
                 key={opt.value}
                 onClick={() => setSelected(opt.value)}

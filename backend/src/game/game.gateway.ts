@@ -93,15 +93,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private activeUsers = new Map<string, string>();
 
   /**
-  * Matchmaking queues based on time control (eg. "600+0")
-  * Each queue holds at most one player at a time,
+  * matchmaking queues based on time control (eg. "600+0")
+  * each queue holds at most one player at a time,
   * second player joins means they are paired.
   */
   private matchmakingQueues = new Map<string, MatchmakingEntry>();
 
   /**
-   * Keyed by "<gameId>:<userId>"
-   * Stores pending setTimeout handles so reconnects can cancel them
+   * keyed by <gameId>:<userId>
+   * stores pending setTimeout handles so reconnects can cancel them
    */
   private reconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
@@ -156,15 +156,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.matchmakingQueues.delete(tcKey);
         break;
       }
-    }
-
-    if (userId) {
-      this.prisma.user
-        .update({
-          where: { id: userId },
-          data: { isOnline: false, lastSeen: new Date() },
-        })
-        .catch((e) => console.warn(`Failed to mark user ${userId} offline:`, e.message));
     }
 
     // Remove from active games
@@ -290,6 +281,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return false;
   }
 
+  @SubscribeMessage('heartbeat')
+  handleHeartbeat(@ConnectedSocket() client: Socket) {
+    const userId = client.data?.userId;
+    if (!userId) return;
+    this.prisma.user
+      .update({
+        where: { id: userId },
+        data: { lastSeen: new Date() },
+      }).catch((e) => console.warn(`Heartbeat update failed for ${userId}:`, e.message));
+    return { success: true };
+  }
+
   @SubscribeMessage('matchmaking:join')
   async handleMatchmakingJoin(
     @MessageBody() data: { timeControlKey: string },
@@ -401,7 +404,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         select: { status: true, result: true, winner: true, fen: true, pgn: true },
       });
 
-      if (dbGame && (dbGame.status === 'COMPLETED' || dbGame.status === 'ABANDONED')) {
+      if (!dbGame) {
+        client.emit('game:error', {
+          gameId: data.gameId,
+          message: 'This game does not exist.',
+        });
+        client.leave(roomName);
+        return { success: false, error: 'Game not found' };
+      }
+
+      if (dbGame.status === 'COMPLETED' || dbGame.status === 'ABANDONED') {
         client.emit('game:role-assigned', {
           gameId: data.gameId,
           role: 'spectator',
