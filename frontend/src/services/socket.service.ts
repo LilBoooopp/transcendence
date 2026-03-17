@@ -3,6 +3,7 @@ import { io, Socket } from 'socket.io-client';
 class SocketService {
   private socket: Socket | null = null;
   private persistentListeners: Map<string, Set<(...args: any[]) => void>> = new Map();
+  private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 
 
   connect(userId?: string): void {
@@ -37,10 +38,19 @@ class SocketService {
       if (userId) {
         this.identifyUser(userId);
       }
+      if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = setInterval(() => {
+        this.emit('heartbeat', {});
+      }, 30000);
     });
+
 
     this.socket.on('disconnect', () => {
       console.log('Disconnected from Websocket server');
+      if (this.heartbeatInterval) {
+        clearInterval(this.heartbeatInterval);
+        this.heartbeatInterval = null;
+      }
     });
 
     this.socket.on('connect_error', (error) => {
@@ -49,6 +59,10 @@ class SocketService {
   }
 
   disconnect(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
