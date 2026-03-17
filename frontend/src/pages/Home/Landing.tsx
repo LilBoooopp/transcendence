@@ -7,10 +7,11 @@ import * as Icons from 'lucide-react';
 import { isLoggedIn } from '../../services/auth.service';
 import { useNotification } from '../../notifications';
 
-
 export default function WireframeLanding() {
 	const navigate = useNavigate();
 	const [loggedIn, setLoggedIn] = useState(false);
+		const [history, setHistory] = useState<GameHistoryItem[]>([]);
+
 	const [username, setUsername] = useState<string | null>(null);
 
 	const checkAuth = () => {
@@ -22,25 +23,34 @@ export default function WireframeLanding() {
 	};
 
 	useEffect(() => {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+
+  fetch('/api/users/history', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error('Failed to fetch history');
+      return res.json();
+    })
+    .then((data) => {
+      setHistory(data);
+    })
+    .catch((error) => {
+      console.error('Error fetching game history:', error);
+      setHistory([]);
+    });
+}, [loggedIn]);
+
+	useEffect(() => {
 		checkAuth();
 	}, []);
 
-	const history: GameHistoryItem[] = [
-		{ id: '1', date: '2023-10-24', opponent: 'GrandMasterFlash', result: 'Win', moves: 34, mode: 'Blitz', accuracy: 89 },
-		{ id: '2', date: '2023-10-22', opponent: 'Rookie123', result: 'Loss', moves: 21, mode: 'Bullet', accuracy: 65 },
-		{ id: '3', date: '2023-10-20', opponent: 'ChessBot', result: 'Draw', moves: 55, mode: 'Rapid', accuracy: 92 },
-	];
-	/*	//USERSYL
-		const handleLogin = async () => {
-		const response = await fetch('/api/users/register', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ email: '...', username: '...', password: '...' })
-		});
-		const data = await response.json();
-		// gérer la réponse
-		};*/
-
+	
 
 	const features = [
 		{

@@ -112,17 +112,18 @@ return (
           </div>
         </div>
 
-        <Card
-          variant="surface"
-          className="flex flex-col gap-3 w-full lg:w-[220px] p-4 lg:self-stretch"
-          style={{ maxWidth: BOARD_SIZE, maxHeight: BOARD_SIZE }}
-        >
-          <h3 className="text-sm font-heading font-bold text-text-default">Move History</h3>
-          
-          <div className="flex-1 overflow-y-auto min-h-[120px]">
-            <MoveHistory history={moveHistory} />
-          </div>
-        </Card>
+        <div style={{ maxWidth: BOARD_SIZE, maxHeight: BOARD_SIZE }} className="w-full lg:w-[220px]">
+          <Card
+            variant="surface"
+            className="flex flex-col gap-3 w-full lg:w-[220px] p-4 lg:self-stretch"
+          >
+            <h3 className="text-sm font-heading font-bold text-text-default">Move History</h3>
+            
+            <div className="flex-1 overflow-y-auto min-h-[120px]">
+              <MoveHistory history={moveHistory} />
+            </div>
+          </Card>
+        </div>
       </div>
 
       {gameOver && (
