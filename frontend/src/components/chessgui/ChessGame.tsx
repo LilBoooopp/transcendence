@@ -97,6 +97,12 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 
 	const topColor = playerColor === 'white' ? 'b' : 'w';
 	const bottomColor = playerColor === 'white' ? 'w' : 'b';
+	const topLabel = topColor === 'w'
+		? (props.players?.white ?? 'White')
+		: (props.players?.black ?? 'Black');
+	const bottomLabel = bottomColor === 'w'
+		? (props.players?.white ?? 'White')
+		: (props.players?.black ?? 'Black');
 	const topTimeMs = topColor === 'w' ? whiteTimeMs : blackTimeMs;
 	const bottomTimeMs = bottomColor === 'w' ? whiteTimeMs : blackTimeMs;
 

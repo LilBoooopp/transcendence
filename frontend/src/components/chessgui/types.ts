@@ -39,4 +39,5 @@ export interface ChessGameProps {
   initialTimer?: TimerState | null;
   initialGameOver?: { winner: string; result: string } | null;
   incrementMs?: number;
+  players?: { white: string; black: string } | null;
 }
