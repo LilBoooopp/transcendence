@@ -21,6 +21,7 @@ import { JwtService } from '@nestjs/jwt';
 import { JWT_SECRET } from '../auth/configs/jwtsecret';
 import { EloService } from '../elo/elo.service';
 import { NotificationService } from '../notification/notification.service';
+import { UserService } from '../user/user.service';
 
 type BotDifficulty = 'easy' | 'medium' | 'hard';
 
@@ -112,6 +113,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly jwtService: JwtService,
     private readonly eloService: EloService,
     private readonly notificationService: NotificationService,
+    private readonly userService: UserService,
   ) { }
 
   async handleConnection(client: Socket) {
@@ -469,6 +471,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       this.server.to(roomName).emit('game:opponent-reconnected', {});
 
+      this.emitPlayerNames(data.gameId, roomName, gameRoom);
+
       // notification
       const otherUserId = gameRoom.whiteUserId === userId
         ? gameRoom.blackUserId
@@ -527,6 +531,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (whiteReady && blackReady) {
         gameRoom.gameStarted = true;
         this.startGameTimer(data.gameId, gameRoom);
+        this.emitPlayerNames(data.gameId, roomName, gameRoom);
 
         if (gameRoom.whiteUserId && gameRoom.blackUserId) {
           this.gameService.createGame(
@@ -628,6 +633,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.emit('game:role-assigned', {
       gameId: data.gameId,
       role: humanColor,
+    });
+
+    this.userService.findById(userId).then((user) => {
+      const humanName = user?.username ?? 'Player';
+      const difficulty = data.difficulty.charAt(0).toUpperCase() + data.difficulty.slice(1);
+      const botName = `Stockfish (${difficulty})`;
+      client.emit('game:players', {
+        gameId: data.gameId,
+        white: {
+          userId: humanColor === 'white' ? userId : null,
+          username: humanColor === 'white' ? humanName : botName,
+        },
+        black: {
+          userId: humanColor === 'black' ? userId : null,
+          username: humanColor === 'black' ? humanName : botName,
+        },
+      });
     });
 
     client.emit('game:state', {
@@ -997,6 +1019,21 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  private async emitPlayerNames(gameId: string, roomName: string, gameRoom: GameRoom): Promise<void> {
+    try {
+      const [whiteUser, blackUser] = await Promise.all([
+        gameRoom.whiteUserId ? this.userService.findById(gameRoom.whiteUserId) : null,
+        gameRoom.blackUserId ? this.userService.findById(gameRoom.blackUserId) : null,
+      ]);
+      this.server.to(roomName).emit('game:players', {
+        gameId,
+        white: { userId: gameRoom.whiteUserId, username: whiteUser?.username ?? 'Unknown' },
+        black: { userId: gameRoom.blackUserId, username: blackUser?.username ?? 'Unknown' },
+      });
+    } catch (e) {
+      console.warn('Coule not emit player names:', e.message);
+    }
+  }
   /**
    * Centralised endofgame persistence
    *
