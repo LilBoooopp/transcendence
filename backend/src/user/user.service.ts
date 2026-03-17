@@ -28,6 +28,7 @@ type UserHistoryItem = {
 type UserHistory = UserHistoryItem[];
 type UserStat = {
   username: string;
+  avatarUrl?: string | null;
   memberSince: string;
   totalGames: number;
   avgScore: number;
@@ -139,6 +140,7 @@ export class UserService {
       where: { id },
       select: {
         username: true,
+        avatarUrl: true,
         createdAt: true,
         statistics: true,
       },
@@ -161,6 +163,7 @@ export class UserService {
 
     return {
       username: user.username,
+      avatarUrl: user.avatarUrl,
       memberSince,
       totalGames: user.statistics?.totalGames ?? 0,  // ← petit t
       avgScore,

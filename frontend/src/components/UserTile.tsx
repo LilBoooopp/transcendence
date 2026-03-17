@@ -15,10 +15,12 @@ interface UserTileProps {
 export default function UserTile({ username, avatarUrl, MemberSince, TotalGames, AvgScore, onClick }: UserTileProps) {
   const placeholderImage = "https://ui-avatars.com/api/?name=" + username + "&background=random";
 
-  const avatarSrc =
-    avatarUrl && avatarUrl.trim() !== ''
-      ? `/api/uploads/${avatarUrl}`
-      : placeholderImage;
+ let avatarSrc = placeholderImage;
+
+  if (typeof avatarUrl === 'string' && avatarUrl.trim() !== '') {
+  const filename = avatarUrl.trim().replace(/^\/?(api\/)?uploads\//, '');
+  avatarSrc = `/api/uploads/${filename}`;
+  }
 
   const displayInfoParts: string[] = [];
   if (MemberSince) displayInfoParts.push(`Member since ${MemberSince}`);
@@ -47,6 +49,9 @@ export default function UserTile({ username, avatarUrl, MemberSince, TotalGames,
         <img
           src={avatarSrc}
           alt={`${username}'s avatar`}
+		      onError={(e) => {
+        	e.currentTarget.src = placeholderImage;
+          }}
           className="w-28 h-28 rounded-full object-cover shadow-sm border-4 border-accent"
         />
       </div>
