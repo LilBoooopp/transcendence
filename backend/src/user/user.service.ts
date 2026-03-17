@@ -195,7 +195,7 @@ export class UserService {
       days.push(date);
     }
 
-    // 3. Grouper EloHistory par jour et gameType, prendre le MAX eloAfter
+    // 3. Grouper EloHistory par jour et gameType
     const eloByDayAndType: Map<string, Map<string, number>> = new Map();
 
     for (const elo of eloHistory) {
@@ -206,8 +206,7 @@ export class UserService {
         eloByDayAndType.set(dayKey, new Map());
       }
 
-      const currentMax = eloByDayAndType.get(dayKey)!.get(gameType) || 0;
-      eloByDayAndType.get(dayKey)!.set(gameType, Math.max(currentMax, elo.eloAfter));
+      eloByDayAndType.get(dayKey)!.set(gameType, elo.eloAfter);
     }
 
     // 4. Construire les arrays pour chaque mode, avec fallback au jour précédent
