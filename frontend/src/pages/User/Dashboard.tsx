@@ -4,7 +4,7 @@ import { GameModeStatsCard } from '../../components/GameModeStatsCard';
 import GameHistoryList, { GameHistoryItem } from '../../components/GameHistoryList';
 import UserTile from '../../components/UserTile'; 
 import FriendsTile from '../../components/FriendsTile';
-import LeaderboardTile from '../../components/LeaderboardTile';
+import LeaderboardTile, { LeaderboardPlayer } from '../../components/LeaderboardTile';
 
 
 interface ChartDataPoint {
@@ -68,7 +68,7 @@ const StatsView = ({ chartData }: StatsViewProps) => {
 const WireframeDashboard = () => {
     const [view, setView] = useState<'menu' | 'time-selection'>('menu');
     const [history, setHistory] = useState<GameHistoryItem[]>([]);
-		const [leaderboard, setLeaderboard] = useState(mockLeaderboard);
+		const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
 
         const [chartData, setChartData] = useState({
       bullet: [],
@@ -149,6 +149,44 @@ useEffect(() => {
             .catch((error) => {
                 console.error('Error fetching game history:', error);
                 setHistory([]);
+            });
+    }, []);
+
+		// Leaderboard fetcher (example)
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        fetch('/api/users', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error('Failed to fetch users for leaderboard');
+                return res.json();
+            })
+            .then((data) => {
+                // 1. Map backend data to the LeaderboardPlayer interface
+                const formattedLeaderboard: LeaderboardPlayer[] = data.map((user: any) => {
+                    // Adjust this based on how your backend sends the userStatistics relation.
+                    // Defaulting to 1200 if no stats are found, as per elo.service.ts
+                    const userElo = user.stats?.rapidElo || user.avgScore || 1200; 
+
+                    return {
+                        id: user.id || user.userId,
+                        username: user.username,
+                        elo: userElo,
+                        avatarUrl: user.avatarUrl,
+                    };
+                });
+                formattedLeaderboard.sort((a, b) => b.elo - a.elo);
+                setLeaderboard(formattedLeaderboard);
+            })
+            .catch((error) => {
+                console.error('Error fetching leaderboard:', error);
+                setLeaderboard([]);
             });
     }, []);
 
