@@ -14,7 +14,7 @@ interface TileProps {
 
 export default function Tile_w_select({ title, description, icon, onClick, options, selectedOption, onSelect }: TileProps) {
 	return (
-		<Card className="p-5 sm:p-6 gap-4 h-full min-h-[16rem] sm:aspect-square overflow-hidden cursor-default flex flex-col items-center justify-between">			<div className="flex-1 flex flex-col items-center justify-center w-full text-center">
+		<Card variant="surface" className="p-5 sm:p-6 gap-4 h-full min-h-[16rem] sm:aspect-square overflow-hidden cursor-default flex flex-col items-center justify-between">			<div className="flex-1 flex flex-col items-center justify-center w-full text-center">
 				{icon && <div className="text-4xl text-text-default mb-4">{icon}</div>}
 				{title && <h3 className="text-xl font-heading font-bold text-text-default mb-2 m-0">{title}</h3>}
 

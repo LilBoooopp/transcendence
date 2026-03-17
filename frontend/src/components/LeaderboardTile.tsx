@@ -16,9 +16,9 @@ interface LeaderboardTileProps {
 export default function LeaderboardTile({ players }: LeaderboardTileProps) {
   const topPlayers = players.slice(0, 10);
   return (
-    <Card className="flex flex-col p-5 w-full h-full max-h-[400px] gap-4 overflow-hidden">
+    <Card variant="surface" className="flex flex-col p-5 w-full h-full max-h-[400px] gap-4 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-2 border-b border-gray-700 pb-2 shrink-0">
+      <div className="flex items-center justify-center gap-2 border-b border-gray-700 pb-2 shrink-0">
         <Trophy size={20} className="text-accent" />
         <h3 className="text-xl font-heading font-bold text-text-default m-0">Leaderboard</h3>
       </div>
@@ -30,7 +30,7 @@ export default function LeaderboardTile({ players }: LeaderboardTileProps) {
         )}
 
         {topPlayers.map((player, index) => (
-          <div key={player.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-primary/30 transition-colors gap-3">
+          <div key={player.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary/50 transition-colors gap-3">
             
             {/* Left side: Rank, Avatar, Username */}
             <div className="flex items-center gap-3 flex-1 min-w-0">
