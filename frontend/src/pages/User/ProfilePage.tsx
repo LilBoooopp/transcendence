@@ -138,7 +138,7 @@ const ProfilePage = () => {
 	const handleChangePassword = async (oldPassword: string, newPassword: string) => {
 		const token = localStorage.getItem('token');
 		if (!token) throw new Error('No token');
-
+		try {
 		// Note: Adjust the URL '/api/users/password' based on your actual NestJS backend route
 		const res = await fetch('/api/users/password', {
 			method: 'PATCH',
@@ -152,8 +152,9 @@ const ProfilePage = () => {
 		if (!res.ok) {
 			throw new Error('Failed to update password');
 		}
-		
-		console.log('Password successfully changed');
+	}
+		catch (error) {
+			console.error('Error changing password account:', error);}
 	};
 
 	// --- NEW: Delete Account Logic ---

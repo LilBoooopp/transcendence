@@ -155,8 +155,8 @@ export default function ProfileTile({
 						type="file" 
 						ref={fileInputRef} 
 						onChange={handleFileChange} 
-						accept="image/png, image/jpeg, image/jpg" 
-						className="hidden" 
+						accept="image/png, image/jpeg, image/jpg"
+						className="hidden"
 					/>
 				</div>
 

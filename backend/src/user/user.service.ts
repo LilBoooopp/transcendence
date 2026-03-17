@@ -1,10 +1,11 @@
 // pas trop mal
 
-import { Injectable, ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { promises as fs } from 'fs';
 import { join } from 'path';
+import * as bcrypt from 'bcrypt';
 
 
 type UserProfile = {
@@ -30,8 +31,8 @@ type UserHistory = UserHistoryItem[];
 type UserStat = {
   username: string;
   memberSince: string;
-  totalGames: number;    // ← petit t
-  avgScore: number;      // ← petit a
+  totalGames: number;
+  avgScore: number;
   bulletRating?: number;
   blitzRating?: number;
   rapidRating?: number;
@@ -133,6 +134,32 @@ export class UserService {
       throw error;
     }
   }
+
+  async modifyPassword(id: string, oldPassword: string, newPassword: string) {
+  const user = await this.prisma.user.findUnique({
+    where: { id },
+    select: { id: true, password: true },
+  });
+
+  if (!user) {
+    throw new NotFoundException('User not found');
+  }
+
+  const ok = await bcrypt.compare(oldPassword, user.password);
+  if (!ok) {
+    throw new UnauthorizedException('Invalid password');
+  }
+
+  const hashed = await bcrypt.hash(newPassword, 10);
+
+  await this.prisma.user.update({
+    where: { id },
+    data: { password: hashed },
+  });
+
+  return { success: true };
+}
+
 
   async getUserStat(id: string): Promise<UserStat> {
     const user = await this.prisma.user.findUnique({
@@ -302,7 +329,8 @@ export class UserService {
         ],
       },
       orderBy: {
-        endedAt: 'desc',   // most recent first; fallback is createdAt if needed
+        // most recent
+        endedAt: 'desc',
       },
       take: 10,
       include: {

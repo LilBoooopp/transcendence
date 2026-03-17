@@ -49,26 +49,41 @@ export class UserController {
 
   @Delete()
   async deleteUser(@Req() req: any) {
-    //console.log('Delete User');
     return this.userService.deleteUser(req.user.userId);
   }
 
   @Patch()
   async modifyUser(@Req() req: any, @Body() body) {
-    console.log('In patch/user/');
     const updatedUser = await this.userService.modifyUser(req.user.userId, body.username, body.email, body.firstName, body.lastName, body.bio, body.avatarUrl);
 
     const response: any = { user: updatedUser };
 
-    // Regénérer le token uniquement si le username a changé
     if (updatedUser.username !== req.user.username) {
       const tokenPayload = {
         sub: req.user.userId,
         username: updatedUser.username,
+        //finger print
       };
       response.accessToken = await this.jwtService.signAsync(tokenPayload);
     }
 
+    return response;
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('password')
+  async uploadPassword(@Req() req: any, @Body() body) {
+
+    const updatedUser = await this.userService.modifyPassword(req.user.userId, body.oldPassword, body.newPassword);
+
+
+    const response: any = { user: updatedUser };    
+    const tokenPayload = {
+    sub: req.user.userId,
+    username: req.user.username,
+    //finger print??
+      };
+      response.accessToken = await this.jwtService.signAsync(tokenPayload);
     return response;
   }
 
@@ -106,7 +121,6 @@ export class UserController {
 
   @Get('me')
   async getUserProfile(@Req() req: any) {
-    //console.log('in users/me');
     return await this.userService.getUserProfile(req.user.userId);
   }
 
@@ -135,6 +149,8 @@ export class UserController {
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
+
+
 
   @UseGuards(AuthGuard)
   @Get('history')
