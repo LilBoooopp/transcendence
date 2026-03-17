@@ -4,6 +4,8 @@ import { GameModeStatsCard } from '../../components/GameModeStatsCard';
 import GameHistoryList, { GameHistoryItem } from '../../components/GameHistoryList';
 import UserTile from '../../components/UserTile'; 
 import FriendsTile from '../../components/FriendsTile';
+import LeaderboardTile from '../../components/LeaderboardTile';
+
 
 interface ChartDataPoint {
   date: string;
@@ -17,6 +19,14 @@ interface StatsViewProps {
     rapid: ChartDataPoint[];
   };
 }
+
+const mockLeaderboard = [
+  { id: '1', username: 'MagnusC', elo: 2882 },
+  { id: '2', username: 'HikaruN', elo: 2875 },
+  { id: '3', username: 'FabiC', elo: 2830 },
+  { id: '4', username: 'IanN', elo: 2790 },
+  { id: '5', username: 'DingL', elo: 2780 },
+];
 
 const StatsView = ({ chartData }: StatsViewProps) => {
 	return (
@@ -58,6 +68,7 @@ const StatsView = ({ chartData }: StatsViewProps) => {
 const WireframeDashboard = () => {
     const [view, setView] = useState<'menu' | 'time-selection'>('menu');
     const [history, setHistory] = useState<GameHistoryItem[]>([]);
+		const [leaderboard, setLeaderboard] = useState(mockLeaderboard);
 
         const [chartData, setChartData] = useState({
       bullet: [],
@@ -143,7 +154,7 @@ useEffect(() => {
 
     return (
 			<div className="w-full max-w-5xl mx-auto py-8 px-4">
-       <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-stretch">
+				<div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-stretch">
 				{/* User Profile Tile */}
 				<div className="order-1 sm:order-1 sm:col-span-5 lg:col-span-4 flex">
 					<UserTile 
@@ -152,9 +163,8 @@ useEffect(() => {
 						TotalGames={stats.totalGames}
 						AvgScore={stats.avgScore}
 					/>
-        </div>
-
-            {/* BOTTOM SECTION: Statistics Dashboard */}
+			  </div>
+				{/* BOTTOM SECTION: Statistics Dashboard */}
 				<div className="order-2 sm:order-3 sm:col-span-12 flex flex-col gap-8 mt-4 w-full">        
 						<div className="flex justify-center"> 
 							<StatsView chartData={chartData} /> 
@@ -162,12 +172,18 @@ useEffect(() => {
 					<GameHistoryList history={history} />
 				</div>
 
+				{/* Friends Tile */}
 				<div className="order-3 sm:order-2 sm:col-span-7 lg:col-span-8 flex">
-          <FriendsTile />
-        </div>
-      </div>        
-    </div>
-    );
+					<FriendsTile />
+				</div>
+				{/* LEADERBOARD TILE (Moved inside the grid) */}
+				<div className="order-4 sm:order-4 sm:col-span-12 flex">
+					<LeaderboardTile players={leaderboard} />
+				</div>
+
+			</div>
+		</div>
+	);
 };
 
 export default WireframeDashboard;
