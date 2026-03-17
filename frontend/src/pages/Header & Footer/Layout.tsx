@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../../components/Navbar";
-import { useSocketNotification } from "../../notifications";
 import { useDarkMode } from '../../hooks/darkMode'
 
 interface LayoutProps {
@@ -8,7 +7,6 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  useSocketNotification();
   const [isDarkMode, toggleDarkMode] = useDarkMode();
 
   useEffect(() => {
