@@ -1,4 +1,3 @@
-// pas trop mal
 
 import { Injectable, ConflictException, BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -30,6 +29,7 @@ type UserHistoryItem = {
 type UserHistory = UserHistoryItem[];
 type UserStat = {
   username: string;
+  avatarUrl?: string | null;
   memberSince: string;
   totalGames: number;
   avgScore: number;
@@ -37,7 +37,7 @@ type UserStat = {
   blitzRating?: number;
   rapidRating?: number;
 };
-const DEFAULT_AVATAR_FILENAME = 'defaultAvatar.png';
+const DEFAULT_AVATAR_FILENAME = '';
 const UPLOADS_DIR = join(process.cwd(), 'src', 'uploads');
 
 @Injectable()
@@ -85,6 +85,7 @@ export class UserService {
       select: { username: true, id: true, email: true, firstName: true, lastName: true, bio: true, avatarUrl: true },
     });
   }
+  
   async modifyUser(id: string, newUsername?: string, newEmail?: string, newFirstName?: string, newLastName?: string, newBio?: string, newAvatar?: string): Promise<UserProfile | null> {
     const data: { username?: string, email?: string, firstName?: string, lastName?: string, bio?: string, avatarUrl?: string } = {};
 
@@ -166,6 +167,7 @@ export class UserService {
       where: { id },
       select: {
         username: true,
+        avatarUrl: true,
         createdAt: true,
         statistics: true,
       },
@@ -188,6 +190,7 @@ export class UserService {
 
     return {
       username: user.username,
+      avatarUrl: user.avatarUrl,
       memberSince,
       totalGames: user.statistics?.totalGames ?? 0,  // ← petit t
       avgScore,
@@ -400,5 +403,7 @@ export class UserService {
     });
     return history;
   }
+
+	
 
 }

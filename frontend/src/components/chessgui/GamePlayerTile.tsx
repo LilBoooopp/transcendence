@@ -6,13 +6,15 @@ interface GamePlayerTileProps {
   avgRating?: number;
   color: 'white' | 'black'
   isActive?: boolean;
+  isBot?: boolean;
 }
 
 const GamePlayerTile: React.FC<GamePlayerTileProps> = ({
   username,
   avatarUrl,
   color,
-  isActive
+  isActive,
+  isBot
 }) => {
   const fallbackAvatar = `https://ui-avatars.com/api/?name=${username}&background=random`;
 
@@ -28,11 +30,17 @@ const GamePlayerTile: React.FC<GamePlayerTileProps> = ({
       ].join(' ')}
     >
       <div className="flex items-center gap-3 overflow-hidden">
-        <img
-          src={avatarUrl || fallbackAvatar}
-          alt={`${username}'s avatar`}
-          className="w-10 h-10 shrink-0 rounded-full object-cover shadow-inner border border-accent"
-        />
+        {isBot ? (
+          <div className="flex items-center justify-center w-10 h-10 shrink-0 rounded-full shadow-inner border border-accent bg-secondary text-2xl select-none">
+            🤖
+          </div>
+        ) : (
+          <img
+            src={avatarUrl || fallbackAvatar}
+            alt={`${username}'s avatar`}
+            className="w-10 h-10 shrink-0 rounded-full object-cover shadow-inner border border-accent"
+          />
+        )}
         <div className="flex flex-col truncate">
           <span className="font-heading font-bold text-text-default text-sm sm:text-base leading-tight tracking-wide truncate">
             {username}

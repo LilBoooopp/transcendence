@@ -1,29 +1,29 @@
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
-import { UserService} from 'src/user/user.service'
-import { JwtService} from '@nestjs/jwt'
+import { UserService } from 'src/user/user.service'
+import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 
-type AuthInput = {username: string; password: string};
-type SignInData = {userId: string; username: string};
-type AuthResult = { accessToken: string; userId: string; username: string};
+type AuthInput = { username: string; password: string };
+type SignInData = { userId: string; username: string };
+type AuthResult = { accessToken: string; userId: string; username: string };
 
 @Injectable()
 export class AuthService {
-	//here we inject the user service
-	constructor(
-		private usersService: UserService,
-		private jwtService: JwtService,
-		private prisma: PrismaService,
-	) {}
+  //here we inject the user service
+  constructor(
+    private usersService: UserService,
+    private jwtService: JwtService,
+    private prisma: PrismaService,
+  ) { }
 
 
   ///////////////////////////////////////////////
-	async createUser(data: {
+  async createUser(data: {
     email: string;
     username: string;
-    password: string;}): Promise<AuthResult>
-  {
+    password: string;
+  }): Promise<AuthResult> {
     if (!data.email || !data.username || !data.password) {
       throw new BadRequestException('Email, username, and password are mandatory');
     }
@@ -49,9 +49,9 @@ export class AuthService {
         email: data.email,
         username: data.username,
         password: hashedPassword,
-		    avatarUrl: "defaultAvatar.png",
-		    bio: 'I will be happy to play',
-		    isOnline: true,
+        avatarUrl: "defaultAvatar.png",
+        bio: 'I will be happy to play',
+        isOnline: true,
         statistics: {
           create: {},
         },
@@ -59,32 +59,27 @@ export class AuthService {
       select: {
         id: true,
         username: true,
-        },
+      },
     });
     return this.signIn({ userId: createdUser.id, username: createdUser.username });
   }
   ////////////////////////////////////////
 
-	//return the token. 
-	async authenticate(input: AuthInput): Promise<AuthResult>{
-		const user = await this.validateUser(input);
-		if (!user){
-			throw new UnauthorizedException('Invalid username or password');
-		}
-		//if user is valid
-		await this.prisma.user.update({
-			where: { id: user.userId},
-			data: { isOnline: true}
-		});
-		return this.signIn(user)
-	}
+  //return the token. 
+  async authenticate(input: AuthInput): Promise<AuthResult> {
+    const user = await this.validateUser(input);
+    if (!user) {
+      throw new UnauthorizedException('Invalid username or password');
+    }
+    return this.signIn(user)
+  }
 
   //ok verify user and password
-	async validateUser(input: AuthInput): Promise<SignInData | null> {
+  async validateUser(input: AuthInput): Promise<SignInData | null> {
 
-		const user = await this.usersService.findAuthUser(input.username);
+    const user = await this.usersService.findAuthUser(input.username);
 
-		if (!user) return null;
+    if (!user) return null;
 
     const valid = await bcrypt.compare(input.password, user.password);
 
@@ -94,41 +89,36 @@ export class AuthService {
       userId: user.id,
       username: user.username,
     };
-	}
+  }
 
   //jwt create token
-	async signIn(user: SignInData): Promise<AuthResult> {
-		const tokenPayload = {
-			sub: user.userId,
-			username: user.username,
-			//rajoute fingerprint dans la db
-		};
-		const accessToken = await this.jwtService.signAsync(tokenPayload);
-		return {accessToken, username: user.username, userId: user.userId};
-	}
+  async signIn(user: SignInData): Promise<AuthResult> {
+    const tokenPayload = {
+      sub: user.userId,
+      username: user.username,
+      //rajoute fingerprint dans la db
+    };
+    const accessToken = await this.jwtService.signAsync(tokenPayload);
+    return { accessToken, username: user.username, userId: user.userId };
+  }
 
-	async logout(userId:string){
-		await this.prisma.user.update({
-			where: { id : userId},
-			data: { isOnline: false}
-		});
-		return true;
-	}
+  async logout(userId: string) {
+    return true;
+  }
 
-	async isConnected(userId: string): Promise<{ isConnected: boolean; username: string}>
-	{
-    	const user = await this.prisma.user.findUnique({
-    	    where: {id: userId},
-    	    select: { username: true, isOnline: true},
-    	})
-    	if (!user){
-    	    throw new UnauthorizedException('User not found');
-    	}
-    	return {
-    	    isConnected: user.isOnline,
-    	    username: user.username,
-    	}
-	}
+  async isConnected(userId: string): Promise<{ isConnected: boolean; username: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { username: true, isOnline: true },
+    })
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    return {
+      isConnected: user.isOnline,
+      username: user.username,
+    }
+  }
 
 }
 
