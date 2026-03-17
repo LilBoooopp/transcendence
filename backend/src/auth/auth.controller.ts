@@ -39,7 +39,6 @@ export class AuthController {
 	@UseGuards(AuthGuard)
 	@Post('logout')
 	logout(@Req() req: any) {
-		console.log('Beginning of logout');
 		return this.authService.logout(req.user.userId);
 	}
 

@@ -134,12 +134,10 @@ const ProfilePage = () => {
 		}));
 	};
 
-	// --- NEW: Change Password Logic ---
 	const handleChangePassword = async (oldPassword: string, newPassword: string) => {
 		const token = localStorage.getItem('token');
 		if (!token) throw new Error('No token');
 		try {
-		// Note: Adjust the URL '/api/users/password' based on your actual NestJS backend route
 		const res = await fetch('/api/users/password', {
 			method: 'PATCH',
 			headers: {
@@ -157,14 +155,12 @@ const ProfilePage = () => {
 			console.error('Error changing password account:', error);}
 	};
 
-	// --- NEW: Delete Account Logic ---
 	const handleDeleteAccount = async () => {
 		const token = localStorage.getItem('token');
 		if (!token) return;
 
 		try {
-			// Note: Adjust the URL '/api/users/me' based on your actual NestJS backend route
-			const res = await fetch('/api/users/me', {
+			const res = await fetch('/api/users/', {
 				method: 'DELETE',
 				headers: {
 					Authorization: `Bearer ${token}`,
@@ -174,8 +170,6 @@ const ProfilePage = () => {
 			if (!res.ok) {
 				throw new Error('Failed to delete account');
 			}
-
-			// Clear the token and kick the user back to the landing page
 			localStorage.removeItem('token');
 			navigate('/');
 			console.log('Account deleted');

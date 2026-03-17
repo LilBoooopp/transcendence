@@ -10,15 +10,13 @@ type AuthResult = { accessToken: string; userId: string; username: string };
 
 @Injectable()
 export class AuthService {
-  //here we inject the user service
+  
   constructor(
     private usersService: UserService,
     private jwtService: JwtService,
     private prisma: PrismaService,
   ) { }
 
-
-  ///////////////////////////////////////////////
   async createUser(data: {
     email: string;
     username: string;
@@ -28,7 +26,6 @@ export class AuthService {
       throw new BadRequestException('Email, username, and password are mandatory');
     }
 
-    //check exiting user
     const existingUser = await this.prisma.user.findFirst({
       where: {
         OR: [
@@ -41,7 +38,6 @@ export class AuthService {
       throw new ConflictException('Email or username is already taken');
     }
 
-    //check password
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
     const createdUser = await this.prisma.user.create({
@@ -63,7 +59,6 @@ export class AuthService {
     });
     return this.signIn({ userId: createdUser.id, username: createdUser.username });
   }
-  ////////////////////////////////////////
 
   //return the token. 
   async authenticate(input: AuthInput): Promise<AuthResult> {
@@ -74,7 +69,7 @@ export class AuthService {
     return this.signIn(user)
   }
 
-  //ok verify user and password
+  // verify user and password
   async validateUser(input: AuthInput): Promise<SignInData | null> {
 
     const user = await this.usersService.findAuthUser(input.username);
@@ -96,7 +91,6 @@ export class AuthService {
     const tokenPayload = {
       sub: user.userId,
       username: user.username,
-      //rajoute fingerprint dans la db
     };
     const accessToken = await this.jwtService.signAsync(tokenPayload);
     return { accessToken, username: user.username, userId: user.userId };
