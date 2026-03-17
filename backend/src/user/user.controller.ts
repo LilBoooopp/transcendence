@@ -34,8 +34,8 @@ interface UploadedFile {
 const UPLOADS_DIR = join(process.cwd(), 'src', 'uploads');
 
 @Controller('users')
-@UseGuards(RateLimitGuard, AuthGuard)
-@Throttle({ default: { limit: 60, ttl: 60_000 } })
+@UseGuards(AuthGuard)
+//@Throttle({ default: { limit: 60, ttl: 60_000 } })
 export class UserController {
   constructor(
     private userService: UserService,
