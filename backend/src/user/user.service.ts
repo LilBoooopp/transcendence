@@ -1,4 +1,3 @@
-// pas trop mal
 
 import { Injectable, ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -30,13 +29,13 @@ type UserHistory = UserHistoryItem[];
 type UserStat = {
   username: string;
   memberSince: string;
-  totalGames: number;    // ← petit t
-  avgScore: number;      // ← petit a
+  totalGames: number; 
+  avgScore: number;
   bulletRating?: number;
   blitzRating?: number;
   rapidRating?: number;
 };
-const DEFAULT_AVATAR_FILENAME = 'defaultAvatar.png';
+const DEFAULT_AVATAR_FILENAME = '';
 const UPLOADS_DIR = join(process.cwd(), 'src', 'uploads');
 
 @Injectable()
@@ -372,5 +371,7 @@ export class UserService {
     });
     return history;
   }
+
+	
 
 }
