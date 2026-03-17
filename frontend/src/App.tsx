@@ -16,7 +16,6 @@ import SoloLauncher from './pages/Game/SoloLauncher';
 import SoloGamePage from './pages/Game/SoloGamePage';
 
 import ProtectedRoute from './components/ProtectedRoute';
-import { Link } from 'lucide-react';
 function NotificationListener({ children }: { children: React.ReactNode }) {
   useSocketNotification();
   return <>{children}</>;
