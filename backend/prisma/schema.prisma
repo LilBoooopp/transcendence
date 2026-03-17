@@ -23,22 +23,16 @@ model User {
   lastName  String?
   bio       String?
 
-  // OAuth fields 
-  oauthProvider String? // 'google', 'github', etc.
-  oauthId       String? // ID from OAuth provider
-
   isOnline Boolean  @default(false)
   lastSeen DateTime @default(now())
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  gamesAsWhite Game[]                  @relation("WhitePlayer")
-  gamesAsBlack Game[]                  @relation("BlackPlayer")
-  friends      User[]                  @relation("Friendship")
-  friendOf     User[]                  @relation("Friendship")
-  chatMessages ChatMessage[]
-  tournaments  TournamentParticipant[]
+  gamesAsWhite Game[]          @relation("WhitePlayer")
+  gamesAsBlack Game[]          @relation("BlackPlayer")
+  friends      User[]          @relation("Friendship")
+  friendOf     User[]          @relation("Friendship")
   statistics   UserStatistics?
   eloHistory   EloHistory[]
 
@@ -83,7 +77,6 @@ model EloHistory {
   gameId   String
   gameType GameType // bullet, etc
 
-
   eloBefore   Int
   eloAfter    Int
   eloChange   Int
@@ -98,6 +91,7 @@ model EloHistory {
   @@index([userId, gameType])
   @@index([createdAt])
 }
+
 enum GameType {
   BULLET
   BLITZ
@@ -119,9 +113,9 @@ model Game {
   winner String? // 'white', 'black', or null for draw
 
   // chess data
-  pgn   String @default("") // Portable Game Notation
-  fen   String @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") // Forsyth-Edwards Notation
-  moves Json   @default("[]") // Array of moves
+  pgn        String @default("") // Portable Game Notation
+  fen        String @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") // Forsyth-Edwards Notation
+  moves      Json   @default("[]") // Array of moves
   totalMoves Int?
 
   //settings
@@ -132,10 +126,6 @@ model Game {
   isAiGame     Boolean @default(false)
   aiDifficulty Int? // 1-20 for Stockfish
 
-  // tournament 
-  tournamentId String?
-  tournament   Tournament? @relation(fields: [tournamentId], references: [id])
-
   // Timestamps
   startedAt DateTime?
   endedAt   DateTime?
@@ -145,7 +135,6 @@ model Game {
   @@index([whitePlayerId])
   @@index([blackPlayerId])
   @@index([status])
-  @@index([tournamentId])
 }
 
 enum GameStatus {
@@ -162,70 +151,4 @@ enum GameResult {
   STALEMATE
   TIMEOUT
   RESIGNATION
-}
-
-// Chat messages
-model ChatMessage {
-  id         String  @id @default(uuid())
-  senderId   String
-  sender     User    @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  receiverId String? // null for global chat
-  content    String
-  isRead     Boolean @default(false)
-
-  createdAt DateTime @default(now())
-
-  @@index([senderId])
-  @@index([receiverId])
-  @@index([createdAt])
-}
-
-// Tournament system 
-model Tournament {
-  id          String  @id @default(uuid())
-  name        String
-  description String?
-
-  // Tournament settings
-  maxPlayers   Int              @default(8)
-  currentRound Int              @default(1)
-  status       TournamentStatus @default(REGISTRATION)
-
-  // Timestamps
-  startDate DateTime
-  endDate   DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  // Relations
-  participants TournamentParticipant[]
-  games        Game[]
-
-  @@index([status])
-  @@index([startDate])
-}
-
-enum TournamentStatus {
-  REGISTRATION // Players can join
-  IN_PROGRESS // Tournament started
-  COMPLETED // TouGame Arnament finished
-  CANCELLED // Tournament cancelled
-}
-
-model TournamentParticipant {
-  id           String     @id @default(uuid())
-  tournamentId String
-  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  userId       String
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  seed       Int?
-  eliminated Boolean @default(false)
-  placement  Int? // (1st, 2nd, etc.)
-
-  joinedAt DateTime @default(now())
-
-  @@unique([tournamentId, userId])
-  @@index([tournamentId])
-  @@index([userId])
 }
