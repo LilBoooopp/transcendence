@@ -35,12 +35,12 @@ function App() {
             <Route path="/dashboard" element={<ProtectedRoute><WireframeLayout><WireframeDashboard /></WireframeLayout></ProtectedRoute>} />
             <Route path="/user" element={<ProtectedRoute><WireframeLayout><ProfilePage /></WireframeLayout></ProtectedRoute>} />
 
-            <Route path="/play" element={<ProtectedRoute><MatchmakingWaiting /></ProtectedRoute>} />
-            <Route path="/bot-launch" element={<ProtectedRoute><BotGameLauncher /></ProtectedRoute>} />
-            <Route path="/game/:gameId" element={<ProtectedRoute><GamePage /></ProtectedRoute>} />
+            <Route path="/play" element={<ProtectedRoute><WireframeLayout><MatchmakingWaiting /></WireframeLayout></ProtectedRoute>} />
+            <Route path="/bot-launch" element={<ProtectedRoute><WireframeLayout><BotGameLauncher /></WireframeLayout></ProtectedRoute>} />
+            <Route path="/game/:gameId" element={<ProtectedRoute><WireframeLayout><GamePage /></WireframeLayout></ProtectedRoute>} />
 
-            <Route path="/solo" element={<ProtectedRoute><SoloLauncher /></ProtectedRoute>} />
-            <Route path="/solo-game" element={<ProtectedRoute><SoloGamePage /></ProtectedRoute>} />
+            <Route path="/solo" element={<ProtectedRoute><WireframeLayout><SoloLauncher /></WireframeLayout></ProtectedRoute>} />
+            <Route path="/solo-game" element={<ProtectedRoute><WireframeLayout><SoloGamePage /></WireframeLayout></ProtectedRoute>} />
           </Routes>
         </NotificationListener>
       </NotificationProvider>

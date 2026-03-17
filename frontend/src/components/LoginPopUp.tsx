@@ -20,6 +20,35 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', onLo
 	const [error, setError] = useState('');
 	const [isLoading, setIsLoading] = useState(false);
 
+	// Regex for each fields
+	const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+	const passwordRegex = /^[a-zA-Z0-9!@#$%^&*()_+\-=[\]{}|;:,.<>?]+$/;
+	const emailRegex = /^((?:[A-Za-z0-9!#$%&'*+\-\/=?^_`{|}~]|(?<=^|\.)"|"(?=$|\.|@)|(?<=".*)[ .](?=.*")|(?<!\.)\.){1,64})(@)((?:[A-Za-z0-9.\-])*(?:[A-Za-z0-9])\.(?:[A-Za-z0-9]){2,})$/gm
+
+	const validateForm = (): string | null => {
+	    const { username, password, email } = formData;
+		console.log('Validating form with:', { username, password, email });
+
+		if (!isLoginView && (!email.includes('@') || !email.includes('.') || !emailRegex.test(email))) {
+	        return 'Please enter a valid email address';
+	    }
+	    if (username.length < 3 || username.length > 20) {
+	        return 'Username must be between 3 and 20 characters';
+	    }
+	    if (!usernameRegex.test(username)) {
+	        return 'Username can only contain letters, numbers, or "_" and "-"';
+	    }
+
+	    if (password.length < 8 || password.length > 64) {
+	        return 'Password must be between 8 and 64 characters';
+	    }
+	    if (!passwordRegex.test(password)) {
+	        return 'Password can only contain letters, digits, and special characters !@#$%^&*()_+-=[]{}|;:,.<>?';
+	    }
+
+	    return null;
+	};
+
 	// Effect to check changing state
 	useEffect(() => {
 		if (isOpen) {
@@ -58,6 +87,14 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', onLo
 		e.preventDefault();
 		setIsLoading(true);
 		setError('');
+
+		// Validate form before submitting
+		const validationError = validateForm();
+		if (validationError) {
+			setError(validationError);
+			setIsLoading(false);
+			return;
+		}
 		
 		try {
 			const url = isLoginView ? '/api/auth/login' : '/api/auth/register';
@@ -122,6 +159,10 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', onLo
 							placeholder="Email Address"
 							value={formData.email}
 							onChange={handleChange}
+							minLength={5}
+							maxLength={254}
+							pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
+							title="Please enter a valid email address"
 							className="p-3 border rounded-lg border-slate-300 dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent"
 							required
 						/>
@@ -133,6 +174,10 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', onLo
 						placeholder="Username"
 						value={formData.username}
 						onChange={handleChange}
+						minLength={3}
+						maxLength={20}
+						pattern="^[a-zA-Z0-9_\-]+$"
+						title="Letters, numbers, underscores and hyphens only"
 						className="p-3 border rounded-lg border-slate-300 dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent"
 						required
 					/>
@@ -143,6 +188,10 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', onLo
 						placeholder="Password"
 						value={formData.password}
 						onChange={handleChange}
+						minLength={8}
+						maxLength={64}
+						pattern="^[a-zA-Z0-9!@#$%^&*()_+\-=[\]{}|;:,.<>?]+$"
+						title="Letters, digits, and special characters !@#$%^&*()_+-=[]{}|;:,.<>? only"
 						className="p-3 border rounded-lg border-slate-300 dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent"
 						required
 					/>

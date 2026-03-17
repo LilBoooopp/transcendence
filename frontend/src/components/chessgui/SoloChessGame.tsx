@@ -7,6 +7,7 @@ import { classicTheme } from './themes';
 import { MoveHistory } from './MoveHistory';
 import { useSoloChessGame, SoloChessGameProps } from './hooks/useSoloChessGame';
 import Button from '../Button';
+import { Card } from '../ui/Card';
 
 const BOARD_SIZE = 'min(calc(100vw - 2rem), 80vh, 600px)';
 
@@ -57,16 +58,13 @@ const SoloChessGame: React.FC<SoloChessGameProps> = (props) => {
       </span>
     );
 
-  return (
-    <div className="min-h-screen bg-background-light flex items-center justify-center p-4 font-body">
-      {/* Solo mode banner */}
-      <div className="absolute top-0 left-0 right-0 bg-accent/10 border-b border-accent/20 text-accent text-center py-1.5 text-xs font-semibold font-body tracking-wide">
-        SOLO BOARD - No click · No premoves · You control both sides
-      </div>
-
-      <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6 mt-10">
-        {/* Board column */}
+return (
+    <div className="flex flex-col items-center font-body w-full">
+      <div className="flex flex-col lg:flex-row items-center lg:items-start gap-6">
         <div className="flex flex-col items-center gap-2" style={{ width: BOARD_SIZE }}>
+          <div className="w-full rounded-md bg-secondary text-text-default text-center py-2 px-1 text-[10px] sm:text-xs font-semibold font-body tracking-wide">
+            SOLO BOARD - No click · No premoves · You control both sides
+          </div>
           <div className="relative rounded-lg overflow-hidden shadow-xl" style={{ width: BOARD_SIZE, height: BOARD_SIZE }}>
             <Board
               board={board}
@@ -89,29 +87,42 @@ const SoloChessGame: React.FC<SoloChessGameProps> = (props) => {
             )}
           </div>
 
-          <div className="flex items-center justify-between w-full px-1 mt-1">
-            <span className="text-sm font-body text-text-default/70">
+          <div className="flex flex-row items-center justify-between w-full px-1 mt-1 gap-1 min-[425px]:gap-2">
+            
+            <span className="text-[11px] min-[425px]:text-sm font-body text-text-default whitespace-nowrap">
               {gameOver ? gameStatus : turnIndicator}
             </span>
-            <div className="flex gap-2">
-              <Button variant="secondary" onClick={resetGame} className="text-xs px-3 py-1.5">
+            
+            <div className="flex gap-1 min-[425px]:gap-2">
+              <Button 
+                variant="secondary" 
+                onClick={resetGame} 
+                className="text-[10px] min-[425px]:text-sm !px-2 min-[425px]:!px-4 !py-1 min-[425px]:!py-2 !h-fit !min-h-0 !min-w-0 whitespace-nowrap"
+              >
                 New Game
               </Button>
-              <Button variant="secondary" onClick={() => navigate('/')} className="text-xs px-3 py-1.5">
+              <Button 
+                variant="tertiary" 
+                onClick={() => navigate('/')} 
+                className="text-[10px] min-[425px]:text-sm !px-2 min-[425px]:!px-4 !py-1 min-[425px]:!py-2 !h-fit !min-h-0 !min-w-0 whitespace-nowrap"
+              >
                 Exit
               </Button>
             </div>
           </div>
         </div>
 
-        <div
-          className="hidden lg:flex flex-col gap-3 self-stretch"
-          style={{ width: 200, maxHeight: BOARD_SIZE }}
-        >
-          <h3 className="text-sm font-heading font-bold text-text-default">Move History</h3>
-          <div className="flex-1 overflow-y-auto">
-            <MoveHistory history={moveHistory} />
-          </div>
+        <div style={{ maxWidth: BOARD_SIZE, maxHeight: BOARD_SIZE }} className="w-full lg:w-[220px]">
+          <Card
+            variant="surface"
+            className="flex flex-col gap-3 w-full lg:w-[220px] p-4 lg:self-stretch"
+          >
+            <h3 className="text-sm font-heading font-bold text-text-default">Move History</h3>
+            
+            <div className="flex-1 overflow-y-auto min-h-[120px]">
+              <MoveHistory history={moveHistory} />
+            </div>
+          </Card>
         </div>
       </div>
 
