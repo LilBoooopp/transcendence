@@ -37,6 +37,9 @@ Thumbs.db
 # SSL certificates (will generate self-signed for dev)
 nginx/ssl/*.pem
 
+# user avatars
+backend/src/uploads/*.png
+
 # Test coverage
 coverage/
 *.lcov
