@@ -176,7 +176,8 @@ const handleDeny = async (id: string) => {
   }
   
   // Si c'est un chemin relatif, l'ajouter à la base URL
-  return `http://localhost:3000${avatarUrl}`;
+    const filename = avatarUrl.replace(/^\/?(api\/)?uploads\//, '');
+  return `/api/uploads/${filename}`;
 };
 	//rendering
 	return (
