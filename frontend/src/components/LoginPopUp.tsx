@@ -139,7 +139,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', onLo
 				</button>
 
 				{/* Dynamic Title */}
-				<h2 className="mb-6 text-3xl font-bold text-center text-slate-800 dark:text-white font-heading">
+				<h2 className="mb-6 text-3xl font-bold text-center text-text-default font-heading">
 					{isLoginView ? 'Welcome Back' : 'Create Account'}
 				</h2>
 
@@ -199,7 +199,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', onLo
 					<button 
 						type="submit" 
 						disabled={isLoading}
-						className="p-3 mt-4 font-bold text-white transition-colors rounded-lg bg-accent hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+						className="p-3 mt-4 font-bold text-text-default transition-colors rounded-lg bg-secondary hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						{isLoading ? 'Processing...' : (isLoginView ? 'Sign In' : 'Sign Up')}
 					</button>

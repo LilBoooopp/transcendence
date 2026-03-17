@@ -1,7 +1,8 @@
 import React from 'react';
 import { Card } from './ui/Card';
 import { Pencil } from 'lucide-react';
-import { Link } from 'react-router-dom'; // Assuming you use react-router for navigation
+import { Link } from 'react-router-dom';
+import StreakPill from './StreakPill'; // Import the new component
 
 interface UserTileProps {
   username: string;
@@ -9,17 +10,28 @@ interface UserTileProps {
   MemberSince?: string;
   TotalGames?: number;
   AvgScore?: number;
+  currentStreak?: number;
+  bestStreak?: number;   
   onClick?: () => void;
 }
 
-export default function UserTile({ username, avatarUrl, MemberSince, TotalGames, AvgScore, onClick }: UserTileProps) {
+export default function UserTile({ 
+  username, 
+  avatarUrl, 
+  MemberSince, 
+  TotalGames, 
+  AvgScore, 
+  currentStreak = 0, 
+  bestStreak = 0,    
+  onClick 
+}: UserTileProps) {
   const placeholderImage = "https://ui-avatars.com/api/?name=" + username + "&background=random";
 
- let avatarSrc = placeholderImage;
+  let avatarSrc = placeholderImage;
 
   if (typeof avatarUrl === 'string' && avatarUrl.trim() !== '') {
-  const filename = avatarUrl.trim().replace(/^\/?(api\/)?uploads\//, '');
-  avatarSrc = `/api/uploads/${filename}`;
+    const filename = avatarUrl.trim().replace(/^\/?(api\/)?uploads\//, '');
+    avatarSrc = `/api/uploads/${filename}`;
   }
 
   const displayInfoParts: string[] = [];
@@ -30,11 +42,8 @@ export default function UserTile({ username, avatarUrl, MemberSince, TotalGames,
   return (
     <Card
       onClick={onClick}
-      // Added 'relative' here to allow absolute positioning of the pencil icon inside the card
       className={`relative flex flex-col items-center justify-center text-center p-8 gap-4 w-full h-full ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
     >
-      {/* Edit Profile Button (Pencil Icon) */}
-      {/* We use e.stopPropagation() so clicking the pencil doesn't also trigger the Card's onClick if it has one */}
       <Link
         to="/user"
         onClick={(e) => e.stopPropagation()}
@@ -44,19 +53,25 @@ export default function UserTile({ username, avatarUrl, MemberSince, TotalGames,
         <Pencil size={20} />
       </Link>
 
-      {/* Avatar - Made slightly larger for vertical layout */}
-      <div className="flex-shrink-0">
+      {/* Avatar Container */}
+      <div className="relative flex-shrink-0 mb-2">
         <img
           src={avatarSrc}
           alt={`${username}'s avatar`}
-		      onError={(e) => {
-        	e.currentTarget.src = placeholderImage;
+          onError={(e) => {
+            e.currentTarget.src = placeholderImage;
           }}
           className="w-28 h-28 rounded-full object-cover shadow-sm border-4 border-accent"
         />
+        
+        {/* Achievements Pill - Cleaned up and passed positioning via className */}
+        <StreakPill 
+          currentStreak={currentStreak} 
+          bestStreak={bestStreak} 
+          className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10"
+        />
       </div>
 
-      {/* Text Information */}
       <div className="flex flex-col items-center w-full overflow-hidden gap-1">
         <h3 className="text-3xl font-heading font-bold text-text-default m-0 truncate w-full">
           {username}

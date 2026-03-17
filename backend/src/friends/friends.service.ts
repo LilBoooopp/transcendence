@@ -2,13 +2,13 @@ import { Injectable, ConflictException, NotFoundException, BadRequestException }
 import { PrismaService } from '../prisma/prisma.service';
 
 type FriendProfile = {
-    id: string;
-    username: string;
-    avatarUrl?: string;
-    elo: number;
-    status: 'online' | 'offline' | 'in-game';
-    gameId?: string;
-};
+  id: string;
+  username: string;
+  avatarUrl?: string;
+  elo: number;
+  status: 'online' | 'offline' | 'in-game';
+  gameId?: string;
+}
 
 type FriendProfileList = FriendProfile[];
 
@@ -89,15 +89,17 @@ export class FriendsService {
         const friends: FriendProfileList = friendRelations.map((relation) => {
             const friend = relation.fromUserId === fromUserId ? relation.toUser : relation.fromUser;
 
-            return {
-                id: friend.id,
-                username: friend.username,
-                avatarUrl: friend.avatarUrl,
-                elo: friend.statistics?.blitzElo ?? 1200,
-                status: friend.isOnline ? 'online' : 'offline',
-                gameId: undefined,
-            };
-        });
+      return {
+        id: friend.id,
+        username: friend.username,
+        avatarUrl: friend.avatarUrl,
+        elo: friend.statistics?.blitzElo ?? 1200,
+        status: friend.isOnline ? 'online' : 'offline',
+        gameId: undefined,
+				currentStreak: friend.statistics?.currentStreak ?? 0,
+				bestStreak: friend.statistics?.bestStreak ?? 0,
+      };
+    });
 
         return friends;
     }
