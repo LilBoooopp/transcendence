@@ -33,6 +33,7 @@ const GamePage: React.FC = () => {
 	const [initialState, setInitialState] = useState<{ fen: string; pgn: string } | null>(null);
 	const [initialTimer, setInitialTimer] = useState<TimerState | null>(state.initialTimer ?? null);
 	const [initialGameOver, setInitialGameOver] = useState<{ winner: string; result: string } | null>(null);
+	const [opponentName, setOpponentName] = useState<string | null>(null);
 	const [waiting, setWaiting] = useState(true);
 
 	const hasConnected = useRef(false);
@@ -65,8 +66,10 @@ const GamePage: React.FC = () => {
 				navigate('/', { replace: true });
 			});
 
-			unsubRole = socketService.on('game:role-assigned', (data: { gameId: string; role: 'white' | 'black' | 'spectator' }) => {
+			unsubRole = socketService.on('game:role-assigned', (data: { gameId: string; role: 'white' | 'black' | 'spectator'; opponentUsername?: string }) => {
 				setRole(data.role);
+				// Always set an opponent name; use a placeholder if backend doesn't provide one yet
+				setOpponentName(data.opponentUsername ?? 'Opponent');
 				setWaiting(false);
 			});
 
@@ -103,6 +106,8 @@ const GamePage: React.FC = () => {
 			hasConnected.current = false;
 		};
 	}, [gameId, userId, tcKey, state.role]);
+
+	// (removed unused history fetch - history is managed on Landing and other pages)
 
 	if (!gameId) {
 		return (
@@ -141,6 +146,7 @@ const GamePage: React.FC = () => {
 					initialTimer={initialTimer}
 					incrementMs={timeControl.incrementMs}
 					initialGameOver={initialGameOver}
+					opponentName={opponentName || undefined}
 				/>
 			</div>
 		);
@@ -156,6 +162,7 @@ const GamePage: React.FC = () => {
 			initialTimer={initialTimer}
 			incrementMs={timeControl.incrementMs}
 			initialGameOver={initialGameOver}
+			opponentName={opponentName || undefined}
 		/>
 	);
 };

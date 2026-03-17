@@ -13,6 +13,7 @@ import { Clock } from './Clock';
 import { StatusBadge } from './StatusBadge';
 import { MoveHistory } from './MoveHistory';
 import { GameControls } from './GameControls';
+import { isLoggedIn } from '../../services/auth.service';
 
 const BOARD_SIZE = 'min(calc(100vw - 2rem), 80vh, 600px)';
 
@@ -76,7 +77,8 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 	const gameType = (location.state as { gameType?: string })?.gameType;
 	const destination = { bot: '/botmode', online: '/gamemode', solo: '/' }[gameType ?? ''] ?? '/gamemode';
 
-	const { playerColor, isSpectator = false } = props;
+	// We destructure opponentName here (Add `opponentName?: string;` to your ChessGameProps interface in types.ts if using TypeScript strict mode)
+	const { playerColor, isSpectator = false, opponentName } = props as any;
 	const navigate = useNavigate();
 
 	const {
@@ -95,10 +97,40 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 
 	const topColor = playerColor === 'white' ? 'b' : 'w';
 	const bottomColor = playerColor === 'white' ? 'w' : 'b';
-	const topLabel = topColor === 'w' ? 'White' : 'Black';
-	const bottomLabel = bottomColor === 'w' ? 'White' : 'Black';
 	const topTimeMs = topColor === 'w' ? whiteTimeMs : blackTimeMs;
 	const bottomTimeMs = bottomColor === 'w' ? whiteTimeMs : blackTimeMs;
+
+	const [myUsername, setMyUsername] = React.useState('Player');
+	React.useEffect(() => {
+		isLoggedIn().then(({ connected, username }) => {
+			if (connected && username) setMyUsername(username);
+		}).catch(() => {});
+	}, []);
+
+	const difficulty = (location.state as { difficulty?: string })?.difficulty;
+	const getBotName = (diff?: string) => {
+		switch (diff) {
+			case 'easy': return 'Clueless Carl';
+			case 'medium': return 'Average Andy';
+			case 'hard': return 'Terminator';
+			default: return 'Bot 🤖';
+		}
+	};
+
+	let topLabel = topColor === 'w' ? 'White' : 'Black';
+	let bottomLabel = bottomColor === 'w' ? 'White' : 'Black';
+	let isTopBot = false;
+
+	if (!isSpectator) {
+		if (gameType === 'bot') {
+			bottomLabel = myUsername;
+			topLabel = getBotName(difficulty);
+			isTopBot = true;
+		} else if (gameType === 'online') {
+			bottomLabel = myUsername;
+			topLabel = opponentName || 'Opponent';
+		}
+	}
 
 	return (
 		<div className="flex flex-col items-center justify-center font-body w-full p-4 max-w-7xl mx-auto relative">
@@ -111,7 +143,7 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 					{/* Top Player + Clock Row */}
 					<div className="flex items-stretch justify-between gap-2 w-full h-14 sm:h-[68px]">
 						<div className="flex-1 min-w-0">
-							<GamePlayerTile username={topLabel} color={topColor === 'w' ? 'white' : 'black'} isActive={currentTurn === topColor && timerRunning} />
+							<GamePlayerTile username={topLabel} color={topColor === 'w' ? 'white' : 'black'} isActive={currentTurn === topColor && timerRunning} isBot={isTopBot} />
 						</div>
 						<div className="flex-shrink-0">
 							{/* Clock */}
@@ -151,7 +183,6 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 				</div>
 
 				{/* RIGHT COLUMN: Game Panel (Status, History, Controls) */}
-				{/* Layout fix: lg:!w-[240px] keeps it slim on desktop, style={{width: BOARD_SIZE}} matches board on mobile */}
 				<div className="flex flex-col flex-shrink-0 gap-4 lg:!w-[240px]" style={{ width: BOARD_SIZE }}>
 
 					{/* Status Badge */}
@@ -159,7 +190,7 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 						<StatusBadge status={gameStatus} gameOver={gameOver} />
 					</div>
 
-					{/* Move History Container (Restored your exact original colors!) */}
+					{/* Move History Container */}
 					<div className="flex flex-col flex-1 min-h-[160px] lg:min-h-0 overflow-hidden rounded-lg bg-primary">
 						<div className="px-3 py-2 bg-accent/10 flex items-center justify-between flex-shrink-0 border-b border-accent/20">
 							<span className="text-xs font-heading text-text-default font-bold uppercase tracking-widest">History</span>
