@@ -26,7 +26,6 @@ export const GameModeStatsCard: React.FC<GameModeStatsCardProps> = ({
       <div className="flex flex-row items-center justify-between w-full sm:w-auto sm:justify-start gap-4 sm:gap-6 shrink-0">
         
         {/* Icon */}
-        {/* Added pl-4 to push the icon inwards from the left edge */}
         <div className="flex items-center gap-3 shrink-0 pl-4">
           <div className="text-text-default transform scale-125">
             {icon}
@@ -44,7 +43,6 @@ export const GameModeStatsCard: React.FC<GameModeStatsCardProps> = ({
         </div>
 
         {/* Trend */}
-        {/* Added pr-4 (mobile) and sm:pr-8 (desktop) to push the trend inwards */}
         <div className="text-2xl flex items-center shrink-0 pr-4 sm:pr-8">
           <StatTrend delta={ratingDelta} label="" />
         </div>

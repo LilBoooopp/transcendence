@@ -27,7 +27,6 @@ export const SimpleLineChart: React.FC<BaseChartProps> = ({
 	return (
 		<div className="w-full flex flex-col" style={{ height }}>
 			<ResponsiveContainer width="100%" height="100%">
-				{/* 1. Reset the left margin to 0 to stop horizontal clipping, and added top margin so the max number doesn't clip the ceiling */}
 				<RechartsLineChart data={data} margin={{ top: 10, right: 5, left: 0, bottom: 0 }}>
 					
 					<XAxis 
@@ -44,12 +43,12 @@ export const SimpleLineChart: React.FC<BaseChartProps> = ({
 						axisLine={false}
 						tickLine={false}
 						tick={{ fontSize: 10 }}
-						width={35} // Optimized width for a 4-digit Elo number (e.g., 1200)
+						width={35}
 						domain={['dataMin', 'dataMax']} 
 						ticks={yTicks} 
-						interval={0} // 2. Forces Recharts to draw ALL ticks in the array, preventing it from hiding the second number on small screens
+						interval={0}
 						allowDecimals={false}
-						padding={{ top: 10, bottom: 10 }} // 3. Pushes the top and bottom of the line inward so the text fits comfortably
+						padding={{ top: 10, bottom: 10 }}
 					/>
 	
 					<Tooltip 

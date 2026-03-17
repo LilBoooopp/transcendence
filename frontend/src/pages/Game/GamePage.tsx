@@ -4,7 +4,6 @@ import ChessGame from '../../components/chessgui/ChessGame';
 import { socketService } from '../../services/socket.service';
 import { getTimeControl } from '../../types/timeControl';
 import type { TimerState } from '../../components/chessgui/types';
-import { Card } from '../../components/ui/Card';
 import { useNotification } from '../../notifications';
 
 const BOARD_SIZE = 'min(calc(100vw - 2rem), 80vh, 600px)';
@@ -117,7 +116,6 @@ const GamePage: React.FC = () => {
 		return (
 			<div className="min-h-[80vh] flex flex-col items-center justify-center font-body px-4">
 				<div className="bg-primary rounded-xl shadow-lg p-10 text-center flex flex-col items-center gap-4 max-w-sm w-full">
-					{/* Replaced bg-background-light with bg-primary and matching text colors */}
 					<div className="w-12 h-12 rounded-full border-4 border-secondary animate-spin border-t-accent" />
 					<h2 className="text-xl font-heading font-bold text-text-default">
 						Joining game{gameId ? ` · ${gameId.slice(0, 8)}` : ''}...
