@@ -35,7 +35,7 @@ type UserStat = {
   blitzRating?: number;
   rapidRating?: number;
 };
-const DEFAULT_AVATAR_FILENAME = 'defaultAvatar.png';
+const DEFAULT_AVATAR_FILENAME = '';
 const UPLOADS_DIR = join(process.cwd(), 'src', 'uploads');
 
 @Injectable()

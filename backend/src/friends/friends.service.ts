@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 type FriendProfile = {
   id: string;
   username: string;
-  avararUrl?: string;
+  avatarUrl?: string;
   elo: number;
   status: 'online' | 'offline' | 'in-game';
 	gameId?: string;
@@ -123,7 +123,6 @@ async listFriendsRequest(userId: string): Promise<FriendRequestList | null> {
       }
     }
   });
-
   return friendRequests.map(req => ({
     id: req.id,
     username: req.fromUser.username,

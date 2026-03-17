@@ -163,6 +163,21 @@ const handleDeny = async (id: string) => {
 		console.log('Spectating game:', gameId);
 		// Logic to navigate to game board / watch route
 	};
+
+	const getAvatarUrl = (avatarUrl?: string, username?: string) => {
+  if (!avatarUrl) {
+    // Pas d'avatar → fallback ui-avatars
+    return `https://ui-avatars.com/api/?name=${username}&background=random`;
+  }
+  
+  // Si c'est déjà une URL complète
+  if (avatarUrl.startsWith('http')) {
+    return avatarUrl;
+  }
+  
+  // Si c'est un chemin relatif, l'ajouter à la base URL
+  return `http://localhost:3000${avatarUrl}`;
+};
 	//rendering
 	return (
 		<Card className="flex flex-col p-5 w-full h-full max-h-[400px] gap-4 overflow-hidden">
@@ -201,7 +216,7 @@ const handleDeny = async (id: string) => {
 							<div key={req.id} className="flex items-center justify-between bg-primary/50 p-2 rounded-lg border border-gray-700">
 								<div className="flex items-center gap-3 truncate">
 									<img
-										src={req.avatarUrl || `https://ui-avatars.com/api/?name=${req.username}&background=random`}
+										src={getAvatarUrl(req.avatarUrl, req.username)}
 										alt={req.username}
 										className="w-8 h-8 rounded-full object-cover"
 									/>
@@ -229,7 +244,7 @@ const handleDeny = async (id: string) => {
 						<div key={friend.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-primary/30 transition-colors">
 							<div className="flex items-center gap-3 truncate">
 								<img
-									src={friend.avatarUrl || `https://ui-avatars.com/api/?name=${friend.username}&background=random`}
+									src={getAvatarUrl(friend.avatarUrl, friend.username)}
 									alt={friend.username}
 									className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-700"
 								/>

@@ -148,9 +148,11 @@ useEffect(() => {
 				<div className="order-1 sm:order-1 sm:col-span-5 lg:col-span-4 flex">
 					<UserTile 
 						username={stats.username}
+						avatarUrl={stats.avatarUrl}
 						MemberSince={stats.memberSince}
 						TotalGames={stats.totalGames}
 						AvgScore={stats.avgScore}
+
 					/>
         </div>
 
