@@ -8,6 +8,8 @@ type FriendProfile = {
   elo: number;
   status: 'online' | 'offline' | 'in-game';
   gameId?: string;
+	currentStreak: number;
+	bestStreak: number;
 }
 
 type FriendProfileList = FriendProfile[];
@@ -100,7 +102,9 @@ export class FriendsService {
         avatarUrl: friend.avatarUrl,
         elo: friend.statistics?.blitzElo ?? 1200,
         status: friend.isOnline ? 'online' : 'offline',
-        gameId: undefined
+        gameId: undefined,
+				currentStreak: friend.statistics?.currentStreak ?? 0,
+				bestStreak: friend.statistics?.bestStreak ?? 0,
       };
     });
 
