@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
-import WireframeLayout from './pages/Header & Footer/Layout';
+import Layout from './pages/Header & Footer/Layout';
 import WireframeDashboard from './pages/User/Dashboard';
 import WireframeLanding from './pages/Home/Landing';
 import WireframeGameMode from './pages/Game/GameMode';
@@ -28,19 +28,19 @@ function App() {
       <NotificationProvider>
         <NotificationListener>
           <Routes>
-            <Route path="/" element={<WireframeLayout><WireframeLanding /></WireframeLayout>} />
-            <Route path="/home" element={<WireframeLayout><WireframeLanding /></WireframeLayout>} />
-            <Route path="/gamemode" element={<ProtectedRoute><WireframeLayout><WireframeGameMode /></WireframeLayout></ProtectedRoute>} />
-            <Route path="/botmode" element={<ProtectedRoute><WireframeLayout><WireframeBotMode /></WireframeLayout></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><WireframeLayout><WireframeDashboard /></WireframeLayout></ProtectedRoute>} />
-            <Route path="/user" element={<ProtectedRoute><WireframeLayout><ProfilePage /></WireframeLayout></ProtectedRoute>} />
+            <Route path="/" element={<Layout><WireframeLanding /></Layout>} />
+            <Route path="/home" element={<Layout><WireframeLanding /></Layout>} />
+            <Route path="/gamemode" element={<ProtectedRoute><Layout><WireframeGameMode /></Layout></ProtectedRoute>} />
+            <Route path="/botmode" element={<ProtectedRoute><Layout><WireframeBotMode /></Layout></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><Layout><WireframeDashboard /></Layout></ProtectedRoute>} />
+            <Route path="/user" element={<ProtectedRoute><Layout><ProfilePage /></Layout></ProtectedRoute>} />
 
-            <Route path="/play" element={<ProtectedRoute><WireframeLayout><MatchmakingWaiting /></WireframeLayout></ProtectedRoute>} />
-            <Route path="/bot-launch" element={<ProtectedRoute><WireframeLayout><BotGameLauncher /></WireframeLayout></ProtectedRoute>} />
-            <Route path="/game/:gameId" element={<ProtectedRoute><WireframeLayout><GamePage /></WireframeLayout></ProtectedRoute>} />
+            <Route path="/play" element={<ProtectedRoute><Layout><MatchmakingWaiting /></Layout></ProtectedRoute>} />
+            <Route path="/bot-launch" element={<ProtectedRoute><Layout><BotGameLauncher /></Layout></ProtectedRoute>} />
+            <Route path="/game/:gameId" element={<ProtectedRoute><Layout><GamePage /></Layout></ProtectedRoute>} />
 
-            <Route path="/solo" element={<ProtectedRoute><WireframeLayout><SoloLauncher /></WireframeLayout></ProtectedRoute>} />
-            <Route path="/solo-game" element={<ProtectedRoute><WireframeLayout><SoloGamePage /></WireframeLayout></ProtectedRoute>} />
+            <Route path="/solo" element={<ProtectedRoute><Layout><SoloLauncher /></Layout></ProtectedRoute>} />
+            <Route path="/solo-game" element={<ProtectedRoute><Layout><SoloGamePage /></Layout></ProtectedRoute>} />
           </Routes>
         </NotificationListener>
       </NotificationProvider>

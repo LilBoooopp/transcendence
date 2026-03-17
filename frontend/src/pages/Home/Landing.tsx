@@ -79,7 +79,7 @@ export default function WireframeLanding() {
 		<div className="flex flex-col items-center justify-center min-h-[80vh] px-4 max-w-5xl mx-auto py-12">
 
 			<h1 className="text-4xl font-heading font-bold mb-12 text-center">
-				{username ? `Welcome ${username} to 42 Chess!` : 'Welcome to 42 Chess!'}
+				{username ? `Welcome ${username}` : 'Welcome to 42 Chess!'}
 			</h1>
 
 		<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full max-w-4xl">
