@@ -17,7 +17,6 @@ import { isLoggedIn } from '../../services/auth.service';
 
 const BOARD_SIZE = 'min(calc(100vw - 2rem), 80vh, 600px)';
 
-// 1. FIXED: Moved ReconnectOverlay OUTSIDE the main component
 const ReconnectOverlay: React.FC<{ secondsLeft: number }> = ({ secondsLeft }) => {
 	const ringColor =
 		secondsLeft > 15
@@ -72,12 +71,10 @@ const ReconnectOverlay: React.FC<{ secondsLeft: number }> = ({ secondsLeft }) =>
 };
 
 const ChessGame: React.FC<ChessGameProps> = (props) => {
-	//Handle gameType state for the "new game" button
 	const location = useLocation();
 	const gameType = (location.state as { gameType?: string })?.gameType;
 	const destination = { bot: '/botmode', online: '/gamemode', solo: '/' }[gameType ?? ''] ?? '/gamemode';
 
-	// We destructure opponentName here (Add `opponentName?: string;` to your ChessGameProps interface in types.ts if using TypeScript strict mode)
 	const { playerColor, isSpectator = false, opponentName } = props as any;
 	const navigate = useNavigate();
 
@@ -97,12 +94,6 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 
 	const topColor = playerColor === 'white' ? 'b' : 'w';
 	const bottomColor = playerColor === 'white' ? 'w' : 'b';
-	const topLabel = topColor === 'w'
-		? (props.players?.white ?? 'White')
-		: (props.players?.black ?? 'Black');
-	const bottomLabel = bottomColor === 'w'
-		? (props.players?.white ?? 'White')
-		: (props.players?.black ?? 'Black');
 	const topTimeMs = topColor === 'w' ? whiteTimeMs : blackTimeMs;
 	const bottomTimeMs = bottomColor === 'w' ? whiteTimeMs : blackTimeMs;
 
@@ -133,9 +124,12 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 			topLabel = getBotName(difficulty);
 			isTopBot = true;
 		} else if (gameType === 'online') {
-			bottomLabel = myUsername;
-			topLabel = opponentName || 'Opponent';
+			topLabel = props.players?.[topColor === 'w' ? 'white' : 'black'] || opponentName || 'Opponent';
+			bottomLabel = props.players?.[bottomColor === 'w' ? 'white' : 'black'] || myUsername;
 		}
+	} else {
+		topLabel = props.players?.[topColor === 'w' ? 'white' : 'black'] || topLabel;
+		bottomLabel = props.players?.[bottomColor === 'w' ? 'white' : 'black'] || bottomLabel;
 	}
 
 	return (
