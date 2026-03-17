@@ -281,6 +281,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return false;
   }
 
+  getUserActiveGameId(userId: string): string | null {
+    for (const [gameId, room] of this.activeGames.entries()) {
+      if (
+        (room.whiteUserId === userId || room.blackUserId === userId) &&
+        room.gameStarted
+      ) {
+        return (gameId);
+      }
+    }
+    return (null);
+  }
+
   @SubscribeMessage('heartbeat')
   handleHeartbeat(@ConnectedSocket() client: Socket) {
     const userId = client.data?.userId;

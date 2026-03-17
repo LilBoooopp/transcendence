@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from './ui/Card';
 import Button from './Button';
 import { Check, X, Eye, Search } from 'lucide-react';
@@ -20,6 +21,7 @@ interface FriendRequest {
 }
 
 export default function FriendsTile() {
+    const navigate = useNavigate();
     //state
     const [friends, setFriends] = useState<Friend[]>([]);
     const [requests, setRequests] = useState<FriendRequest[]>([]);
@@ -153,8 +155,9 @@ export default function FriendsTile() {
 
     // a voir
     const handleSpectate = (gameId?: string) => {
+        if (!gameId) return;
+        navigate(`/game/${gameId}`);
         console.log('Spectating game:', gameId);
-        // Logic to navigate to game board / watch route
     };
 
     // Same avatar logic as UserTile

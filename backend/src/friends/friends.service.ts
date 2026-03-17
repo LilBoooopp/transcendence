@@ -1,5 +1,6 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { GameGateway } from '../game/game.gateway';
 
 type FriendProfile = {
   id: string;
@@ -22,7 +23,10 @@ type FriendRequestList = FriendRequest[];
 
 @Injectable()
 export class FriendsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private gameGateway: GameGateway,
+  ) { }
 
   async friendRequest(fromUserId: string, toUsername: string) {
     const toUser = await this.prisma.user.findUnique({
@@ -92,15 +96,21 @@ export class FriendsService {
     // Transformer les relations en FriendProfile[]
     const friends: FriendProfileList = friendRelations.map(relation => {
       // Déterminer qui est l'ami (pas l'utilisateur actuel)
-      const friend = relation.fromUserId === fromUserId ? relation.toUser : relation.fromUser;
+      const friend = relation.fromUserId === fromUserId
+        ? relation.toUser
+        : relation.fromUser;
+
+      const activeGameId = friend.isOnline
+        ? this.gameGateway.getUserActiveGameId(friend.id)
+        : null;
 
       return {
         id: friend.id,
         username: friend.username,
         avatarUrl: friend.avatarUrl,
         elo: friend.statistics?.blitzElo ?? 1200,
-        status: friend.isOnline ? 'online' : 'offline',
-        gameId: undefined
+        status: activeGameId ? 'in-game' : friend.isOnline ? 'online' : 'offline',
+        gameId: activeGameId ?? undefined,
       };
     });
 
@@ -123,6 +133,8 @@ export class FriendsService {
         }
       }
     });
+
+
     return friendRequests.map(req => ({
       id: req.id,
       username: req.fromUser.username,
@@ -152,14 +164,18 @@ export class FriendsService {
       },
     });
 
+    const activeGameId = friend.fromUser.isOnline
+      ? this.gameGateway.getUserActiveGameId(friend.fromUser.id)
+      : null;
+
     // Retourner le profil du nouvel ami
     return {
       id: friend.fromUser.id,
       username: friend.fromUser.username,
       avatarUrl: friend.fromUser.avatarUrl,
       elo: friend.fromUser.statistics?.blitzElo ?? 1200,
-      status: friend.fromUser.isOnline ? 'online' : 'offline',
-      gameId: undefined,
+      status: activeGameId ? 'in-game' : friend.fromUser.isOnline ? 'online' : 'offline',
+      gameId: activeGameId ?? undefined,
     };
   }
 
