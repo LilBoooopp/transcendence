@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ProfileTile from '../../components/ProfileTile';
 
 type ProfileData = {
@@ -19,6 +20,8 @@ type UpdateUserBody = {
 };
 
 const ProfilePage = () => {
+	const navigate = useNavigate();
+
 	const [profileData, setProfileData] = useState<ProfileData>({
 		username: '',
 		email: '@example.com',
@@ -54,7 +57,7 @@ const ProfilePage = () => {
 				});
 			})
 			.catch(() => {
-				// gérer l'erreur si besoin
+				// handle error if needed
 			});
 	}, []);
 
@@ -74,10 +77,8 @@ const ProfilePage = () => {
 		if (field === 'lastName') body.lastName = newValue;
 		if (field === 'bio') body.bio = newValue;
 
-		//NOW UPDATE DATAS
-
 		if (Object.keys(body).length === 0) {
-			console.log(`Field "${field}" pas encore géré côté backend.`);
+			console.log(`Field "${field}" not yet handled by backend.`);
 			return;
 		}
 
@@ -94,7 +95,6 @@ const ProfilePage = () => {
 			});
 
 			if (!res.ok) throw new Error('PATCH failed');
-			// a mettre aussi dans modif password
 			const data = await res.json();
 
 			if (data.accessToken) {
@@ -111,7 +111,6 @@ const ProfilePage = () => {
 	const handleAvatarUpload = async (file: File) => {
 		const token = localStorage.getItem('token');
 		if (!token) throw new Error('No token');
-		console.log('want to change avatar');
 
 		const formData = new FormData();
 		formData.append('avatar', file);
@@ -135,6 +134,55 @@ const ProfilePage = () => {
 		}));
 	};
 
+	// --- NEW: Change Password Logic ---
+	const handleChangePassword = async (oldPassword: string, newPassword: string) => {
+		const token = localStorage.getItem('token');
+		if (!token) throw new Error('No token');
+
+		// Note: Adjust the URL '/api/users/password' based on your actual NestJS backend route
+		const res = await fetch('/api/users/password', {
+			method: 'PATCH',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`,
+			},
+			body: JSON.stringify({ oldPassword, newPassword }),
+		});
+
+		if (!res.ok) {
+			throw new Error('Failed to update password');
+		}
+		
+		console.log('Password successfully changed');
+	};
+
+	// --- NEW: Delete Account Logic ---
+	const handleDeleteAccount = async () => {
+		const token = localStorage.getItem('token');
+		if (!token) return;
+
+		try {
+			// Note: Adjust the URL '/api/users/me' based on your actual NestJS backend route
+			const res = await fetch('/api/users/me', {
+				method: 'DELETE',
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+
+			if (!res.ok) {
+				throw new Error('Failed to delete account');
+			}
+
+			// Clear the token and kick the user back to the landing page
+			localStorage.removeItem('token');
+			navigate('/');
+			console.log('Account deleted');
+		} catch (error) {
+			console.error('Error deleting account:', error);
+		}
+	};
+
 	return (
 		<div className="flex flex-col gap-8 items-center w-full max-w-4xl mx-auto py-8 px-4">
 			<div className="w-full flex justify-center">
@@ -147,6 +195,8 @@ const ProfilePage = () => {
 					avatarUrl={profileData.avatarUrl}
 					onUpdateField={handleUpdateProfileField}
 					onUploadAvatar={handleAvatarUpload}
+					onChangePassword={handleChangePassword}
+					onDeleteAccount={handleDeleteAccount}
 				/>
 			</div>
 		</div>
