@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { socketService } from '../../services/socket.service';
 import { getTimeControl } from '../../types/timeControl';
+import { useNotification } from '../../notifications';
 
 const MatchmakingWaiting: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { push } = useNotification();
 
   const [searchParams] = useSearchParams();
   const tcKey = searchParams.get('tc') ?? '600+0';
@@ -60,6 +62,10 @@ const MatchmakingWaiting: React.FC = () => {
           state: { userId, role: data.role, tcKey, gameType: "online" },
         });
       });
+      socketService.on('matchmaking:error', (data: { message: string }) => {
+        push({ type: 'warning', title: "You can't enter matchmaking", message: data.message });
+        navigate('/gamemode', { replace: true });
+      });
       socketService.joinMatchmaking(tcKey);
     };
 
@@ -71,6 +77,7 @@ const MatchmakingWaiting: React.FC = () => {
 
     return () => {
       socketService.off('matchmaking:found');
+      socketService.off('matchmaking:error');
       socketService.off('matchmaking:cancelled');
       socketService.cancelMatchmaking();
     };
