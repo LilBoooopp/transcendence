@@ -46,9 +46,7 @@ export default function Navbar({ isDarkMode, toggleDarkMode }: NavbarProps) {
     <nav className="relative bg-primary text-text-default shadow-md transition-colors duration-200">
       <div className="flex items-center justify-between px-6 py-4">
         {/* LOGO (name) */}
-        <div className="text-2xl font-heading font-bold">
-          42 Chess
-        </div>
+        <Link to="/" className="text-2xl font-heading font-bold">42 Chess</Link>
 
         {/* DESKTOP NAVIGATION */}
         <div className="hidden md:flex items-center gap-8 font-body font-medium">
