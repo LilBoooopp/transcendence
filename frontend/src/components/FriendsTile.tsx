@@ -19,39 +19,6 @@ interface FriendRequest {
 	avatarUrl?: string;
 }
 
-/*
-
-friends:
-
-add friend:
-
-	// /api/friends/request
-
-
-	// /api/friends/showfriends
-
-
-	find friends. So find a user and send a friend request
-
-	wait for the answer.
-	// ! ask 2 in the same time
-	//
-
-	//show friends. It is an array of friends. 
-
-*/
-
-/*
-const mockFriends: Friend[] = [
-	{ id: '1', username: 'GrandMasterFlash', elo: 1850, status: 'online' },
-	{ id: '2', username: 'Rookie123', elo: 1200, status: 'in-game', gameId: 'game-123' },
-	{ id: '3', username: 'ChessBot', elo: 3200, status: 'offline' },
-];
-
-const mockRequests: FriendRequest[] = [
-	{ id: 'req-1', username: 'xX_ChessSlayer_Xx' }
-];*/
-
 export default function FriendsTile() {
 	//state
 	const [friends, setFriends] = useState<Friend[]>([]);

@@ -165,7 +165,6 @@ async acceptFriendRequest(userId: string, friendId: string) {
 }
 
 async rejectFriendRequest(userId: string, friendId: string) {
-  // Mettre à jour le statut de la requête à REJECTED
   await this.prisma.friend.update({
     where: { id: friendId },
     data: {

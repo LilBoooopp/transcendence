@@ -36,28 +36,18 @@ export class FriendsController {
     return this.friendsService.rejectFriendRequest(req.user.userId, id);
   }
 
+  /*
+
+  POST  /api/friends/:friendId/game-request
+PATCH /api/friends/game-request/:requestId/accept
+PATCH /api/friends/game-request/:requestId/reject
+
+patch= modifier ressource existante. 
+*/
+
   
 
 
 
-  
 
-
-
-/*  
-
-  @Get()
-  async getFriends(@Req() req: any) {
-    return this.friendsService.getFriends(req.user.userId);
-  }
-
-  @Post('invite-to-play')
-  async inviteToPlay(@Req() req: any, @Body() body) {
-    return this.friendsService.inviteToPlay(req.user.userId, body.toUserId, body.gameConfig);
-  }
-
-  @Get('game-invitations')
-  async getGameInvitations(@Req() req: any) {
-    return this.friendsService.getGameInvitations(req.user.userId);
-  }*/
 }
