@@ -42,6 +42,7 @@ const Tile = (props: TileProps) => {
     // tile div
     <div
       ref={drop}
+      draggable={false}
       onClick={props.onClick}
       onContextMenu={(e) => e.preventDefault()}
       onMouseDown={(e) => { if (e.button === 2) props.onRightMouseDown() }}
