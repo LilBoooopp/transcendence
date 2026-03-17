@@ -13,9 +13,6 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage"
   },
-  "prisma": {
-    "seed": "ts-node ./script/seed.ts"
-  },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.0.0",
