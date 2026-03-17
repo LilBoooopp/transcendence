@@ -74,7 +74,7 @@ export class UserService {
 
   async getAllUsers(): Promise<UserProfile[]> {
     return this.prisma.user.findMany({
-      select: { username: true, id: true, firstName: true, bio: true, isOnline: true, avatarUrl: true }
+      select: { username: true, id: true, firstName: true, bio: true, isOnline: true, avatarUrl: true, statistics: { select: { bulletElo: true, blitzElo: true, rapidElo: true, }, }, },
     });
   }
 
@@ -134,15 +134,15 @@ export class UserService {
     }
   }
 
-async getUserStat(id: string): Promise<UserStat> {
-  const user = await this.prisma.user.findUnique({
-    where: { id },
-    select: { 
-      username: true, 
-      createdAt: true,
-      statistics: true,
-    },
-  });
+  async getUserStat(id: string): Promise<UserStat> {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        username: true,
+        createdAt: true,
+        statistics: true,
+      },
+    });
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -291,36 +291,35 @@ async getUserStat(id: string): Promise<UserStat> {
     });
   }
 
-	async getUserHistory(id: string): Promise<UserHistory >
-	{
-	// Get 10 latest completed games where user is white or black
-	  const games = await this.prisma.game.findMany({
-    where: {
-      status: 'COMPLETED',
-	  isAiGame: false,
-      OR: [
-        { whitePlayerId: id },
-        { blackPlayerId: id },
-      ],
-    },
-    orderBy: {
-      endedAt: 'desc',   // most recent first; fallback is createdAt if needed
-    },
-    take: 10,
-    include: {
-      whitePlayer: { select: { id: true, username: true } },
-      blackPlayer: { select: { id: true, username: true } },
-    },
-  });
-  //ca va creer un tableau qu on map
-  //The Array.map() is an inbuilt TypeScript function that creates
-  //  a new array with the results of calling a provided function on every element in the array.
-  //array.map(callback[, thisObject])
-   // 2. Transformer chaque Game en UserHistoryItem
-  const history: UserHistory = games.map((game) => {
-	//trouver si le joueur est le black ou le noir
-	const isWhite = game.whitePlayerId === id;
-	const isBlack = game.blackPlayerId === id;
+  async getUserHistory(id: string): Promise<UserHistory> {
+    // Get 10 latest completed games where user is white or black
+    const games = await this.prisma.game.findMany({
+      where: {
+        status: 'COMPLETED',
+        isAiGame: false,
+        OR: [
+          { whitePlayerId: id },
+          { blackPlayerId: id },
+        ],
+      },
+      orderBy: {
+        endedAt: 'desc',   // most recent first; fallback is createdAt if needed
+      },
+      take: 10,
+      include: {
+        whitePlayer: { select: { id: true, username: true } },
+        blackPlayer: { select: { id: true, username: true } },
+      },
+    });
+    //ca va creer un tableau qu on map
+    //The Array.map() is an inbuilt TypeScript function that creates
+    //  a new array with the results of calling a provided function on every element in the array.
+    //array.map(callback[, thisObject])
+    // 2. Transformer chaque Game en UserHistoryItem
+    const history: UserHistory = games.map((game) => {
+      //trouver si le joueur est le black ou le noir
+      const isWhite = game.whitePlayerId === id;
+      const isBlack = game.blackPlayerId === id;
 
       //va aller chercher dans la table l autre joueur
       const opponent =
