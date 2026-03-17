@@ -370,14 +370,13 @@ export function useChessGame({
     if (!isPlayerTurn()) {
       const from = squareToCoord(sourceSquare);
       const to = squareToCoord(targetSquare);
-      if (from !== to) {
-        const piece = premoveBoardRef.current[from.rank][from.file];
-        if (!piece || !isOwnPiece(piece)) return (false);
-        setPremoves(prev => [...prev, { from, to }]);
-        setSelectedTile(null);
-        clearHighlights();
-        return (true);
-      }
+      if (from.rank === to.rank && from.file === to.file) return (false);
+      const piece = premoveBoardRef.current[from.rank][from.file];
+      if (!piece || !isOwnPiece(piece)) return (false);
+      setPremoves(prev => [...prev, { from, to }]);
+      setSelectedTile(null);
+      clearHighlights();
+      return (true);
     }
 
     try {
