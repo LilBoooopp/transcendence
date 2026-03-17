@@ -23,10 +23,6 @@ model User {
   lastName  String?
   bio       String?
 
-  // OAuth fields 
-  oauthProvider String? // 'google', 'github', etc.
-  oauthId       String? // ID from OAuth provider
-
   isOnline Boolean  @default(false)
   lastSeen DateTime @default(now())
 
@@ -35,16 +31,66 @@ model User {
 
   gamesAsWhite Game[]                  @relation("WhitePlayer")
   gamesAsBlack Game[]                  @relation("BlackPlayer")
-  friends      User[]                  @relation("Friendship")
-  friendOf     User[]                  @relation("Friendship")
-  chatMessages ChatMessage[]
-  tournaments  TournamentParticipant[]
+
+  friendRequestsFrom Friend[]           @relation("FriendsFrom")
+  friendRequestsTo   Friend[]           @relation("FriendsTo")
+  gameInvitationsFrom GameInvitation[] @relation("GameInvitationsFrom")
+  gameInvitationsTo   GameInvitation[] @relation("GameInvitationsTo")
+
   statistics   UserStatistics?
   eloHistory   EloHistory[]
 
   @@index([email])
   @@index([username])
 }
+
+//friends
+model Friend {
+  id          String   @id @default(uuid())
+  fromUserId  String
+  toUserId    String
+  fromUser    User     @relation("FriendsFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser      User     @relation("FriendsTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  status      FriendStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  respondedAt DateTime?
+  updatedAt   DateTime @updatedAt
+
+  @@unique([fromUserId, toUserId])
+  @@index([toUserId])
+  @@index([status])
+}
+
+enum FriendStatus {
+  PENDING          // requête d'ami en attente
+  ACCEPTED         // amis acceptés
+  REJECTED         // requête d'ami refusée
+//  BLOCKED          // bloqué
+}
+
+model GameInvitation {
+  id          String   @id @default(uuid())
+  fromUserId  String
+  toUserId    String
+  fromUser    User     @relation("GameInvitationsFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser      User     @relation("GameInvitationsTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  status      GameInvitationStatus @default(GAME_INVITED)
+  createdAt   DateTime @default(now())
+  respondedAt DateTime?
+  updatedAt   DateTime @updatedAt
+
+  @@index([toUserId])
+  @@index([status])
+}
+
+enum GameInvitationStatus {
+  GAME_INVITED
+  GAME_ACCEPTED
+  GAME_REJECTED
+}
+
 
 // user statistics
 model UserStatistics {
@@ -83,7 +129,6 @@ model EloHistory {
   gameId   String
   gameType GameType // bullet, etc
 
-
   eloBefore   Int
   eloAfter    Int
   eloChange   Int
@@ -98,6 +143,7 @@ model EloHistory {
   @@index([userId, gameType])
   @@index([createdAt])
 }
+
 enum GameType {
   BULLET
   BLITZ
@@ -119,9 +165,9 @@ model Game {
   winner String? // 'white', 'black', or null for draw
 
   // chess data
-  pgn   String @default("") // Portable Game Notation
-  fen   String @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") // Forsyth-Edwards Notation
-  moves Json   @default("[]") // Array of moves
+  pgn        String @default("") // Portable Game Notation
+  fen        String @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") // Forsyth-Edwards Notation
+  moves      Json   @default("[]") // Array of moves
   totalMoves Int?
 
   //settings
@@ -132,10 +178,6 @@ model Game {
   isAiGame     Boolean @default(false)
   aiDifficulty Int? // 1-20 for Stockfish
 
-  // tournament 
-  tournamentId String?
-  tournament   Tournament? @relation(fields: [tournamentId], references: [id])
-
   // Timestamps
   startedAt DateTime?
   endedAt   DateTime?
@@ -145,7 +187,6 @@ model Game {
   @@index([whitePlayerId])
   @@index([blackPlayerId])
   @@index([status])
-  @@index([tournamentId])
 }
 
 enum GameStatus {
@@ -162,70 +203,4 @@ enum GameResult {
   STALEMATE
   TIMEOUT
   RESIGNATION
-}
-
-// Chat messages
-model ChatMessage {
-  id         String  @id @default(uuid())
-  senderId   String
-  sender     User    @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  receiverId String? // null for global chat
-  content    String
-  isRead     Boolean @default(false)
-
-  createdAt DateTime @default(now())
-
-  @@index([senderId])
-  @@index([receiverId])
-  @@index([createdAt])
-}
-
-// Tournament system 
-model Tournament {
-  id          String  @id @default(uuid())
-  name        String
-  description String?
-
-  // Tournament settings
-  maxPlayers   Int              @default(8)
-  currentRound Int              @default(1)
-  status       TournamentStatus @default(REGISTRATION)
-
-  // Timestamps
-  startDate DateTime
-  endDate   DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  // Relations
-  participants TournamentParticipant[]
-  games        Game[]
-
-  @@index([status])
-  @@index([startDate])
-}
-
-enum TournamentStatus {
-  REGISTRATION // Players can join
-  IN_PROGRESS // Tournament started
-  COMPLETED // TouGame Arnament finished
-  CANCELLED // Tournament cancelled
-}
-
-model TournamentParticipant {
-  id           String     @id @default(uuid())
-  tournamentId String
-  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  userId       String
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  seed       Int?
-  eliminated Boolean @default(false)
-  placement  Int? // (1st, 2nd, etc.)
-
-  joinedAt DateTime @default(now())
-
-  @@unique([tournamentId, userId])
-  @@index([tournamentId])
-  @@index([userId])
 }

@@ -28,9 +28,9 @@ const BotGameLauncher: React.FC = () => {
   const hasLaunched = useRef(false);
 
   const [isAllowed, setIsAllowed] = useState(false);
-  const validatedRef = React.useRef(false); // to avoid double mm_flow consumption (if the page rerender or triggers two times useEffect[[location.state, navigate, tcKey]])
+  const validatedRef = React.useRef(false); 
 
- useEffect(() => {
+  useEffect(() => {
     if (validatedRef.current) return;
     const nav = location.state as { fromBotMode?: boolean; mm_token?: string } | null;
     const raw = sessionStorage.getItem('mm_flow');
@@ -42,7 +42,7 @@ const BotGameLauncher: React.FC = () => {
     }
     try {
       const parsed = JSON.parse(raw) as { mm_token: string; tcKey: string; ts: number };
-      const toOld = Date.now() - parsed.ts > 20000; //2s - validity time for the token (changeable)
+      const toOld = Date.now() - parsed.ts > 20000; 
       const tokenMismatch = nav.mm_token !== parsed.mm_token || parsed.tcKey !== "600%2B0";
 
       if (toOld || tokenMismatch) {
@@ -119,40 +119,41 @@ const BotGameLauncher: React.FC = () => {
   }, [isAllowed, userId, gameId, difficulty, tcKey, navigate]);
 
   return (
-    <div className="min-h-screen bg-background-light flex items-center justify-center font-body">
-      <div className="bg-white rounded-2xl shadow-xl border border-accent/30 p-10 max-w-sm w-full text-center flex flex-col items-center gap-6">
+    <div className="flex flex-col items-center justify-center min-h-[80vh] px-4 font-body">
+      <div className="bg-primary rounded-xl shadow-lg p-10 max-w-sm w-full text-center flex flex-col items-center gap-6">
 
         {/* Spinner */}
         <div className="relative w-16 h-16">
-          <div className="absolute inset-0 rounded-full border-4 border-accent/20 animate-spin border-t-primary" />
+          <div className="absolute inset-0 rounded-full border-4 border-secondary animate-spin border-t-accent" />
           <span className="absolute inset-0 flex items-center justify-center text-3xl select-none">
             🤖
           </span>
         </div>
 
         <div>
-          <h2 className="text-2xl font-heading font-bold text-text-dark mb-1">
+          <h2 className="text-2xl font-heading font-bold text-text-default mb-2">
             Setting up opponent...
           </h2>
-          <p className="text-sm text-text-dark/60">
+          <p className="text-sm text-text-default/80">
             Difficulty:{' '}
-            <span className="font-semibold text-primary">
+            <span className="font-semibold text-accent">
               {DIFFICULTY_LABELS[difficulty]}
             </span>
             {' · '}
-            <span className="font-semibold text-primary">
+            <span className="font-semibold text-accent">
               {timeControl.label}
             </span>
           </p>
         </div>
 
         {status === 'error' && (
-          <p className="text-sm text-red-500">Something went wrong. Please try again.</p>
+          <p className="text-sm text-red-400">Something went wrong. Please try again.</p>
         )}
 
+        {/* Cancel Button */}
         <button
           onClick={() => navigate('/botmode')}
-          className="w-full py-2.5 rounded-lg border-2 border-primary/40 text-primary font-semibold text-sm hover:bg-primary/5 transition-colors"
+          className="w-full py-2.5 mt-2 rounded font-bold bg-secondary hover:bg-secondary-hover text-text-default transition-colors"
         >
           Cancel
         </button>
