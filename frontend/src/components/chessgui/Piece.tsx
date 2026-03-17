@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useDrag } from 'react-dnd'
+import { getEmptyImage } from 'react-dnd-html5-backend'
 
 interface PieceProps {
   type: string // e.g. "wK", "bQ"
@@ -10,7 +11,7 @@ interface PieceProps {
 }
 
 const Piece = (props: PieceProps) => {
-  const [{ isDragging }, drag] = useDrag(() => ({
+  const [{ isDragging }, drag, preview] = useDrag(() => ({
     type: 'PIECE',
     item: () => {
       props.onDragStart(props.rank, props.file)
@@ -21,16 +22,21 @@ const Piece = (props: PieceProps) => {
     })
   }))
 
+  useEffect(() => {
+    preview(getEmptyImage(), { captureDraggingState: true })
+  }, [preview])
+
   return (
     <img
       ref={drag}
       src={props.theme[props.type]}
+      draggable={false}
       style={{
         width: '100%',
         height: '100%',
         opacity: isDragging ? 0.5 : 1,
         cursor: 'grab'
-      }} 
+      }}
     />
   )
 }

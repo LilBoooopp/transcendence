@@ -82,8 +82,8 @@ export default function WireframeLanding() {
 				{username ? `Welcome ${username} to 42 Chess!` : 'Welcome to 42 Chess!'}
 			</h1>
 
-			<div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-2xl lg:max-w-full">
-				{features.map((feature, index) => (
+		<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full max-w-4xl">
+			{features.map((feature, index) => (
 					<Tile
 						key={index}
 						title={feature.title}

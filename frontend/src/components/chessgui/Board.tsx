@@ -2,6 +2,7 @@ import { DndProvider } from 'react-dnd'
 import { HTML5Backend } from 'react-dnd-html5-backend'
 import React, { useRef, useEffect, useState } from 'react'
 import Tile from './Tile'
+import CustomDragLayer from './CustomDragLayer'
 
 interface BoardProps {
   board: (string | null)[][]
@@ -9,7 +10,7 @@ interface BoardProps {
   highlighted: boolean[][]
   onTileClick: (rank: number, file: number) => void
   playerColor: 'white' | 'black'
-  onDrop: (from: string, to:string) => void
+  onDrop: (from: string, to: string) => void
   onDragStart: (rank: number, file: number) => void
   lastMove: { from: { rank: number, file: number }, to: { rank: number, file: number } } | null
   premoves: { from: { rank: number, file: number }, to: { rank: number, file: number } }[]
@@ -19,8 +20,21 @@ const Board = (props: BoardProps) => {
   // canvas
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const boardRef = useRef<HTMLDivElement>(null)
-  const [arrowStart, setArrowStart] = useState<{ rank:number, file: number } | null>(null)
+  const [arrowStart, setArrowStart] = useState<{ rank: number, file: number } | null>(null)
   const [arrows, setArrows] = useState<{ start: { rank: number, file: number }, end: { rank: number, file: number } }[]>([])
+  const [tileSize, setTileSize] = useState(0)
+
+  useEffect(() => {
+    const board = boardRef.current
+    if (!board) return
+    const updateSize = () => {
+      setTileSize(board.getBoundingClientRect().width / 8)
+    }
+    updateSize()
+    const observer = new ResizeObserver(updateSize)
+    observer.observe(board)
+    return () => observer.disconnect()
+  }, [])
 
   const displayLastMove = props.lastMove && props.playerColor === 'black' ? {
     from: { rank: 7 - props.lastMove.from.rank, file: 7 - props.lastMove.from.file },
@@ -110,6 +124,7 @@ const Board = (props: BoardProps) => {
     : props.highlighted
   return (
     <DndProvider backend={HTML5Backend}>
+      <CustomDragLayer theme={props.theme} tileSize={tileSize} />
       {/* Board div */}
       <div style={{ position: 'relative', width: '100%', height: '100%', display: 'inline-block' }}>
         <div
