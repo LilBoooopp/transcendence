@@ -9,6 +9,7 @@ import { Server, Socket } from 'socket.io';
 import { NotificationService } from './notification.service';
 import { JwtService } from '@nestjs/jwt';
 import { JWT_SECRET } from 'src/auth/configs/jwtsecret';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 /**
  * NotificationGateway
@@ -22,9 +23,12 @@ export class NotificationGateway implements OnGatewayInit, OnGatewayConnection, 
   @WebSocketServer()
   server: Server;
 
+  private offlineTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
   constructor(
     private readonly notificationService: NotificationService,
     private readonly jwtService: JwtService,
+    private readonly prisma: PrismaService,
   ) { }
 
   /**
@@ -61,9 +65,44 @@ export class NotificationGateway implements OnGatewayInit, OnGatewayConnection, 
 
     client.join(`user:${userId}`);
     console.log(`[NotificationGateway] Socket ${client.id} joined room user: ${userId}`);
+
+    const pending = this.offlineTimers.get(userId);
+    if (pending) {
+      clearTimeout(pending);
+      this.offlineTimers.delete(userId);
+    }
+
+    this.prisma.user
+      .update({
+        where: { id: userId },
+        data: { isOnline: true, lastSeen: new Date() },
+      }).catch((e) => console.warn(`Failed to mark user ${userId} online:`, e.message));
   };
 
   handleDisconnect(client: Socket): void {
-    // socket.io removes automatically
+    const userId = client.data?.userId;
+    if (!userId) return;
+
+    this.prisma.user
+      .update({
+        where: { id: userId },
+        data: { lastSeen: new Date() },
+      }).catch((e) => console.warn(`Failed to update lastSeen for ${userId}:`, e.message));
+
+    this.server.in(`user:${userId}`).fetchSockets().then((sockets) => {
+      if (sockets.length > 0) return;
+
+      const timer = setTimeout(async () => {
+        this.offlineTimers.delete(userId);
+        const stillConnected = await this.server.in(`user:${userId}`).fetchSockets();
+        if (stillConnected.length === 0) {
+          await this.prisma.user
+            .update({
+              where: { id: userId },
+              data: { isOnline: false, lastSeen: new Date() },
+            }).catch((e) => console.warn(`Failed to mark user ${userId} offline:`, e.message));
+        }
+      }, 5000);
+    });
   }
 }

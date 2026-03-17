@@ -28,156 +28,156 @@ export default function FriendsTile() {
 
 	//add by syl to get friends
 	useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+		const token = localStorage.getItem('token');
+		if (!token) return;
 
-    fetch('/api/friends', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then(res => res.json())
-      .then(data => setFriends(data))
-      .catch(error => console.error('Error fetching friends:', error));
-    }, []);
+		fetch('/api/friends', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`,
+			},
+		})
+			.then(res => res.json())
+			.then(data => setFriends(data))
+			.catch(error => console.error('Error fetching friends:', error));
+	}, []);
 
-  // add by syl to get friends requests
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
+	// add by syl to get friends requests
+	useEffect(() => {
+		const token = localStorage.getItem('token');
+		if (!token) return;
 
-        fetch('/api/friends/request', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        })
-            .then(res => res.json())
-            .then(data => setRequests(data))
-            .catch(error => console.error('Error fetching requests:', error));
-    }, []);  
+		fetch('/api/friends/request', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`,
+			},
+		})
+			.then(res => res.json())
+			.then(data => setRequests(data))
+			.catch(error => console.error('Error fetching requests:', error));
+	}, []);
 
 	// Handlers for Add Friend
-    const handleSendRequest = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!searchName.trim()) return;
+	const handleSendRequest = (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!searchName.trim()) return;
 
-        const token = localStorage.getItem('token');
-        if (!token) {
-            setRequestStatus('error');
-            return;
-        }
+		const token = localStorage.getItem('token');
+		if (!token) {
+			setRequestStatus('error');
+			return;
+		}
 
-        fetch('/api/friends', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ toUsername: searchName }),
-        })
-//            .then(res => {
-//    if (!res.ok) throw new Error('Failed to send friend request');
-//
-//    return res.json();
-//})
-		    .then(res => {
-    console.log('Status:', res.status);
-    if (!res.ok) {
-        return res.text().then(text => {
-            throw new Error(`Status ${res.status}: ${text}`);
-        });
-    }
-    return res.json();
-})
-//remplacer le truc au dessus par ce qui est masqué
-//
+		fetch('/api/friends', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`,
+			},
+			body: JSON.stringify({ toUsername: searchName }),
+		})
+			//            .then(res => {
+			//    if (!res.ok) throw new Error('Failed to send friend request');
+			//
+			//    return res.json();
+			//})
+			.then(res => {
+				console.log('Status:', res.status);
+				if (!res.ok) {
+					return res.text().then(text => {
+						throw new Error(`Status ${res.status}: ${text}`);
+					});
+				}
+				return res.json();
+			})
+			//remplacer le truc au dessus par ce qui est masqué
+			//
 
-            .then(data => {
-                setRequestStatus('success');
-                setSearchName('');
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                setRequestStatus('error');
-            })
-            .finally(() => {
-                setTimeout(() => setRequestStatus('idle'), 3000);
-            });
-    };
+			.then(data => {
+				setRequestStatus('success');
+				setSearchName('');
+			})
+			.catch(error => {
+				console.error('Error:', error);
+				setRequestStatus('error');
+			})
+			.finally(() => {
+				setTimeout(() => setRequestStatus('idle'), 3000);
+			});
+	};
 
-const handleAccept = async (id: string) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+	const handleAccept = async (id: string) => {
+		const token = localStorage.getItem('token');
+		if (!token) return;
 
-    try {
-        const res = await fetch(`/api/friends/accept/${id}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        });
+		try {
+			const res = await fetch(`/api/friends/accept/${id}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+			});
 
-        if (!res.ok) throw new Error('Failed to accept request');
+			if (!res.ok) throw new Error('Failed to accept request');
 
-        // Récupérer le nouvel ami depuis la réponse
-        const newFriend = await res.json();
-        
-        // Ajouter l'ami à la liste
-        setFriends(prev => [...prev, newFriend]);
-        
-        // Supprimer la requête
-        setRequests(prev => prev.filter(req => req.id !== id));
-    } catch (error) {
-        console.error('Error accepting request:', error);
-    }
-};
+			// Récupérer le nouvel ami depuis la réponse
+			const newFriend = await res.json();
 
-const handleDeny = async (id: string) => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+			// Ajouter l'ami à la liste
+			setFriends(prev => [...prev, newFriend]);
 
-    try {
-        const res = await fetch(`/api/friends/reject/${id}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        });
+			// Supprimer la requête
+			setRequests(prev => prev.filter(req => req.id !== id));
+		} catch (error) {
+			console.error('Error accepting request:', error);
+		}
+	};
 
-        if (!res.ok) throw new Error('Failed to deny request');
+	const handleDeny = async (id: string) => {
+		const token = localStorage.getItem('token');
+		if (!token) return;
 
-        // Supprimer la requête
-        setRequests(prev => prev.filter(req => req.id !== id));
-    } catch (error) {
-        console.error('Error denying request:', error);
-    }
-};
-  // a voir
+		try {
+			const res = await fetch(`/api/friends/reject/${id}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+			});
+
+			if (!res.ok) throw new Error('Failed to deny request');
+
+			// Supprimer la requête
+			setRequests(prev => prev.filter(req => req.id !== id));
+		} catch (error) {
+			console.error('Error denying request:', error);
+		}
+	};
+	// a voir
 	const handleSpectate = (gameId?: string) => {
 		console.log('Spectating game:', gameId);
 		// Logic to navigate to game board / watch route
 	};
 
 	const getAvatarUrl = (avatarUrl?: string, username?: string) => {
-  if (!avatarUrl) {
-    // Pas d'avatar → fallback ui-avatars
-    return `https://ui-avatars.com/api/?name=${username}&background=random`;
-  }
-  
-  // Si c'est déjà une URL complète
-  if (avatarUrl.startsWith('http')) {
-    return avatarUrl;
-  }
-  
-  // Si c'est un chemin relatif, l'ajouter à la base URL
-  return `http://localhost:3000${avatarUrl}`;
-};
+		if (!avatarUrl) {
+			// Pas d'avatar → fallback ui-avatars
+			return `https://ui-avatars.com/api/?name=${username}&background=random`;
+		}
+
+		// Si c'est déjà une URL complète
+		if (avatarUrl.startsWith('http')) {
+			return avatarUrl;
+		}
+
+		// Si c'est un chemin relatif, l'ajouter à la base URL
+		return `http://localhost:3000${avatarUrl}`;
+	};
 	//rendering
 	return (
 		<Card className="flex flex-col p-5 w-full h-full max-h-[400px] gap-4 overflow-hidden">

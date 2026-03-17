@@ -104,7 +104,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * stores pending setTimeout handles so reconnects can cancel them
    */
   private reconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  private offlineTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(
     private readonly gameService: GameService,
@@ -128,20 +127,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.data.userId = payload.sub;
       client.data.username = payload.username;
       console.log(`Client connected: ${client.id} (user: ${client.data.username})`);
-      const userId = payload.sub;
-      client.join(`user:${userId}`);
-      // cancel existing offline timer
-      const pending = this.offlineTimers.get(userId);
-      if (pending) {
-        clearTimeout(pending);
-        this.offlineTimers.delete(userId);
-      }
-
-      this.prisma.user
-        .update({
-          where: { id: userId },
-          data: { isOnline: true, lastSeen: new Date() },
-        }).catch((e) => console.warn(`Failed to mark user ${userId} online:`, e.message));
     } catch (err) {
       console.log(`Rejected invalid token from ${client.id}: ${err.message}`);
       console.log(`Token received: ${token?.slice(0, 20)}...`);
@@ -171,36 +156,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.matchmakingQueues.delete(tcKey);
         break;
       }
-    }
-
-    if (userId) {
-      this.prisma.user
-        .update({
-          where: { id: userId },
-          data: { lastSeen: new Date() },
-        }).catch((e) => console.warn(`Failed to update lastSeen for ${userId}:`, e.message));
-
-      // see if user still has other connected sockets
-      const room = this.server.in(`user:${userId}`);
-      room.fetchSockets().then((sockets) => {
-        if (sockets.length > 0) return;
-
-        const timer = setTimeout(async () => {
-          this.offlineTimers.delete(userId);
-          // see if reconnected before grace period ended
-          const stillConnected = await this.server.in(`user:${userId}`).fetchSockets();
-          if (stillConnected.length === 0) {
-            await this.prisma.user
-              .update({
-                where: { id: userId },
-                data: { isOnline: false, lastSeen: new Date() },
-              })
-              .catch((e) => console.warn(`Failed to mark user ${userId} offline:`, e.message));
-          }
-        }, 5000);
-
-        this.offlineTimers.set(userId, timer);
-      });
     }
 
     // Remove from active games
