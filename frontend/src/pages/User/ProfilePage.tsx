@@ -184,6 +184,7 @@ const ProfilePage = () => {
 	};
 
 	return (
+		
 		<div className="flex flex-col gap-8 items-center w-full max-w-4xl mx-auto py-8 px-4">
 			<div className="w-full flex justify-center">
 				<ProfileTile

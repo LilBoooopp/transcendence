@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom'; 
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Toggle from './Toggle';
 import { Menu, X, LogIn, LogOut } from 'lucide-react';
 import LoginPopUp from './LoginPopUp';
+import { socketService } from '../services/socket.service';
 
 interface NavbarProps {
   isDarkMode: boolean;
@@ -12,23 +13,27 @@ interface NavbarProps {
 export default function Navbar({ isDarkMode, toggleDarkMode }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  
+
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [modalView, setModalView] = useState<'login' | 'register'>('login');
-  
+
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     setIsAuthenticated(!!token);
+    if (token) {
+      socketService.connect();
+    }
   }, [location]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
-    navigate('/'); 
-    setIsMenuOpen(false); 
+    socketService.disconnect();
+    navigate('/');
+    setIsMenuOpen(false);
   };
 
   const openModal = (view: 'login' | 'register') => {
@@ -64,7 +69,7 @@ export default function Navbar({ isDarkMode, toggleDarkMode }: NavbarProps) {
               onLabel="🌙"
               offLabel="☀️"
             />
-            
+
             {/* Dynamic Login / Logout Icon */}
             {isAuthenticated ? (
               <button onClick={handleLogout} className="hover:text-red-400 transition-colors" title="Logout">
@@ -104,16 +109,16 @@ export default function Navbar({ isDarkMode, toggleDarkMode }: NavbarProps) {
 
           {/* Mobile Login / Logout Button */}
           {isAuthenticated ? (
-            <button 
-              onClick={handleLogout} 
+            <button
+              onClick={handleLogout}
               className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors pt-2 border-t border-gray-300/20"
             >
               <LogOut size={20} />
               <span>Logout</span>
             </button>
           ) : (
-            <button 
-              onClick={() => openModal('login')} 
+            <button
+              onClick={() => openModal('login')}
               className="flex items-center gap-2 text-accent hover:text-white transition-colors pt-2 border-t border-gray-300/20"
             >
               <LogIn size={20} />

@@ -9,6 +9,7 @@ import { NotificationModule } from './notification/notification.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { RateLimitGuard } from './auth/guards/rate-limit.guard';
+import { FriendsModule } from './friends/friend.module';
 //AppModule is the Nestjs root module. 
 //that function is a decorator on an empty class??
 //we can create some modules with cli 'nest generate module modulename' and it will
@@ -31,6 +32,7 @@ import { RateLimitGuard } from './auth/guards/rate-limit.guard';
     GameModule,
     UserModule,
     AuthModule,
+	FriendsModule
   ],
   providers: [
     {
