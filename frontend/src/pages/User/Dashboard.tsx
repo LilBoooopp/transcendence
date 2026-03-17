@@ -20,14 +20,6 @@ interface StatsViewProps {
     };
 }
 
-const mockLeaderboard = [
-    { id: '1', username: 'MagnusC', elo: 2882 },
-    { id: '2', username: 'HikaruN', elo: 2875 },
-    { id: '3', username: 'FabiC', elo: 2830 },
-    { id: '4', username: 'IanN', elo: 2790 },
-    { id: '5', username: 'DingL', elo: 2780 },
-];
-
 const StatsView = ({ chartData }: StatsViewProps) => {
     return (
         <div className="flex flex-col gap-6 w-full">
@@ -152,40 +144,44 @@ const WireframeDashboard = () => {
             });
     }, []);
 
-    // Leaderboard fetcher (example)
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-        fetch('/api/users', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        }).then((res) => {
-            if (!res.ok) throw new Error('Failed to fetch users for leaderboard');
-            return res.json();
-        }).then((data) => {
-            // 1. Map backend data to the LeaderboardPlayer interface
-            const formattedLeaderboard: LeaderboardPlayer[] = data.map((user: any) => {
-                const s = user.statistics;
-                const userElo = s ? Math.round((s.rapidElo + s.bulletElo + s.blitzElo) / 3) : 1200;
-
-                return {
-                    id: user.id || user.userId,
-                    username: user.username,
-                    elo: userElo,
-                    avatarUrl: user.avatarUrl,
-                };
-            });
-            formattedLeaderboard.sort((a, b) => b.elo - a.elo);
-            setLeaderboard(formattedLeaderboard);
-        })
-            .catch((error) => {
-                console.error('Error fetching leaderboard:', error);
-                setLeaderboard([]);
-            });
-    }, []);
+// Leaderboard fetcher
+useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    fetch('/api/users', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+    })
+    .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch users for leaderboard');
+        return res.json();
+    })
+    .then((data) => {
+        const formattedLeaderboard: LeaderboardPlayer[] = data.map((user: any, index: number) => {
+            const s = user.statistics || {};
+            const rapidElo = s.rapidElo ?? 1200;
+            const bulletElo = s.bulletElo ?? 1200;
+            const blitzElo = s.blitzElo ?? 1200;
+            const userElo = Math.round((rapidElo + bulletElo + blitzElo) / 3);
+            const safeUsername = user.username ? encodeURIComponent(user.username) : 'Unknown';
+            return {
+                id: user.id || user.userId || user._id || `fallback-id-${index}`,
+                username: user.username || 'Unknown Player',
+                elo: userElo,
+                avatarUrl: user.avatarUrl
+            };
+        });
+        formattedLeaderboard.sort((a, b) => (b.elo || 0) - (a.elo || 0));
+        setLeaderboard(formattedLeaderboard);
+    })
+    .catch((error) => {
+        console.error('Error fetching leaderboard:', error);
+        setLeaderboard([]);
+    });
+}, []);
 
     return (
         <div className="w-full max-w-5xl mx-auto py-8 px-4">
@@ -211,11 +207,10 @@ const WireframeDashboard = () => {
                 <div className="order-3 sm:order-2 sm:col-span-7 lg:col-span-8 flex">
                     <FriendsTile />
                 </div>
-                {/* LEADERBOARD TILE (Moved inside the grid) */}
+                {/* LEADERBOARD TILE */}
                 <div className="order-4 sm:order-4 sm:col-span-12 flex">
                     <LeaderboardTile players={leaderboard} />
                 </div>
-
             </div>
         </div>
     );
