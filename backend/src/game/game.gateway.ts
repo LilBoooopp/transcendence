@@ -376,7 +376,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         select: { status: true, result: true, winner: true, fen: true, pgn: true },
       });
 
-      if (dbGame && (dbGame.status === 'COMPLETED' || dbGame.status === 'ABANDONED')) {
+      if (!dbGame) {
+        client.emit('game:error', {
+          gameId: data.gameId,
+          message: 'This game does not exist.',
+        });
+        client.leave(roomName);
+        return { success: false, error: 'Game not found' };
+      }
+
+      if (dbGame.status === 'COMPLETED' || dbGame.status === 'ABANDONED') {
         client.emit('game:role-assigned', {
           gameId: data.gameId,
           role: 'spectator',

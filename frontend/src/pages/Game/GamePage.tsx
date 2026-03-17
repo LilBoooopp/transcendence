@@ -5,7 +5,7 @@ import { socketService } from '../../services/socket.service';
 import { getTimeControl } from '../../types/timeControl';
 import type { TimerState } from '../../components/chessgui/types';
 import { Card } from '../../components/ui/Card';
-
+import { useNotification } from '../../notifications';
 
 interface LocationState {
 	userId?: string;
@@ -26,6 +26,8 @@ const GamePage: React.FC = () => {
 	const tcKey = state.tcKey ?? '600+0';
 	const timeControl = getTimeControl(tcKey);
 
+	const { push } = useNotification();
+
 	const [role, setRole] = useState<'white' | 'black' | 'spectator' | null>(state.role ?? null);
 	const [initialState, setInitialState] = useState<{ fen: string; pgn: string } | null>(null);
 	const [initialTimer, setInitialTimer] = useState<TimerState | null>(state.initialTimer ?? null);
@@ -44,12 +46,23 @@ const GamePage: React.FC = () => {
 		let unsubState: (() => void) | undefined;
 		let unsubTimer: (() => void) | undefined;
 		let unsubGameOver: (() => void) | undefined;
+		let unsubError: (() => void) | undefined;
 
 		const doJoin = () => {
 			unsubRole?.();
 			unsubState?.();
 			unsubTimer?.();
 			unsubGameOver?.();
+			unsubError?.();
+
+			unsubError = socketService.on('game:error', (data: { gameId: string; message: string }) => {
+				push({
+					type: 'error',
+					title: 'Game not found',
+					message: data.message ?? 'This game does not exist or has ended.',
+				});
+				navigate('/', { replace: true });
+			});
 
 			unsubRole = socketService.on('game:role-assigned', (data: { gameId: string; role: 'white' | 'black' | 'spectator' }) => {
 				setRole(data.role);
@@ -82,6 +95,7 @@ const GamePage: React.FC = () => {
 			unsubState?.();
 			unsubTimer?.();
 			unsubGameOver?.();
+			unsubError?.();
 			unsubConnect?.();
 			socketService.leaveGame(gameId);
 			socketService.disconnect();
