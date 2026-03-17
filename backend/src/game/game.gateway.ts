@@ -1023,6 +1023,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           fen: gameRoom?.fen ?? undefined,
           pgn: gameRoom?.pgn ?? undefined,
           moves: gameRoom?.pgn ?? undefined,
+          totalMoves: gameRoom ? Math.ceil(gameRoom.moveCount / 2) : undefined,
         },
       });
 

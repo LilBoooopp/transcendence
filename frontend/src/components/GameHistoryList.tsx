@@ -8,9 +8,8 @@ export interface GameHistoryItem {
   result: 'Win' | 'Loss' | 'Draw';
   moves: number;
   mode: 'Bullet' | 'Blitz' | 'Rapid';
-  accuracy: number;
+  side: 'Black' | 'White';
 }
-
 interface GameHistoryListProps {
   history: GameHistoryItem[];
 }
@@ -36,7 +35,7 @@ export default function GameHistoryList({ history }: GameHistoryListProps) {
         <div className="col-span-1 text-center">Mode</div>
         <div className="col-span-4 text-left">Opponent</div>
         <div className="col-span-2 text-center">Result</div>
-        <div className="col-span-2 text-center">Accuracy</div>
+        <div className="col-span-2 text-center">Side</div>
         <div className="col-span-1 text-center">Moves</div>
         <div className="col-span-2 text-right">Date</div>
       </div>
@@ -70,10 +69,10 @@ export default function GameHistoryList({ history }: GameHistoryListProps) {
                 </span>
               </div>
 
-              {/* Accuracy */}
+              {/* Side */}
               <div className="col-span-1 md:col-span-2 flex justify-start md:justify-center items-center gap-2">
-                <span className="md:hidden text-xs font-bold text-text-default/70 uppercase">Acc:</span>
-                <span className="text-sm text-text-default font-mono">{game.accuracy}%</span>
+                <span className="md:hidden text-xs font-bold text-text-default/70 uppercase">Side:</span>
+                <span className="text-sm text-text-default font-mono capitalize">{game.side}</span>
               </div>
 
               {/* Moves */}

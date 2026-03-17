@@ -1,4 +1,3 @@
-// frontend/src/components/FriendsTile.tsx
 import React, { useState } from 'react';
 import { Card } from './ui/Card';
 import Button from './Button';
@@ -63,7 +62,7 @@ export default function FriendsTile() {
 	const handleSendRequest = (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!searchName.trim()) return;
-		
+
 		// Simulated API call
 		if (searchName.toLowerCase() === 'error') {
 			setRequestStatus('error');
@@ -101,9 +100,9 @@ export default function FriendsTile() {
 				<div className="flex gap-2">
 					<div className="relative flex-grow">
 						<Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-						<input 
-							type="text" 
-							placeholder="Add friend by username..." 
+						<input
+							type="text"
+							placeholder="Add friend by username..."
 							value={searchName}
 							onChange={(e) => setSearchName(e.target.value)}
 							className="w-full bg-secondary text-text-default text-sm rounded-lg pl-9 pr-3 py-2 border border-transparent focus:border-accent focus:outline-none transition-colors"
@@ -125,9 +124,9 @@ export default function FriendsTile() {
 						{requests.map(req => (
 							<div key={req.id} className="flex items-center justify-between bg-primary/50 p-2 rounded-lg border border-gray-700">
 								<div className="flex items-center gap-3 truncate">
-									<img 
-										src={req.avatarUrl || `https://ui-avatars.com/api/?name=${req.username}&background=random`} 
-										alt={req.username} 
+									<img
+										src={req.avatarUrl || `https://ui-avatars.com/api/?name=${req.username}&background=random`}
+										alt={req.username}
 										className="w-8 h-8 rounded-full object-cover"
 									/>
 									<span className="text-sm font-semibold text-text-default truncate">{req.username}</span>
@@ -149,13 +148,13 @@ export default function FriendsTile() {
 				<div className="flex flex-col gap-2">
 					<span className="text-xs font-bold text-gray-400 uppercase tracking-wider">My Friends ({friends.length})</span>
 					{friends.length === 0 && <span className="text-sm text-gray-500 italic">No friends added yet.</span>}
-					
+
 					{friends.map(friend => (
 						<div key={friend.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-primary/30 transition-colors">
 							<div className="flex items-center gap-3 truncate">
-								<img 
-									src={friend.avatarUrl || `https://ui-avatars.com/api/?name=${friend.username}&background=random`} 
-									alt={friend.username} 
+								<img
+									src={friend.avatarUrl || `https://ui-avatars.com/api/?name=${friend.username}&background=random`}
+									alt={friend.username}
 									className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-700"
 								/>
 								<div className="flex flex-col truncate">
@@ -173,7 +172,7 @@ export default function FriendsTile() {
 									<div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" title="Online" />
 								)}
 								{friend.status === 'in-game' && (
-									<button 
+									<button
 										onClick={() => handleSpectate(friend.gameId)}
 										className="p-1.5 rounded-full bg-accent/20 text-text-default hover:bg-accent/40 hover:scale-110 transition-all"
 										title="Watch Game"

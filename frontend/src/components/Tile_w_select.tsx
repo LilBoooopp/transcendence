@@ -1,4 +1,3 @@
-// frontend/src/components/Tile_w_select.tsx
 import React from 'react';
 import { Card } from './ui/Card';
 import Button from './Button';
@@ -29,11 +28,10 @@ export default function Tile_w_select({ title, description, icon, onClick, optio
 							<button
 								key={option}
 								onClick={() => onSelect && onSelect(option)}
-								className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
-									selectedOption === option
-									? 'bg-accent text-text-dark shadow-sm'
-									: 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
-								}`}
+								className={`px-3 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${selectedOption === option
+										? 'bg-accent text-text-dark shadow-sm'
+										: 'text-gray-500 hover:text-gray-700 hover:bg-gray-200'
+									}`}
 							>
 								{option}
 							</button>

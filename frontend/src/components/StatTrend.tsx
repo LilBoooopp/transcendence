@@ -1,4 +1,3 @@
-// frontend/src/components/StatTrend.tsx
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 

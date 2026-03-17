@@ -6,6 +6,7 @@ import { getTimeControl } from '../../types/timeControl';
 import type { TimerState } from '../../components/chessgui/types';
 import { Card } from '../../components/ui/Card';
 
+const BOARD_SIZE = 'min(calc(100vw - 2rem), 80vh, 600px)';
 
 interface LocationState {
 	userId?: string;
@@ -119,8 +120,8 @@ const GamePage: React.FC = () => {
 
 	if (role === 'spectator') {
 		return (
-			<div className="min-h-screen bg-background-light">
-				<div className="bg-yellow-50 border-b border-yellow-200 text-yellow-800 text-center py-2 text-sm font-semibold font-body">
+			<div className="flex flex-col items-center justify-center">
+				<div className="bg-accent text-text-dark text-center py-2 text-sm rounded-lg font-semibold font-body" style={{ width: BOARD_SIZE }}>
 					Specatating {timeControl.label}
 				</div>
 				<ChessGame

@@ -101,6 +101,7 @@ export class AuthService {
 		const tokenPayload = {
 			sub: user.userId,
 			username: user.username,
+			//rajoute fingerprint dans la db
 		};
 		const accessToken = await this.jwtService.signAsync(tokenPayload);
 		return {accessToken, username: user.username, userId: user.userId};

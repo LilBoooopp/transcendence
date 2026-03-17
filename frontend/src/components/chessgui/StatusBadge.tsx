@@ -7,15 +7,17 @@ interface StatusBadgeProps {
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, gameOver }) => {
   const colors = gameOver
-    ? 'bg-red-100 text-red-700 boarder-red-200'
+    ? 'bg-tertiary text-text-default'
+    : status === 'Checkmate!'
+    ? 'bg-secondary text-text-default'
     : status === 'Check!'
     ? 'bg-amber-100 text-amber-700 border-amber-200'
     : status === 'Playing'
-    ? 'bg-accent/40 text-secondary border-accent'
-    : 'bg-primary/10 text-primary border-primary/20';
+    ? 'bg-primary text-text-default'
+    : 'bg-primary text-text-default';
 
   return (
-    <span className={`text-xs font-body font-semibold px-2.5 py-0.5 rounded-full border ${colors}`}>
+    <span className={`text-sm font-body font-semibold px-3 py-0.5 rounded-full ${colors}`}>
       {status}
     </span>
   );
