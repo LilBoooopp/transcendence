@@ -35,6 +35,8 @@ const GamePage: React.FC = () => {
 	const [initialGameOver, setInitialGameOver] = useState<{ winner: string; result: string } | null>(null);
 	const [waiting, setWaiting] = useState(true);
 
+	const [players, setPlayers] = useState<{ white: string, black: string } | null>(null);
+
 	const hasConnected = useRef(false);
 
 	useEffect(() => {
@@ -47,6 +49,7 @@ const GamePage: React.FC = () => {
 		let unsubState: (() => void) | undefined;
 		let unsubTimer: (() => void) | undefined;
 		let unsubGameOver: (() => void) | undefined;
+		let unsubPlayers: (() => void) | undefined;
 		let unsubError: (() => void) | undefined;
 
 		const doJoin = () => {
@@ -82,6 +85,14 @@ const GamePage: React.FC = () => {
 				setInitialGameOver(data);
 			});
 
+			unsubPlayers = socketService.on('game:players', (data: {
+				gameId: string;
+				white: { userId: string | null; username: string };
+				black: { userId: string | null; username: string };
+			}) => {
+				setPlayers({ white: data.white.username, black: data.black.username });
+			});
+
 			socketService.joinGame(gameId, tcKey, state.role ?? undefined);
 		};
 
@@ -98,6 +109,7 @@ const GamePage: React.FC = () => {
 			unsubGameOver?.();
 			unsubError?.();
 			unsubConnect?.();
+			unsubPlayers?.();
 			socketService.leaveGame(gameId);
 			socketService.disconnect();
 			hasConnected.current = false;
@@ -141,6 +153,7 @@ const GamePage: React.FC = () => {
 					initialTimer={initialTimer}
 					incrementMs={timeControl.incrementMs}
 					initialGameOver={initialGameOver}
+					players={players}
 				/>
 			</div>
 		);
@@ -156,6 +169,7 @@ const GamePage: React.FC = () => {
 			initialTimer={initialTimer}
 			incrementMs={timeControl.incrementMs}
 			initialGameOver={initialGameOver}
+			players={players}
 		/>
 	);
 };

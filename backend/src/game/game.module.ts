@@ -4,9 +4,10 @@ import { GameService } from './game.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { StockfishService } from './stockfish.service';
 import { EloModule } from '../elo/elo.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
-  imports: [PrismaModule, EloModule],
+  imports: [PrismaModule, EloModule, UserModule],
   providers: [GameGateway, GameService, StockfishService],
   exports: [GameGateway],
 })
