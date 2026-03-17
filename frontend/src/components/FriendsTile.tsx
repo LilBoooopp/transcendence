@@ -165,19 +165,20 @@ export default function FriendsTile() {
 	};
 
 	const getAvatarUrl = (avatarUrl?: string, username?: string) => {
-		if (!avatarUrl) {
-			// Pas d'avatar → fallback ui-avatars
-			return `https://ui-avatars.com/api/?name=${username}&background=random`;
-		}
-
-		// Si c'est déjà une URL complète
-		if (avatarUrl.startsWith('http')) {
-			return avatarUrl;
-		}
-
-		// Si c'est un chemin relatif, l'ajouter à la base URL
-		return `http://localhost:3000${avatarUrl}`;
-	};
+  if (!avatarUrl) {
+    // Pas d'avatar → fallback ui-avatars
+    return `https://ui-avatars.com/api/?name=${username}&background=random`;
+  }
+  
+  // Si c'est déjà une URL complète
+  if (avatarUrl.startsWith('http')) {
+    return avatarUrl;
+  }
+  
+  // Si c'est un chemin relatif, l'ajouter à la base URL
+    const filename = avatarUrl.replace(/^\/?(api\/)?uploads\//, '');
+  return `/api/uploads/${filename}`;
+};
 	//rendering
 	return (
 		<Card className="flex flex-col p-5 w-full h-full max-h-[400px] gap-4 overflow-hidden">

@@ -76,6 +76,8 @@ export default function ProfileTile({
   onUpdateField,
   onUploadAvatar,
 }: ProfileTileProps) {
+
+
   const placeholderImage = "https://ui-avatars.com/api/?name=" + username + "&background=random";
 	//avatar add by syl
   const avatarSrc =

@@ -29,7 +29,7 @@ type UserHistory = UserHistoryItem[];
 type UserStat = {
   username: string;
   memberSince: string;
-  totalGames: number; 
+  totalGames: number;
   avgScore: number;
   bulletRating?: number;
   blitzRating?: number;
@@ -83,6 +83,7 @@ export class UserService {
       select: { username: true, id: true, email: true, firstName: true, lastName: true, bio: true, avatarUrl: true },
     });
   }
+  
   async modifyUser(id: string, newUsername?: string, newEmail?: string, newFirstName?: string, newLastName?: string, newBio?: string, newAvatar?: string): Promise<UserProfile | null> {
     const data: { username?: string, email?: string, firstName?: string, lastName?: string, bio?: string, avatarUrl?: string } = {};
 
