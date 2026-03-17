@@ -223,19 +223,6 @@ export class UserService {
         if (!ok) {
             throw new UnauthorizedException('Invalid password');
         }
-    return {
-      username: user.username,
-      avatarUrl: user.avatarUrl,
-      memberSince,
-      totalGames: user.statistics?.totalGames ?? 0,  // ← petit t
-      avgScore,
-      bulletRating: user.statistics?.bulletElo,
-      blitzRating: user.statistics?.blitzElo,
-      rapidRating: user.statistics?.rapidElo,
-			currentStreak: user.statistics?.currentStreak,
-			bestStreak: user.statistics?.bestStreak
-    };
-  }
 
         const hashed = await bcrypt.hash(newPassword, 10);
 
