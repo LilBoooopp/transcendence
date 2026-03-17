@@ -11,16 +11,22 @@ import { RateLimitGuard } from '../auth/guards/rate-limit.guard';
 export class FriendsController {
   constructor(private friendsService: FriendsService) {}
 
-  @Post('request')
+  @Post()
   async sendFriendRequest(@Req() req: any, @Body() body) {
     return this.friendsService.friendRequest(req.user.userId, body.toUsername);
   }
 
-  
+  @Get()
+  async listFriends(@Req() req: any) {
+    return this.friendsService.listFriends(req.user.userId);
+  }
 
+  @Get('request')
+  async listFriendsRequest(@Req() req: any) {
+    return this.friendsService.listFriendsRequest(req.user.userId);
+  }
 
-
-/*  @Post('accept/:id')
+  @Post('accept/:id')
   async acceptFriendRequest(@Req() req: any, @Param('id') id: string) {
     return this.friendsService.acceptFriendRequest(req.user.userId, id);
   }
@@ -29,6 +35,16 @@ export class FriendsController {
   async rejectFriendRequest(@Req() req: any, @Param('id') id: string) {
     return this.friendsService.rejectFriendRequest(req.user.userId, id);
   }
+
+  
+
+
+
+  
+
+
+
+/*  
 
   @Get()
   async getFriends(@Req() req: any) {

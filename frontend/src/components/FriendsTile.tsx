@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from './ui/Card';
 import Button from './Button';
 import { UserPlus, Check, X, Eye, Search } from 'lucide-react';
@@ -18,7 +18,6 @@ interface FriendRequest {
 	username: string;
 	avatarUrl?: string;
 }
-
 
 /*
 
@@ -42,6 +41,7 @@ add friend:
 
 */
 
+/*
 const mockFriends: Friend[] = [
 	{ id: '1', username: 'GrandMasterFlash', elo: 1850, status: 'online' },
 	{ id: '2', username: 'Rookie123', elo: 1200, status: 'in-game', gameId: 'game-123' },
@@ -50,44 +50,153 @@ const mockFriends: Friend[] = [
 
 const mockRequests: FriendRequest[] = [
 	{ id: 'req-1', username: 'xX_ChessSlayer_Xx' }
-];
+];*/
 
 export default function FriendsTile() {
-	const [friends, setFriends] = useState<Friend[]>(mockFriends);
-	const [requests, setRequests] = useState<FriendRequest[]>(mockRequests);
+	//state
+	const [friends, setFriends] = useState<Friend[]>([]);
+	const [requests, setRequests] = useState<FriendRequest[]>([]);
 	const [searchName, setSearchName] = useState('');
 	const [requestStatus, setRequestStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
+	//add by syl to get friends
+	useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    fetch('/api/friends', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(res => res.json())
+      .then(data => setFriends(data))
+      .catch(error => console.error('Error fetching friends:', error));
+    }, []);
+
+  // add by syl to get friends requests
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        fetch('/api/friends/request', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        })
+            .then(res => res.json())
+            .then(data => setRequests(data))
+            .catch(error => console.error('Error fetching requests:', error));
+    }, []);  
+
 	// Handlers for Add Friend
-	const handleSendRequest = (e: React.FormEvent) => {
-		e.preventDefault();
-		if (!searchName.trim()) return;
+    const handleSendRequest = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!searchName.trim()) return;
 
-		// Simulated API call
-		if (searchName.toLowerCase() === 'error') {
-			setRequestStatus('error');
-		} else {
-			setRequestStatus('success');
-			setSearchName('');
-		}
-		setTimeout(() => setRequestStatus('idle'), 3000);
-	};
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setRequestStatus('error');
+            return;
+        }
 
-	// Handlers for Requests
-	const handleAccept = (id: string) => {
-		setRequests(prev => prev.filter(req => req.id !== id));
-		// Logic to add to friends list would go here after API success
-	};
+        fetch('/api/friends', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ toUsername: searchName }),
+        })
+//            .then(res => {
+//    if (!res.ok) throw new Error('Failed to send friend request');
+//
+//    return res.json();
+//})
+		    .then(res => {
+    console.log('Status:', res.status);
+    if (!res.ok) {
+        return res.text().then(text => {
+            throw new Error(`Status ${res.status}: ${text}`);
+        });
+    }
+    return res.json();
+})
+//remplacer le truc au dessus par ce qui est masqué
+//
 
-	const handleDeny = (id: string) => {
-		setRequests(prev => prev.filter(req => req.id !== id));
-	};
+            .then(data => {
+                setRequestStatus('success');
+                setSearchName('');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                setRequestStatus('error');
+            })
+            .finally(() => {
+                setTimeout(() => setRequestStatus('idle'), 3000);
+            });
+    };
 
+const handleAccept = async (id: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+        const res = await fetch(`/api/friends/accept/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        if (!res.ok) throw new Error('Failed to accept request');
+
+        // Récupérer le nouvel ami depuis la réponse
+        const newFriend = await res.json();
+        
+        // Ajouter l'ami à la liste
+        setFriends(prev => [...prev, newFriend]);
+        
+        // Supprimer la requête
+        setRequests(prev => prev.filter(req => req.id !== id));
+    } catch (error) {
+        console.error('Error accepting request:', error);
+    }
+};
+
+const handleDeny = async (id: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+        const res = await fetch(`/api/friends/reject/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        if (!res.ok) throw new Error('Failed to deny request');
+
+        // Supprimer la requête
+        setRequests(prev => prev.filter(req => req.id !== id));
+    } catch (error) {
+        console.error('Error denying request:', error);
+    }
+};
+  // a voir
 	const handleSpectate = (gameId?: string) => {
 		console.log('Spectating game:', gameId);
 		// Logic to navigate to game board / watch route
 	};
-
+	//rendering
 	return (
 		<Card className="flex flex-col p-5 w-full h-full max-h-[400px] gap-4 overflow-hidden">
 			{/* Header */}

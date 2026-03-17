@@ -29,8 +29,8 @@ type UserHistory = UserHistoryItem[];
 type UserStat = {
   username: string;
   memberSince: string;
-  totalGames: number;    // ← petit t
-  avgScore: number;      // ← petit a
+  totalGames: number; 
+  avgScore: number;
   bulletRating?: number;
   blitzRating?: number;
   rapidRating?: number;

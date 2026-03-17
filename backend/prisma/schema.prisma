@@ -38,6 +38,8 @@ model User {
 
   friendRequestsFrom Friend[]           @relation("FriendsFrom")
   friendRequestsTo   Friend[]           @relation("FriendsTo")
+  gameInvitationsFrom GameInvitation[] @relation("GameInvitationsFrom")
+  gameInvitationsTo   GameInvitation[] @relation("GameInvitationsTo")
 
 //  friends      User[]                  @relation("Friendship")
  // friendOf     User[]                  @relation("Friendship")
@@ -73,9 +75,28 @@ enum FriendStatus {
   ACCEPTED         // amis acceptés
   REJECTED         // requête d'ami refusée
 //  BLOCKED          // bloqué
-  GAME_INVITED     // invitation à jouer
-  GAME_ACCEPTED    // a accepté de jouer
-  GAME_REJECTED    // a refusé de jouer
+}
+
+model GameInvitation {
+  id          String   @id @default(uuid())
+  fromUserId  String
+  toUserId    String
+  fromUser    User     @relation("GameInvitationsFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser      User     @relation("GameInvitationsTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  status      GameInvitationStatus @default(GAME_INVITED)
+  createdAt   DateTime @default(now())
+  respondedAt DateTime?
+  updatedAt   DateTime @updatedAt
+
+  @@index([toUserId])
+  @@index([status])
+}
+
+enum GameInvitationStatus {
+  GAME_INVITED
+  GAME_ACCEPTED
+  GAME_REJECTED
 }
 
 
