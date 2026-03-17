@@ -159,7 +159,9 @@ const Board = (props: BoardProps) => {
                   onRightMouseDown={() => setArrowStart({ rank: actualRank, file: actualFile })}
                   onRightMouseUp={() => {
                     if (arrowStart) {
-                      setArrows(prev => [...prev, { start: arrowStart, end: { rank: actualRank, file: actualFile } }])
+                      if (arrowStart.rank !== actualRank || arrowStart.file !== actualFile) {
+                        setArrows(prev => [...prev, { start: arrowStart, end: { rank: actualRank, file: actualFile } }])
+                      }
                       setArrowStart(null)
                     }
                   }}
