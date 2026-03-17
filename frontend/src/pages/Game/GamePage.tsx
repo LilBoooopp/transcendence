@@ -4,8 +4,8 @@ import ChessGame from '../../components/chessgui/ChessGame';
 import { socketService } from '../../services/socket.service';
 import { getTimeControl } from '../../types/timeControl';
 import type { TimerState } from '../../components/chessgui/types';
-import { Card } from '../../components/ui/Card';
 import { useNotification } from '../../notifications';
+
 const BOARD_SIZE = 'min(calc(100vw - 2rem), 80vh, 600px)';
 
 interface LocationState {
@@ -106,22 +106,22 @@ const GamePage: React.FC = () => {
 
 	if (!gameId) {
 		return (
-			<div className="min-h-screen bg-background-light flex items-center justify-center">
-				<p className="text-text-dark/60">No game ID provided.</p>
+			<div className="min-h-[80vh] flex flex-col items-center justify-center font-body px-4">
+				<p className="text-text-default/60">No game ID provided.</p>
 			</div>
 		);
 	}
 
 	if (waiting || role === null) {
 		return (
-			<div className="min-h-screen bg-background-light flex items-center justify-center font-body">
-				<Card variant="surface" className="p-10 text-center flex flex-col items-center gap-4">
-					<div className="w-12 h-12 rounded-full border-4 border-accent/20 animate-spin border-t-primary" />
-					<h2 className="text-xl font-heading font-bold">
+			<div className="min-h-[80vh] flex flex-col items-center justify-center font-body px-4">
+				<div className="bg-primary rounded-xl shadow-lg p-10 text-center flex flex-col items-center gap-4 max-w-sm w-full">
+					<div className="w-12 h-12 rounded-full border-4 border-secondary animate-spin border-t-accent" />
+					<h2 className="text-xl font-heading font-bold text-text-default">
 						Joining game{gameId ? ` · ${gameId.slice(0, 8)}` : ''}...
 					</h2>
-					<p className="text-sm opacity-60">Waiting for role assignment</p>
-				</Card>
+					<p className="text-sm text-text-default/60">Waiting for role assignment</p>
+				</div>
 			</div>
 		);
 	}

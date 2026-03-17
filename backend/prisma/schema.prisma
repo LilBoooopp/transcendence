@@ -23,10 +23,6 @@ model User {
   lastName  String?
   bio       String?
 
-  // OAuth fields 
-  oauthProvider String? // 'google', 'github', etc.
-  oauthId       String? // ID from OAuth provider
-
   isOnline Boolean  @default(false)
   lastSeen DateTime @default(now())
 
@@ -41,10 +37,6 @@ model User {
   gameInvitationsFrom GameInvitation[] @relation("GameInvitationsFrom")
   gameInvitationsTo   GameInvitation[] @relation("GameInvitationsTo")
 
-//  friends      User[]                  @relation("Friendship")
- // friendOf     User[]                  @relation("Friendship")
-  chatMessages ChatMessage[]
-  tournaments  TournamentParticipant[]
   statistics   UserStatistics?
   eloHistory   EloHistory[]
 
@@ -137,7 +129,6 @@ model EloHistory {
   gameId   String
   gameType GameType // bullet, etc
 
-
   eloBefore   Int
   eloAfter    Int
   eloChange   Int
@@ -152,6 +143,7 @@ model EloHistory {
   @@index([userId, gameType])
   @@index([createdAt])
 }
+
 enum GameType {
   BULLET
   BLITZ
@@ -173,9 +165,9 @@ model Game {
   winner String? // 'white', 'black', or null for draw
 
   // chess data
-  pgn   String @default("") // Portable Game Notation
-  fen   String @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") // Forsyth-Edwards Notation
-  moves Json   @default("[]") // Array of moves
+  pgn        String @default("") // Portable Game Notation
+  fen        String @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") // Forsyth-Edwards Notation
+  moves      Json   @default("[]") // Array of moves
   totalMoves Int?
 
   //settings
@@ -186,10 +178,6 @@ model Game {
   isAiGame     Boolean @default(false)
   aiDifficulty Int? // 1-20 for Stockfish
 
-  // tournament 
-  tournamentId String?
-  tournament   Tournament? @relation(fields: [tournamentId], references: [id])
-
   // Timestamps
   startedAt DateTime?
   endedAt   DateTime?
@@ -199,7 +187,6 @@ model Game {
   @@index([whitePlayerId])
   @@index([blackPlayerId])
   @@index([status])
-  @@index([tournamentId])
 }
 
 enum GameStatus {
@@ -218,7 +205,7 @@ enum GameResult {
   RESIGNATION
 }
 
-// Chat message
+// Chat messages
 model ChatMessage {
   id         String  @id @default(uuid())
   senderId   String

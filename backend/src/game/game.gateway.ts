@@ -388,7 +388,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   // Join a room$
-  //@UseGuards(WsAuthGuard)
   @SubscribeMessage('game:join')
   async handleJoinGame(
     @MessageBody() data: { gameId: string; timeControlKey?: string, claimedRole?: 'white' | 'black' },
@@ -873,24 +872,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     return ({ success: true });
-  }
-
-  // Message
-  @SubscribeMessage('chat:message')
-  handleChatMessage(
-    @MessageBody() data: { gameId?: string; message: string; userId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    const userId = client.data.userId;
-
-    const payload = { userId, message: data.message, timestamp: new Date() };
-
-    if (data.gameId) {
-      client.to(`game:${data.gameId}`).emit('chat:message', payload);
-    } else {
-      this.server.emit('chat:message', payload);
-    }
-    return { success: true };
   }
 
   // Spectator join game

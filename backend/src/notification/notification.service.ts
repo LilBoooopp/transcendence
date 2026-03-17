@@ -51,7 +51,7 @@ export class NotificationService {
   }
 
   /**
-   * Send a notification to everyone in a specific game room
+   * send a notification to everyone in a specific game room
    */
   notifyGameRoom(gameId: string, payload: NotificationPayload): void {
     if (!this.server) return;

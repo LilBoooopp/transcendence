@@ -40,10 +40,22 @@ function App() {
 
             <Route path="/solo" element={<ProtectedRoute><Layout><SoloLauncher /></Layout></ProtectedRoute>} />
             <Route path="/solo-game" element={<ProtectedRoute><Layout><SoloGamePage /></Layout></ProtectedRoute>} />
+            <Route path="*" element={<Layout><NotFound /></Layout>} />
           </Routes>
         </NotificationListener>
       </NotificationProvider>
     </BrowserRouter>
+  );
+}
+
+function NotFound() {
+  return (
+    <div className="flex flex-col items-center justify-center h-screen">
+      <h1 className="text-5xl font-bold mb-4">Uh Oh..</h1>
+      <h2 className="text-3xl font-semibold mb-2">404 - Page Not Found</h2>
+      <p className="text-lg text-gray-400">This page does not exists.</p>
+      <a href="/" className="mt-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Home</a>
+    </div>
   );
 }
 
