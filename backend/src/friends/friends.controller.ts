@@ -35,19 +35,4 @@ export class FriendsController {
   async rejectFriendRequest(@Req() req: any, @Param('id') id: string) {
     return this.friendsService.rejectFriendRequest(req.user.userId, id);
   }
-
-  /*
-
-  POST  /api/friends/:friendId/game-request
-PATCH /api/friends/game-request/:requestId/accept
-PATCH /api/friends/game-request/:requestId/reject
-
-patch= modifier ressource existante. 
-*/
-
-  
-
-
-
-
 }

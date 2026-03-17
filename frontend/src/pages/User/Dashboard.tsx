@@ -70,7 +70,6 @@ const WireframeDashboard = () => {
     //user state
     const [stats, setStats] = useState({
         username: '',
-		avatarUrl: '',
         memberSince: '',
         totalGames: 0,
         avgScore: 0,
@@ -145,44 +144,44 @@ const WireframeDashboard = () => {
             });
     }, []);
 
-    // Leaderboard fetcher
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-        fetch('/api/users', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        })
-            .then((res) => {
-                if (!res.ok) throw new Error('Failed to fetch users for leaderboard');
-                return res.json();
-            })
-            .then((data) => {
-                const formattedLeaderboard: LeaderboardPlayer[] = data.map((user: any, index: number) => {
-                    const s = user.statistics || {};
-                    const rapidElo = s.rapidElo ?? 1200;
-                    const bulletElo = s.bulletElo ?? 1200;
-                    const blitzElo = s.blitzElo ?? 1200;
-                    const userElo = Math.round((rapidElo + bulletElo + blitzElo) / 3);
-                    const safeUsername = user.username ? encodeURIComponent(user.username) : 'Unknown';
-                    return {
-                        id: user.id || user.userId || user._id || `fallback-id-${index}`,
-                        username: user.username || 'Unknown Player',
-                        elo: userElo,
-                        avatarUrl: user.avatarUrl
-                    };
-                });
-                formattedLeaderboard.sort((a, b) => (b.elo || 0) - (a.elo || 0));
-                setLeaderboard(formattedLeaderboard);
-            })
-            .catch((error) => {
-                console.error('Error fetching leaderboard:', error);
-                setLeaderboard([]);
-            });
-    }, []);
+// Leaderboard fetcher
+useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    fetch('/api/users', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+        },
+    })
+    .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch users for leaderboard');
+        return res.json();
+    })
+    .then((data) => {
+        const formattedLeaderboard: LeaderboardPlayer[] = data.map((user: any, index: number) => {
+            const s = user.statistics || {};
+            const rapidElo = s.rapidElo ?? 1200;
+            const bulletElo = s.bulletElo ?? 1200;
+            const blitzElo = s.blitzElo ?? 1200;
+            const userElo = Math.round((rapidElo + bulletElo + blitzElo) / 3);
+            const safeUsername = user.username ? encodeURIComponent(user.username) : 'Unknown';
+            return {
+                id: user.id || user.userId || user._id || `fallback-id-${index}`,
+                username: user.username || 'Unknown Player',
+                elo: userElo,
+                avatarUrl: user.avatarUrl
+            };
+        });
+        formattedLeaderboard.sort((a, b) => (b.elo || 0) - (a.elo || 0));
+        setLeaderboard(formattedLeaderboard);
+    })
+    .catch((error) => {
+        console.error('Error fetching leaderboard:', error);
+        setLeaderboard([]);
+    });
+}, []);
 
     return (
         <div className="w-full max-w-5xl mx-auto py-8 px-4">
@@ -191,12 +190,17 @@ const WireframeDashboard = () => {
                 <div className="order-1 sm:order-1 sm:col-span-5 lg:col-span-4 flex">
                     <UserTile
                         username={stats.username}
-                        avatarUrl={stats.avatarUrl}
                         MemberSince={stats.memberSince}
                         TotalGames={stats.totalGames}
                         AvgScore={stats.avgScore}
-
                     />
+                </div>
+                {/* BOTTOM SECTION: Statistics Dashboard */}
+                <div className="order-2 sm:order-3 sm:col-span-12 flex flex-col gap-8 mt-4 w-full">
+                    <div className="flex justify-center">
+                        <StatsView chartData={chartData} />
+                    </div>
+                    <GameHistoryList history={history} />
                 </div>
 
                 {/* Friends Tile */}
