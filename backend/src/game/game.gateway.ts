@@ -179,13 +179,24 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const timerId = setTimeout(async () => {
           this.reconnectTimers.delete(timerKey);
           const room = this.activeGames.get(gameId);
-          if (!room || room.players.size > 0) return;
+          if (!room) return;
+
+          const humanSocket = room.botColor === 'b' ? room.white : room.black;
+          if (humanSocket && room.players.has(humanSocket)) return;
 
           this.clearGameTimer(gameId);
           this.stockfishService.stopEngine(gameId);
-          this.activeGames.delete(gameId);
+
+          const result = 'Player abandoned';
+          this.server.to(`game:${gameId}`).emit('game:over', {
+            winner: 'Draw',
+            result,
+          });
+
+          this.notificationService.gameOver(gameId, result);
 
           await this.persistGameResult(gameId, 'Draw', 'Player abandoned', true).catch(() => { });
+          this.activeGames.delete(gameId);
           console.log(`Bot game ${gameId} marked ABANDONED after reconnect timeout`);
         }, BOT_RECONNECT_SECONDS * 1000);
 
@@ -281,6 +292,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (room.whiteUserId === userId || room.blackUserId === userId) return true;
     }
     return false;
+  }
+
+  getUserActiveGameId(userId: string): string | null {
+    for (const [gameId, room] of this.activeGames.entries()) {
+      if (
+        (room.whiteUserId === userId || room.blackUserId === userId) &&
+        room.gameStarted
+      ) {
+        return (gameId);
+      }
+    }
+    return (null);
   }
 
   @SubscribeMessage('heartbeat')
@@ -822,6 +845,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.notificationService.gameOver(data.gameId, resultStr, winner);
 
     await this.persistGameResult(data.gameId, winner, resultStr);
+    this.activeGames.delete(data.gameId);
 
     return ({ success: true });
   }
@@ -876,6 +900,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.notificationService.gameOver(data.gameId, resultStr);
 
       await this.persistGameResult(data.gameId, 'Draw', resultStr);
+      this.activeGames.delete(data.gameId);
     } else {
       client.to(`game:${data.gameId}`).emit('game:draw-declined', {
         gameId: data.gameId,
