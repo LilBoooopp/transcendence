@@ -3,6 +3,7 @@ import { Card } from './ui/Card';
 import Button from './Button';
 import { Check, X, Eye, Search } from 'lucide-react';
 import StreakPill from './StreakPill';
+import { useNavigate } from 'react-router-dom';
 
 interface Friend {
     id: string;
@@ -28,6 +29,8 @@ export default function FriendsTile() {
     const [requests, setRequests] = useState<FriendRequest[]>([]);
     const [searchName, setSearchName] = useState('');
     const [requestStatus, setRequestStatus] = useState<'idle' | 'success' | 'error'>('idle');
+		const navigate = useNavigate();
+
 
     // add by syl to get friends
     useEffect(() => {

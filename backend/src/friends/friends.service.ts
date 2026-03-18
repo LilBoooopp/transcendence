@@ -49,6 +49,13 @@ export class FriendsService {
       },
     });
 
+		if (existing && existing.status === 'ACCEPTED') {
+      throw new ConflictException('Already friends');
+    }
+    if (existing && existing.status === 'PENDING') {
+      throw new ConflictException('Friend request already pending');
+    }
+
     return this.prisma.friend.create({
       data: {
         fromUserId,
@@ -187,5 +194,6 @@ export class FriendsService {
         respondedAt: new Date(),
       },
     });
+		return { success: true };
   }
 }

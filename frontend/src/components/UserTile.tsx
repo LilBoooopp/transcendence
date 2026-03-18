@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from './ui/Card';
 import { Pencil } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import StreakPill from './StreakPill'; // Import the new component
+import StreakPill from './StreakPill';
 
 interface UserTileProps {
   username: string;
