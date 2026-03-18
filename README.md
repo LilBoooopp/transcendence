@@ -236,7 +236,7 @@ erDiagram
 | Custom chess engine | Full move generation and validation without external libraries | cbopp |
 | Spectator mode | Any authenticated user can watch a live game is read-only mode | cbopp |
 | Elo ratings | Rating updates after each rated game using standard Elo formula | cbopp |
-| User profiles | View your own stats, game history, and rating | bschmid |
+| User profiles | View your own stats, game history, and rating | bschmid, sforster |
 | User authentication | Registration, login, JWT-based sessions | beboccas, sforster |
 | Friends management | Send, accept, or decline friend requests; view online status or spectate freinds | everyone |
 | Global Leaderboard & Stats | Track wins, losses, draws, streaks, and display ranked leaderboards based on Elo | everyone |
@@ -258,7 +258,7 @@ erDiagram
 | ORM (Prisma) | Minor | 1 | Prisma schema + migrations; type-safe DB access throughout backend | everyone |
 | Custom-made design, reusable components | Minor | 1 | Shared component library (GamePage, MatchmakingWaiting, etc.) with Tailwind | bschmid |
 | Notification system | Minor | 1 | Implemented Toast-type notifications to inform user of various events. | bschmid, cbopp |
-| Public API | Major | 2 | [PLACEHOLDER] | beboccas, sforster |
+| Public API | Major | 2 | RESTful Application Programming Interface for authentication, users and friends management | beboccas, sforster |
 
 ### Accessibility and Internationalization (1 point)
 
@@ -267,9 +267,9 @@ erDiagram
 | Support for additional browsers | Minor | 1 | Compatibility with Firefox and Safari | everyone |
 
 ### User Management (3 points)
-| Module | Type | Points | Implementation | Member(s) |
+| Module | Type | Points | Implementation | Member(s) |cl
 |--------|------|--------|----------------|-----------|
-| Standard user management | Major | 2 | [PLACEHOLDER] | everyone |
+| Standard user management | Major | 2 | Display and update informations, upload avatar, friends management  | everyone |
 | Game statistics | Minor | 1 | Saves and displays all information about game results, elo changes, match histories and win streaks | everyone |
 
 ### Gaming (7 points)
@@ -361,6 +361,7 @@ AI tools were used during the development of this project for the following purp
 - Explore the codebase and component interactions
 - Assist with debugging
 - Help implement some TypeScript functions
+- Documentation editing
 
 All generated suggestions were reviewed, tested, and adapted before being integrated into the project
 
