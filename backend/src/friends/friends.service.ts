@@ -9,17 +9,17 @@ type FriendProfile = {
   elo: number;
   status: 'online' | 'offline' | 'in-game';
   gameId?: string;
-	currentStreak: number;
-	bestStreak: number;
-	bio?: string | null;
+  currentStreak: number;
+  bestStreak: number;
+  bio?: string | null;
 }
 
 type FriendProfileList = FriendProfile[];
 
 type FriendRequest = {
-    id: string;
-    username: string;
-    avatarUrl?: string;
+  id: string;
+  username: string;
+  avatarUrl?: string;
 };
 
 type FriendRequestList = FriendRequest[];
@@ -48,14 +48,14 @@ export class FriendsService {
       },
     });
 
-        return this.prisma.friend.create({
-            data: {
-                fromUserId,
-                toUserId: toUser.id,
-                status: 'PENDING',
-            },
-        });
-    }
+    return this.prisma.friend.create({
+      data: {
+        fromUserId,
+        toUserId: toUser.id,
+        status: 'PENDING',
+      },
+    });
+  }
 
 
   async listFriends(fromUserId: string): Promise<FriendProfileList | null> {
@@ -74,7 +74,7 @@ export class FriendsService {
             avatarUrl: true,
             statistics: true,
             isOnline: true,
-						bio: true
+            bio: true
           }
         },
         toUser: {
@@ -84,7 +84,7 @@ export class FriendsService {
             avatarUrl: true,
             statistics: true,
             isOnline: true,
-						bio: true
+            bio: true
           }
         }
       }
@@ -108,9 +108,9 @@ export class FriendsService {
         elo: friend.statistics?.blitzElo ?? 1200,
         status: friend.isOnline ? 'online' : 'offline',
         gameId: undefined,
-				currentStreak: friend.statistics?.currentStreak ?? 0,
-				bestStreak: friend.statistics?.bestStreak ?? 0,
-				bio: friend.bio
+        currentStreak: friend.statistics?.currentStreak ?? 0,
+        bestStreak: friend.statistics?.bestStreak ?? 0,
+        bio: friend.bio
       };
     });
 
@@ -159,7 +159,7 @@ export class FriendsService {
             avatarUrl: true,
             statistics: true,
             isOnline: true,
-						bio: true
+            bio: true
           },
         },
       },
@@ -177,9 +177,9 @@ export class FriendsService {
       elo: friend.fromUser.statistics?.blitzElo ?? 1200,
       status: friend.fromUser.isOnline ? 'online' : 'offline',
       gameId: undefined,
-			currentStreak: friend.fromUser.statistics?.currentStreak ?? 0,
-			bestStreak: friend.fromUser.statistics?.bestStreak ?? 0,
-			bio: friend.fromUser.bio,
+      currentStreak: friend.fromUser.statistics?.currentStreak ?? 0,
+      bestStreak: friend.fromUser.statistics?.bestStreak ?? 0,
+      bio: friend.fromUser.bio,
     };
   }
 
@@ -191,46 +191,5 @@ export class FriendsService {
         respondedAt: new Date(),
       },
     });
-
-    async acceptFriendRequest(userId: string, friendId: string) {
-        const friend = await this.prisma.friend.update({
-            where: { id: friendId },
-            data: {
-                status: 'ACCEPTED',
-                respondedAt: new Date(),
-            },
-            include: {
-                fromUser: {
-                    select: {
-                        id: true,
-                        username: true,
-                        avatarUrl: true,
-                        statistics: true,
-                        isOnline: true,
-                    },
-                },
-            },
-        });
-
-        return {
-            id: friend.fromUser.id,
-            username: friend.fromUser.username,
-            avatarUrl: friend.fromUser.avatarUrl,
-            elo: friend.fromUser.statistics?.blitzElo ?? 1200,
-            status: friend.fromUser.isOnline ? 'online' : 'offline',
-            gameId: undefined,
-        };
-    }
-
-    async rejectFriendRequest(userId: string, friendId: string) {
-        await this.prisma.friend.update({
-            where: { id: friendId },
-            data: {
-                status: 'REJECTED',
-                respondedAt: new Date(),
-            },
-        });
-
-        return { success: true };
-    }
+  }
 }
