@@ -184,53 +184,14 @@ export class FriendsService {
   }
 
   async rejectFriendRequest(userId: string, friendId: string) {
-    await this.prisma.friend.update({
-      where: { id: friendId },
-      data: {
-        status: 'REJECTED',
-        respondedAt: new Date(),
-      },
-    });
+	await this.prisma.friend.update({
+	  where: { id: friendId },
+	  data: {
+		status: 'REJECTED',
+		respondedAt: new Date(),
+	  },
+	});
 
-    async acceptFriendRequest(userId: string, friendId: string) {
-        const friend = await this.prisma.friend.update({
-            where: { id: friendId },
-            data: {
-                status: 'ACCEPTED',
-                respondedAt: new Date(),
-            },
-            include: {
-                fromUser: {
-                    select: {
-                        id: true,
-                        username: true,
-                        avatarUrl: true,
-                        statistics: true,
-                        isOnline: true,
-                    },
-                },
-            },
-        });
-
-        return {
-            id: friend.fromUser.id,
-            username: friend.fromUser.username,
-            avatarUrl: friend.fromUser.avatarUrl,
-            elo: friend.fromUser.statistics?.blitzElo ?? 1200,
-            status: friend.fromUser.isOnline ? 'online' : 'offline',
-            gameId: undefined,
-        };
-    }
-
-    async rejectFriendRequest(userId: string, friendId: string) {
-        await this.prisma.friend.update({
-            where: { id: friendId },
-            data: {
-                status: 'REJECTED',
-                respondedAt: new Date(),
-            },
-        });
-
-        return { success: true };
-    }
+	return { success: true };
+  }
 }

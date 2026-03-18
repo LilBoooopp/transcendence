@@ -65,15 +65,15 @@ export class UserController {
 
         const response: any = { user: updatedUser };
 
-        if (updatedUser.username !== req.user.username) {
+/*        if (updatedUser.username !== req.user.username) {
+			const updateUserFp = await this.userService.updateFingerprint(req.user.userId);
+
             const tokenPayload = {
                 sub: req.user.userId,
-                username: updatedUser.username,
-                //finger print??
+                fingerprint: updateUserFp.fingerprint,
             };
             response.accessToken = await this.jwtService.signAsync(tokenPayload);
-        }
-
+        }*/
         return response;
     }
 
@@ -85,13 +85,20 @@ export class UserController {
             body.newPassword,
         );
 
-        const response: any = { user: updatedUser };
-        const tokenPayload = {
+		const response: any = { user: updatedUser };
+
+		if (updatedUser)
+		{
+			const updateUserFp = await this.userService.updateFingerprint(req.user.userId);
+
+        	const tokenPayload = {
             sub: req.user.userId,
-            username: req.user.username,
-            //finger print??
+            fingerprint: updateUserFp.fingerprint,
         };
         response.accessToken = await this.jwtService.signAsync(tokenPayload);
+		response.id = req.user.userId;
+		}
+
         return response;
     }
 

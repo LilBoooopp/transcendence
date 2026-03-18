@@ -5,7 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 
 type AuthInput = { username: string; password: string };
-type SignInData = { userId: string; username: string };
+type SignInData = { userId: string; username: string; fingerprint: string };
 type AuthResult = { accessToken: string; userId: string; username: string };
 
 @Injectable()
@@ -40,11 +40,14 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
+	const hashedFingerprint = await bcrypt.hash('thisisthefingerprint', 10);
+
     const createdUser = await this.prisma.user.create({
       data: {
         email: data.email,
         username: data.username,
         password: hashedPassword,
+		fingerprint: hashedFingerprint,
         avatarUrl: "",
         bio: 'I will be happy to play',
         isOnline: true,
@@ -55,13 +58,15 @@ export class AuthService {
       select: {
         id: true,
         username: true,
+		fingerprint: true,
       },
     });
-    return this.signIn({ userId: createdUser.id, username: createdUser.username });
+
+    return this.signIn({ userId: createdUser.id, username: createdUser.username, fingerprint: createdUser.fingerprint });
   }
 
-  //return the token. 
   async authenticate(input: AuthInput): Promise<AuthResult> {
+
     const user = await this.validateUser(input);
     if (!user) {
       throw new UnauthorizedException('Invalid username or password');
@@ -69,7 +74,6 @@ export class AuthService {
     return this.signIn(user)
   }
 
-  // verify user and password
   async validateUser(input: AuthInput): Promise<SignInData | null> {
 
     const user = await this.usersService.findAuthUser(input.username);
@@ -83,18 +87,26 @@ export class AuthService {
     return {
       userId: user.id,
       username: user.username,
+	  fingerprint: user.fingerprint,
     };
   }
 
-  //jwt create token
   async signIn(user: SignInData): Promise<AuthResult> {
     const tokenPayload = {
       sub: user.userId,
-      username: user.username,
+      username: user.fingerprint,
     };
     const accessToken = await this.jwtService.signAsync(tokenPayload);
     return { accessToken, username: user.username, userId: user.userId };
   }
+
+
+
+
+
+
+
+
 
   async logout(userId: string) {
     return true;

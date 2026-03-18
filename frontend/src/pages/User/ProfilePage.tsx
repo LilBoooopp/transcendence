@@ -137,23 +137,31 @@ const ProfilePage = () => {
 	const handleChangePassword = async (oldPassword: string, newPassword: string) => {
 		const token = localStorage.getItem('token');
 		if (!token) throw new Error('No token');
+		
 		try {
-		const res = await fetch('/api/users/password', {
-			method: 'PATCH',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${token}`,
-			},
-			body: JSON.stringify({ oldPassword, newPassword }),
-		});
+			const res = await fetch('/api/users/password', {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({ oldPassword, newPassword }),
+			});
 
-		if (!res.ok) {
-			throw new Error('Failed to update password');
+			if (!res.ok) {
+				throw new Error('Failed to update password');
+			}
+			
+			const data = await res.json();
+
+			if (data.accessToken) {
+				localStorage.setItem('token', data.accessToken);
+			}
+		} catch (error) {
+			console.error('Error changing password account:', error);
 		}
-	}
-		catch (error) {
-			console.error('Error changing password account:', error);}
 	};
+
 
 	const handleDeleteAccount = async () => {
 		const token = localStorage.getItem('token');
