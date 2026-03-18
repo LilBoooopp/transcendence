@@ -21,6 +21,7 @@ import { JwtService } from '@nestjs/jwt';
 import { JWT_SECRET } from '../auth/configs/jwtsecret';
 import { EloService } from '../elo/elo.service';
 import { NotificationService } from '../notification/notification.service';
+import { UserService } from '../user/user.service';
 
 type BotDifficulty = 'easy' | 'medium' | 'hard';
 
@@ -112,6 +113,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly jwtService: JwtService,
     private readonly eloService: EloService,
     private readonly notificationService: NotificationService,
+    private readonly userService: UserService,
   ) { }
 
   async handleConnection(client: Socket) {
@@ -177,13 +179,24 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const timerId = setTimeout(async () => {
           this.reconnectTimers.delete(timerKey);
           const room = this.activeGames.get(gameId);
-          if (!room || room.players.size > 0) return;
+          if (!room) return;
+
+          const humanSocket = room.botColor === 'b' ? room.white : room.black;
+          if (humanSocket && room.players.has(humanSocket)) return;
 
           this.clearGameTimer(gameId);
           this.stockfishService.stopEngine(gameId);
-          this.activeGames.delete(gameId);
+
+          const result = 'Player abandoned';
+          this.server.to(`game:${gameId}`).emit('game:over', {
+            winner: 'Draw',
+            result,
+          });
+
+          this.notificationService.gameOver(gameId, result);
 
           await this.persistGameResult(gameId, 'Draw', 'Player abandoned', true).catch(() => { });
+          this.activeGames.delete(gameId);
           console.log(`Bot game ${gameId} marked ABANDONED after reconnect timeout`);
         }, BOT_RECONNECT_SECONDS * 1000);
 
@@ -279,6 +292,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (room.whiteUserId === userId || room.blackUserId === userId) return true;
     }
     return false;
+  }
+
+  getUserActiveGameId(userId: string): string | null {
+    for (const [gameId, room] of this.activeGames.entries()) {
+      if (
+        (room.whiteUserId === userId || room.blackUserId === userId) &&
+        room.gameStarted
+      ) {
+        return (gameId);
+      }
+    }
+    return (null);
   }
 
   @SubscribeMessage('heartbeat')
@@ -469,6 +494,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       this.server.to(roomName).emit('game:opponent-reconnected', {});
 
+      this.emitPlayerNames(data.gameId, roomName, gameRoom);
+
       // notification
       const otherUserId = gameRoom.whiteUserId === userId
         ? gameRoom.blackUserId
@@ -527,6 +554,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (whiteReady && blackReady) {
         gameRoom.gameStarted = true;
         this.startGameTimer(data.gameId, gameRoom);
+        this.emitPlayerNames(data.gameId, roomName, gameRoom);
 
         if (gameRoom.whiteUserId && gameRoom.blackUserId) {
           this.gameService.createGame(
@@ -628,6 +656,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.emit('game:role-assigned', {
       gameId: data.gameId,
       role: humanColor,
+    });
+
+    this.userService.findById(userId).then((user) => {
+      const humanName = user?.username ?? 'Player';
+      const difficulty = data.difficulty.charAt(0).toUpperCase() + data.difficulty.slice(1);
+      const botName = `Stockfish (${difficulty})`;
+      client.emit('game:players', {
+        gameId: data.gameId,
+        white: {
+          userId: humanColor === 'white' ? userId : null,
+          username: humanColor === 'white' ? humanName : botName,
+        },
+        black: {
+          userId: humanColor === 'black' ? userId : null,
+          username: humanColor === 'black' ? humanName : botName,
+        },
+      });
     });
 
     client.emit('game:state', {
@@ -800,6 +845,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.notificationService.gameOver(data.gameId, resultStr, winner);
 
     await this.persistGameResult(data.gameId, winner, resultStr);
+    this.activeGames.delete(data.gameId);
 
     return ({ success: true });
   }
@@ -854,6 +900,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.notificationService.gameOver(data.gameId, resultStr);
 
       await this.persistGameResult(data.gameId, 'Draw', resultStr);
+      this.activeGames.delete(data.gameId);
     } else {
       client.to(`game:${data.gameId}`).emit('game:draw-declined', {
         gameId: data.gameId,
@@ -997,6 +1044,21 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  private async emitPlayerNames(gameId: string, roomName: string, gameRoom: GameRoom): Promise<void> {
+    try {
+      const [whiteUser, blackUser] = await Promise.all([
+        gameRoom.whiteUserId ? this.userService.findById(gameRoom.whiteUserId) : null,
+        gameRoom.blackUserId ? this.userService.findById(gameRoom.blackUserId) : null,
+      ]);
+      this.server.to(roomName).emit('game:players', {
+        gameId,
+        white: { userId: gameRoom.whiteUserId, username: whiteUser?.username ?? 'Unknown' },
+        black: { userId: gameRoom.blackUserId, username: blackUser?.username ?? 'Unknown' },
+      });
+    } catch (e) {
+      console.warn('Coule not emit player names:', e.message);
+    }
+  }
   /**
    * Centralised endofgame persistence
    *

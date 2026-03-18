@@ -1,5 +1,6 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { GameGateway } from '../game/game.gateway';
 
 type FriendProfile = {
   id: string;
@@ -8,21 +9,27 @@ type FriendProfile = {
   elo: number;
   status: 'online' | 'offline' | 'in-game';
   gameId?: string;
+	currentStreak: number;
+	bestStreak: number;
+	bio?: string | null;
 }
 
 type FriendProfileList = FriendProfile[];
 
 type FriendRequest = {
-  id: string;
-  username: string;
-  avatarUrl?: string;
-}
+    id: string;
+    username: string;
+    avatarUrl?: string;
+};
 
 type FriendRequestList = FriendRequest[];
 
 @Injectable()
 export class FriendsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private gameGateway: GameGateway,
+  ) { }
 
   async friendRequest(fromUserId: string, toUsername: string) {
     const toUser = await this.prisma.user.findUnique({
@@ -41,22 +48,14 @@ export class FriendsService {
       },
     });
 
-    if (existing && existing.status === 'ACCEPTED') {
-      throw new ConflictException('Already friends');
+        return this.prisma.friend.create({
+            data: {
+                fromUserId,
+                toUserId: toUser.id,
+                status: 'PENDING',
+            },
+        });
     }
-    if (existing && existing.status === 'PENDING') {
-      throw new ConflictException('Friend request already pending');
-    }
-
-    // Créer la requête
-    return this.prisma.friend.create({
-      data: {
-        fromUserId,
-        toUserId: toUser.id,
-        status: 'PENDING',
-      },
-    });
-  }
 
 
   async listFriends(fromUserId: string): Promise<FriendProfileList | null> {
@@ -74,7 +73,8 @@ export class FriendsService {
             username: true,
             avatarUrl: true,
             statistics: true,
-            isOnline: true
+            isOnline: true,
+						bio: true
           }
         },
         toUser: {
@@ -83,7 +83,8 @@ export class FriendsService {
             username: true,
             avatarUrl: true,
             statistics: true,
-            isOnline: true
+            isOnline: true,
+						bio: true
           }
         }
       }
@@ -92,7 +93,13 @@ export class FriendsService {
     // Transformer les relations en FriendProfile[]
     const friends: FriendProfileList = friendRelations.map(relation => {
       // Déterminer qui est l'ami (pas l'utilisateur actuel)
-      const friend = relation.fromUserId === fromUserId ? relation.toUser : relation.fromUser;
+      const friend = relation.fromUserId === fromUserId
+        ? relation.toUser
+        : relation.fromUser;
+
+      const activeGameId = friend.isOnline
+        ? this.gameGateway.getUserActiveGameId(friend.id)
+        : null;
 
       return {
         id: friend.id,
@@ -100,7 +107,10 @@ export class FriendsService {
         avatarUrl: friend.avatarUrl,
         elo: friend.statistics?.blitzElo ?? 1200,
         status: friend.isOnline ? 'online' : 'offline',
-        gameId: undefined
+        gameId: undefined,
+				currentStreak: friend.statistics?.currentStreak ?? 0,
+				bestStreak: friend.statistics?.bestStreak ?? 0,
+				bio: friend.bio
       };
     });
 
@@ -123,6 +133,8 @@ export class FriendsService {
         }
       }
     });
+
+
     return friendRequests.map(req => ({
       id: req.id,
       username: req.fromUser.username,
@@ -147,10 +159,15 @@ export class FriendsService {
             avatarUrl: true,
             statistics: true,
             isOnline: true,
+						bio: true
           },
         },
       },
     });
+
+    const activeGameId = friend.fromUser.isOnline
+      ? this.gameGateway.getUserActiveGameId(friend.fromUser.id)
+      : null;
 
     // Retourner le profil du nouvel ami
     return {
@@ -160,6 +177,9 @@ export class FriendsService {
       elo: friend.fromUser.statistics?.blitzElo ?? 1200,
       status: friend.fromUser.isOnline ? 'online' : 'offline',
       gameId: undefined,
+			currentStreak: friend.fromUser.statistics?.currentStreak ?? 0,
+			bestStreak: friend.fromUser.statistics?.bestStreak ?? 0,
+			bio: friend.fromUser.bio,
     };
   }
 
@@ -172,9 +192,45 @@ export class FriendsService {
       },
     });
 
-    return { success: true };
-  }
+    async acceptFriendRequest(userId: string, friendId: string) {
+        const friend = await this.prisma.friend.update({
+            where: { id: friendId },
+            data: {
+                status: 'ACCEPTED',
+                respondedAt: new Date(),
+            },
+            include: {
+                fromUser: {
+                    select: {
+                        id: true,
+                        username: true,
+                        avatarUrl: true,
+                        statistics: true,
+                        isOnline: true,
+                    },
+                },
+            },
+        });
 
+        return {
+            id: friend.fromUser.id,
+            username: friend.fromUser.username,
+            avatarUrl: friend.fromUser.avatarUrl,
+            elo: friend.fromUser.statistics?.blitzElo ?? 1200,
+            status: friend.fromUser.isOnline ? 'online' : 'offline',
+            gameId: undefined,
+        };
+    }
 
-  // ...other methods...
+    async rejectFriendRequest(userId: string, friendId: string) {
+        await this.prisma.friend.update({
+            where: { id: friendId },
+            data: {
+                status: 'REJECTED',
+                respondedAt: new Date(),
+            },
+        });
+
+        return { success: true };
+    }
 }

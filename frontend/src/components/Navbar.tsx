@@ -32,6 +32,7 @@ export default function Navbar({ isDarkMode, toggleDarkMode }: NavbarProps) {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
     socketService.disconnect();
+		window.dispatchEvent(new Event('auth-change'));
     navigate('/');
     setIsMenuOpen(false);
   };
@@ -45,6 +46,7 @@ export default function Navbar({ isDarkMode, toggleDarkMode }: NavbarProps) {
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
     setIsAuthModalOpen(false);
+		window.dispatchEvent(new Event('auth-change'));
   };
 
   return (

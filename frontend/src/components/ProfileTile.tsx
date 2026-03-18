@@ -119,15 +119,30 @@ export default function ProfileTile({
 	};
 
 	const handleSubmitPassword = async () => {
+		const passRegex = /^[a-zA-Z0-9!@#$%^&*()_+\=[\]{}|;:,.<>?-]+$/;
 		setPasswordError('');
+		if (!oldPassword || !newPassword || !confirmPassword) {
+			setPasswordError("All fields are required.");
+			return;
+		}
+		if (newPassword.length < 8 || newPassword.length > 64 ) {
+			setPasswordError("New password must be between 8 and 64 characters.");
+			return;
+		}
+		if (!passRegex.test(newPassword)) {
+			setPasswordError("Your password must contain letters, digits, and special characters !@#$%^&*()_+-=[]{}|;:,.<>? only.");
+			return;
+		}
+		if (oldPassword === newPassword) {
+			setPasswordError("New password cannot be the same as the old password.");
+			return;
+		}
 		if (newPassword !== confirmPassword) {
 			setPasswordError("New passwords do not match.");
 			return;
 		}
-		if (newPassword.length < 6) {
-			setPasswordError("New password must be at least 6 characters.");
-			return;
-		}
+
+
 		
 		try {
 			await onChangePassword(oldPassword, newPassword);
@@ -161,8 +176,8 @@ export default function ProfileTile({
 						type="file" 
 						ref={fileInputRef} 
 						onChange={handleFileChange} 
-						accept="image/png, image/jpeg, image/jpg" 
-						className="hidden" 
+						accept="image/png, image/jpeg, image/jpg"
+						className="hidden"
 					/>
 				</div>
 
@@ -207,21 +222,36 @@ export default function ProfileTile({
 								placeholder="Old Password" 
 								value={oldPassword}
 								onChange={(e) => setOldPassword(e.target.value)}
+								minLength={8}
+								maxLength={64}
+								pattern="^[a-zA-Z0-9!@#$%^&*()_+\=[\]{}|;:,.<>?-]+$"
+								title="Letters, digits, and special characters !@#$%^&*()_+-=[]{}|;:,.<>? only"
 								className="rounded px-3 py-2 text-text-dark bg-background-light"
+								required
 							/>
 							<input 
 								type="password" 
 								placeholder="New Password" 
 								value={newPassword}
 								onChange={(e) => setNewPassword(e.target.value)}
+								minLength={8}
+								maxLength={64}
+								pattern="^[a-zA-Z0-9!@#$%^&*()_+\=[\]{}|;:,.<>?-]+$"
+								title="Letters, digits, and special characters !@#$%^&*()_+-=[]{}|;:,.<>? only"
 								className="rounded px-3 py-2 text-text-dark bg-background-light"
+								required
 							/>
 							<input 
 								type="password" 
 								placeholder="Confirm New Password" 
 								value={confirmPassword}
 								onChange={(e) => setConfirmPassword(e.target.value)}
+								minLength={8}
+								maxLength={64}
+								pattern="^[a-zA-Z0-9!@#$%^&*()_+\=[\]{}|;:,.<>?-]+$"
+								title="Letters, digits, and special characters !@#$%^&*()_+-=[]{}|;:,.<>? only"
 								className="rounded px-3 py-2 text-text-dark bg-background-light"
+								required
 							/>
 						</div>
 

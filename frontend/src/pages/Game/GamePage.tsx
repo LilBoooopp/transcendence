@@ -33,7 +33,10 @@ const GamePage: React.FC = () => {
 	const [initialState, setInitialState] = useState<{ fen: string; pgn: string } | null>(null);
 	const [initialTimer, setInitialTimer] = useState<TimerState | null>(state.initialTimer ?? null);
 	const [initialGameOver, setInitialGameOver] = useState<{ winner: string; result: string } | null>(null);
+	const [opponentName, setOpponentName] = useState<string | null>(null);
 	const [waiting, setWaiting] = useState(true);
+
+	const [players, setPlayers] = useState<{ white: string, black: string } | null>(null);
 
 	const hasConnected = useRef(false);
 
@@ -47,6 +50,7 @@ const GamePage: React.FC = () => {
 		let unsubState: (() => void) | undefined;
 		let unsubTimer: (() => void) | undefined;
 		let unsubGameOver: (() => void) | undefined;
+		let unsubPlayers: (() => void) | undefined;
 		let unsubError: (() => void) | undefined;
 
 		const doJoin = () => {
@@ -65,8 +69,10 @@ const GamePage: React.FC = () => {
 				navigate('/', { replace: true });
 			});
 
-			unsubRole = socketService.on('game:role-assigned', (data: { gameId: string; role: 'white' | 'black' | 'spectator' }) => {
+			unsubRole = socketService.on('game:role-assigned', (data: { gameId: string; role: 'white' | 'black' | 'spectator'; opponentUsername?: string }) => {
 				setRole(data.role);
+				// Always set an opponent name; use a placeholder if backend doesn't provide one yet
+				setOpponentName(data.opponentUsername ?? 'Opponent');
 				setWaiting(false);
 			});
 
@@ -80,6 +86,14 @@ const GamePage: React.FC = () => {
 
 			unsubGameOver = socketService.on('game:over', (data: { winner: string; result: string }) => {
 				setInitialGameOver(data);
+			});
+
+			unsubPlayers = socketService.on('game:players', (data: {
+				gameId: string;
+				white: { userId: string | null; username: string };
+				black: { userId: string | null; username: string };
+			}) => {
+				setPlayers({ white: data.white.username, black: data.black.username });
 			});
 
 			socketService.joinGame(gameId, tcKey, state.role ?? undefined);
@@ -98,11 +112,14 @@ const GamePage: React.FC = () => {
 			unsubGameOver?.();
 			unsubError?.();
 			unsubConnect?.();
+			unsubPlayers?.();
 			socketService.leaveGame(gameId);
 			socketService.disconnect();
 			hasConnected.current = false;
 		};
 	}, [gameId, userId, tcKey, state.role]);
+
+	// (removed unused history fetch - history is managed on Landing and other pages)
 
 	if (!gameId) {
 		return (
@@ -141,6 +158,7 @@ const GamePage: React.FC = () => {
 					initialTimer={initialTimer}
 					incrementMs={timeControl.incrementMs}
 					initialGameOver={initialGameOver}
+					players={players}
 				/>
 			</div>
 		);
@@ -156,6 +174,7 @@ const GamePage: React.FC = () => {
 			initialTimer={initialTimer}
 			incrementMs={timeControl.incrementMs}
 			initialGameOver={initialGameOver}
+			players={players}
 		/>
 	);
 };

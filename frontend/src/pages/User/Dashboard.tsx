@@ -76,6 +76,8 @@ const WireframeDashboard = () => {
         blitzRating: 0,
         rapidRating: 0,
         bulletRating: 0,
+				currentStreak: 0,
+				bestStreak: 0,
     });
 
     // useEffect pour fetcher les stats
@@ -171,7 +173,9 @@ useEffect(() => {
                 id: user.id || user.userId || user._id || `fallback-id-${index}`,
                 username: user.username || 'Unknown Player',
                 elo: userElo,
-                avatarUrl: user.avatarUrl
+                avatarUrl: user.avatarUrl,
+								currentStreak: s.currentStreak ?? user.currentStreak,
+								bestStreak: s.bestStreak ?? user.bestStreak,
             };
         });
         formattedLeaderboard.sort((a, b) => (b.elo || 0) - (a.elo || 0));
@@ -193,6 +197,8 @@ useEffect(() => {
                         MemberSince={stats.memberSince}
                         TotalGames={stats.totalGames}
                         AvgScore={stats.avgScore}
+												currentStreak={stats.currentStreak}
+						    				bestStreak={stats.bestStreak}
                     />
                 </div>
                 {/* BOTTOM SECTION: Statistics Dashboard */}

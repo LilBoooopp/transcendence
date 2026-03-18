@@ -2,12 +2,13 @@ import { Module } from '@nestjs/common';
 import { FriendsService } from './friends.service';
 import { FriendsController } from './friends.controller';
 import { PrismaModule } from '../prisma/prisma.module';
+import { GameModule } from 'src/game/game.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, GameModule],
   controllers: [FriendsController],
   providers: [FriendsService],
-  exports: [FriendsService], // exporte pour que d'autres modules puissent l'utiliser
+  exports: [FriendsService],
 })
-export class FriendsModule {}
+export class FriendsModule { }
 
