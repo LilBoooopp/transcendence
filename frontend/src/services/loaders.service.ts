@@ -1,20 +1,19 @@
-// services/loaders.service.ts
+import { redirect } from 'react-router-dom';
 
-//Get headers to clean code and avoid repetition
 const getApiHeaders = () => ({
   'Content-Type': 'application/json',
   Authorization: `Bearer ${localStorage.getItem('token')}`,
 });
 
-// Loaders
-
-export async function gamemodeLoader() {
-  return {};
+export async function protectedLoader() {
+    const res = await fetch('/api/auth/me', { headers: getApiHeaders() });
+    
+    if (res.status === 401 || res.status === 403) throw redirect('/?unauthorized=true');
+    if (res.status === 429) throw new Error('Rate limited — please wait a moment.');
+    if (!res.ok) throw new Error('Something went wrong.');
+    
+    return res.json();
 }
-export async function botmodeLoader() {
-  return {};
-}
-
 
 export async function dashboardLoader() {
   const [statsRes, eloRes, historyRes, usersRes] = await Promise.all([
@@ -24,7 +23,6 @@ export async function dashboardLoader() {
     fetch('/api/users', { headers: getApiHeaders() }),
   ]);
 
-  if ([statsRes, eloRes, historyRes, usersRes].some(r => r.status === 401)) throw new Error('Unauthorized');
   if ([statsRes, eloRes, historyRes, usersRes].some(r => r.status === 429)) throw new Error('Rate limited');
   if ([statsRes, eloRes, historyRes, usersRes].some(r => !r.ok)) throw new Error('Failed');
 
@@ -65,73 +63,11 @@ export async function userLoader() {
   const [userData] = await Promise.all([
     userRes.json(),
   ]);
-
-  /*
-  				username: user.username ?? '',
-					email: user.email ?? '',
-					firstName: user.firstName ?? '',
-					lastName: user.lastName ?? '',
-					bio: user.bio ?? '',
-					avatarUrl: user.avatarUrl ?? '',
-  */
-  // format the data like so
   
   return { userData };
 }
 
+export async function friendLoader() {
 
-
-export async function playLoader() {
   return {};
 }
-export async function botLaunchLoader() {
-  return {};
-}
-
-
-export async function gameLoader() {
-  return {};
-}
-
-
-export async function soloLoader() {
-  return {};
-}
-export async function soloGameLoader() {
-  return {};
-}
-
-
-/*
-
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    fetch('/api/users/me', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Not ok');
-        return res.json();
-      })
-      .then((user) => {
-        setProfileData({
-          username: user.username ?? '',
-          email: user.email ?? '',
-          firstName: user.firstName ?? '',
-          lastName: user.lastName ?? '',
-          bio: user.bio ?? '',
-          avatarUrl: user.avatarUrl ?? '',
-        });
-      })
-      .catch(() => {
-        // handle error if needed
-      });
-  }, []);
-
-*/

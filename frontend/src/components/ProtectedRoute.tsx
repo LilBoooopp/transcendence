@@ -1,33 +1,27 @@
-import { useEffect, useState, useRef } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { isLoggedIn } from '../services/auth.service';
 import { useNotification } from '../notifications';
 
-
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-    const [status, setStatus] = useState<'loading' | 'authed' | 'unauthed'>('loading');
-    const location = useLocation();
-    let isDone = useRef(false);
+export function ProtectedLayout() {
+    const navigate = useNavigate();
     const { push } = useNotification();
+    const isDone = useRef(false);
 
     useEffect(() => {
         isLoggedIn().then(({ connected }) => {
-            setStatus(connected ? 'authed' : 'unauthed');
-            if (!connected && !isDone) {
-                isDone = useRef(true);
+            if (!connected && !isDone.current) {
+                isDone.current = true;
                 push({
                     type: 'error',
-                    title: "You are not logged in.",
+                    title: 'Access denied',
                     message: 'You need to be logged in to access this page.',
                     duration: 5000,
                 });
+                navigate('/');
             }
         });
     }, []);
 
-    if (status === 'loading') return null;
-    if (status === 'unauthed') return <Navigate to="/" state={{ from: location }} replace />; // Do NOT add code here (will call 1 million times)
-    return <>{children}</>;
+    return <Outlet />;
 }
-
-export default ProtectedRoute;

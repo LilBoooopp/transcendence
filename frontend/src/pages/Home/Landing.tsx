@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Tile from '../../components/Tile';
 import LoginTile from '../../components/LoginTile';
 import GameHistoryList, { GameHistoryItem } from '../../components/GameHistoryList';
@@ -9,9 +9,11 @@ import { useNotification } from '../../notifications';
 
 export default function WireframeLanding() {
 	const navigate = useNavigate();
+	const location = useLocation();
 	const [loggedIn, setLoggedIn] = useState(false);
 	const [history, setHistory] = useState<GameHistoryItem[]>([]);
 	const [username, setUsername] = useState<string | null>(null);
+	const [historyError, setHistoryError] = useState<'rate-limited' | 'error' | null>(null);
 	const { push } = useNotification();
 
 	const checkAuth = () => {
@@ -23,25 +25,31 @@ export default function WireframeLanding() {
 				setUsername(null);
 				setHistory([]);
 			}
-			console.log("User is logged in:", connected);
 		});
 	};
 
+	// Handle unauthorized redirect from protected routes
 	useEffect(() => {
-		const handleAuthChange = () => {
-			checkAuth();
-		};
+		if (location.state?.unauthorized) {
+			push({
+				type: 'error',
+				title: 'Access denied',
+				message: 'You need to be logged in to access this page.',
+				duration: 5000,
+			});
+		}
+	}, []);
+
+	useEffect(() => {
+		const handleAuthChange = () => checkAuth();
 		window.addEventListener('auth-change', handleAuthChange);
 		checkAuth();
-		return () => {
-			window.removeEventListener('auth-change', handleAuthChange);
-		};
+		return () => window.removeEventListener('auth-change', handleAuthChange);
 	}, []);
 
 	useEffect(() => {
 		const token = localStorage.getItem('token');
-		// If no token or not logged in, don't fetch
-		if (!token || !loggedIn) return; 
+		if (!token || !loggedIn) return;
 
 		fetch('/api/users/history', {
 			method: 'GET',
@@ -50,15 +58,17 @@ export default function WireframeLanding() {
 				Authorization: `Bearer ${token}`,
 			},
 		})
-			.then((res) => {
-				if (!res.ok) throw new Error('Failed to fetch history');
+			.then(res => {
+				if (res.status === 429) throw new Error('rate-limited');
+				if (!res.ok) throw new Error('error');
 				return res.json();
 			})
-			.then((data) => {
+			.then(data => {
 				setHistory(data);
+				setHistoryError(null);
 			})
-			.catch((error) => {
-				console.error('Error fetching game history:', error);
+			.catch(err => {
+				setHistoryError(err.message);
 				setHistory([]);
 			});
 	}, [loggedIn]);
@@ -77,7 +87,7 @@ export default function WireframeLanding() {
 			action: () => navigate('/solo')
 		},
 		{
-			title: "AI oponent",
+			title: "AI opponent",
 			description: "Challenge the computer engine.",
 			icon: <Icons.Bot size={36} />,
 			action: () => navigate('/botmode')
@@ -106,7 +116,17 @@ export default function WireframeLanding() {
 			{/* HISTORY / LOGIN SECTION */}
 			<div className="w-full mt-12 flex justify-center">
 				{loggedIn ? (
-					<GameHistoryList history={history} />
+					historyError === 'rate-limited' ? (
+						<div className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+							Too many requests — please wait a moment.
+						</div>
+					) : historyError === 'error' ? (
+						<div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+							Failed to load history.
+						</div>
+					) : (
+						<GameHistoryList history={history} />
+					)
 				) : (
 					<LoginTile
 						onLogin={() => console.log('Login clicked')}

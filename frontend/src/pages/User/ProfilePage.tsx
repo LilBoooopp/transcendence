@@ -21,46 +21,16 @@ type UpdateUserBody = {
 
 const ProfilePage = () => {
 	const navigate = useNavigate();
-	const { userData } = useLoaderData();
-	console.log('Loader data in ProfilePage:', userData);
-	const [profileData, setProfileData] = useState<ProfileData>({
-		username: '',
-		email: '@example.com',
-		firstName: '',
-		lastName: '',
-		bio: '',
-		avatarUrl: '',
-	});
+	const { userData } = useLoaderData() as any;
 
-	useEffect(() => {
-		const token = localStorage.getItem('token');
-		if (!token) return;
-
-		fetch('/api/users/me', {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${token}`,
-			},
-		})
-			.then((res) => {
-				if (!res.ok) throw new Error('Not ok');
-				return res.json();
-			})
-			.then((user) => {
-				setProfileData({
-					username: user.username ?? '',
-					email: user.email ?? '',
-					firstName: user.firstName ?? '',
-					lastName: user.lastName ?? '',
-					bio: user.bio ?? '',
-					avatarUrl: user.avatarUrl ?? '',
-				});
-			})
-			.catch(() => {
-				// handle error if needed
-			});
-	}, []);
+    const [profileData, setProfileData] = useState<ProfileData>({
+        username: userData?.username ?? '',
+        email: userData?.email ?? '',
+        firstName: userData?.firstName ?? '',
+        lastName: userData?.lastName ?? '',
+        bio: userData?.bio ?? '',
+        avatarUrl: userData?.avatarUrl ?? '',
+    });
 
 	const handleUpdateProfileField = async (field: string, newValue: string) => {
 		const token = localStorage.getItem('token');
