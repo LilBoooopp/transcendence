@@ -2,24 +2,22 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { JwtService } from '@nestjs/jwt'
 import { Socket } from 'socket.io';
 import { JWT_SECRET } from '../configs/jwtsecret';
-// AUTH GARD
-//if it returns true, it means that the endpoint can be accessed. false we are refusing the access
+
 @Injectable()
 export class AuthGuard implements CanActivate {
 	constructor(private jwtService: JwtService) { }
 	async canActivate(context: ExecutionContext) {
 		const request = context.switchToHttp().getRequest();
-		const authorization = request.headers.authorization; //Bearer <token> we are looking for the authorisation
+		const authorization = request.headers.authorization;
 		if (!authorization) {
 			throw new UnauthorizedException('No authorization header');
 		}
-		const token = authorization?.split(' ')[1];// int the autorization, it is looking for the token. 
+		const token = authorization?.split(' ')[1];
 		if (!token) {
-			throw new UnauthorizedException('No token provided'); //no token, so request rejected so 401 error status
+			throw new UnauthorizedException('No token provided');
 		}
 		try {
 			const tokenPayload = await this.jwtService.verifyAsync(token);
-			//we add a user object to the request
 			request.user = {
 				userId: tokenPayload.sub,
 				username: tokenPayload.username
