@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from './ui/Card';
 import { Pencil } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import StreakPill from './StreakPill'; // Import the new component
+import StreakPill from './StreakPill';
 
 interface UserTileProps {
   username: string;
@@ -40,7 +40,8 @@ export default function UserTile({
   if (AvgScore !== undefined && AvgScore !== null) displayInfoParts.push(`Avg. Score: ${AvgScore}`);
 
   return (
-    <Card
+    <Card 
+      variant="surface"
       onClick={onClick}
       className={`relative flex flex-col items-center justify-center text-center p-8 gap-4 w-full h-full ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
     >

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card } from './ui/Card';
 import Button from './Button';
 import { Check, X, Eye, Search } from 'lucide-react';
@@ -14,7 +13,7 @@ interface Friend {
     gameId?: string;
     currentStreak?: number;
     bestStreak?: number;
-		bio?: string;
+    bio?: string;
 }
 
 interface FriendRequest {
@@ -24,13 +23,13 @@ interface FriendRequest {
 }
 
 export default function FriendsTile() {
-    const navigate = useNavigate();
     //state
     const [friends, setFriends] = useState<Friend[]>([]);
     const [requests, setRequests] = useState<FriendRequest[]>([]);
     const [searchName, setSearchName] = useState('');
     const [requestStatus, setRequestStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  //  const navigate = useNavigate();
+		const navigate = useNavigate();
+
 
     // add by syl to get friends
     useEffect(() => {
@@ -203,7 +202,7 @@ export default function FriendsTile() {
 
     //rendering
     return (
-        <Card className="flex flex-col p-5 w-full h-full max-h-[400px] gap-4 overflow-hidden">
+        <Card variant="surface" className="flex flex-col p-5 w-full h-full max-h-[400px] gap-4 overflow-hidden">
             {/* Header */}
             <div className="flex items-center gap-2 border-b border-gray-700 pb-2">
                 <h3 className="text-xl font-heading font-bold text-text-default m-0">Friends</h3>
@@ -274,27 +273,27 @@ export default function FriendsTile() {
                         const { avatarSrc, placeholderImage } = getAvatarSrc(friend.username, friend.avatarUrl);
 
                         return (
-                            <div 
-                                key={friend.id} 
+                            <div
+                                key={friend.id}
                                 onClick={() => navigate(`/friend/${friend.username}`, { state: { friendData: friend } })}
-                                className="flex items-center justify-between p-2 rounded-lg hover:bg-primary/30 transition-colors cursor-pointer"
+                                className="flex items-center justify-between p-2 rounded-lg hover:bg-primary-hover transition-colors cursor-pointer"
                             >
                                 <div className="flex items-center gap-3 truncate">
                                     <div className="relative shrink-0 ml-2 mb-2.5 mt-2.5">
-                                      <img
-                                          src={avatarSrc}
-                                          alt={friend.username}
-                                          onError={(e) => {
-                                              e.currentTarget.src = placeholderImage;
-                                          }}
-                                          className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-700"
-                                      />
-                                      <StreakPill 
-                                        currentStreak={friend.currentStreak} 
-                                        bestStreak={friend.bestStreak} 
-                                        className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-10 scale-[0.65] origin-top" 
-                                      />
-                                    </div>                                    
+                                        <img
+                                            src={avatarSrc}
+                                            alt={friend.username}
+                                            onError={(e) => {
+                                                e.currentTarget.src = placeholderImage;
+                                            }}
+                                            className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-700"
+                                        />
+                                        <StreakPill
+                                            currentStreak={friend.currentStreak}
+                                            bestStreak={friend.bestStreak}
+                                            className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-10 scale-[0.65] origin-top"
+                                        />
+                                    </div>
                                     <div className="flex flex-col truncate">
                                         <span className="text-sm font-semibold text-text-default truncate">{friend.username}</span>
                                         <span className="text-xs text-gray-400">Avg. Elo: {friend.elo}</span>
@@ -312,7 +311,7 @@ export default function FriendsTile() {
                                     {friend.status === 'in-game' && (
                                         <button
                                             onClick={(e) => {
-                                                e.stopPropagation(); 
+                                                e.stopPropagation();
                                                 handleSpectate(friend.gameId);
                                             }}
                                             className="p-1.5 rounded-full bg-accent/20 text-text-default hover:bg-accent/40 hover:scale-110 transition-all"

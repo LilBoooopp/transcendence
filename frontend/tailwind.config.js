@@ -34,6 +34,10 @@ module.exports = {
         accent: {
           DEFAULT: '#AEC3B0',
           hover: '#c4d6c6',
+        },
+				contrast: {
+          DEFAULT: '#0C2E3B',
+          hover: '#144B61',
         }
       },
       fontFamily: {
