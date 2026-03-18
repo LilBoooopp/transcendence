@@ -176,7 +176,7 @@ export class UserService {
         if (newAvatar !== undefined && newAvatar !== null && newAvatar !== '') {
             data.avatarUrl = newAvatar;
         }
-
+        
         if (Object.keys(data).length === 0) {
             throw new BadRequestException('No fields to update');
         }
@@ -251,11 +251,6 @@ export class UserService {
         }
 
         const hashed = await bcrypt.hash(newPassword, 10);
-
-/*        await this.prisma.user.update({
-            where: { id },
-            data: { password: hashed },
-        });*/
 
         return await this.prisma.user.update({
         where: { id },

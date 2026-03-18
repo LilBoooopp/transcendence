@@ -12,6 +12,8 @@ async function bootstrap() {
     .setTitle('Chess API')
     .setDescription('API documentation for Chess Platform')
     .setVersion('1.0.0')
+    .addServer('/api', 'API Gateway')
+    .addServer('http://localhost:4000', 'Local Backend')
     .addBearerAuth()
     .build();
 

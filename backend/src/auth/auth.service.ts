@@ -44,7 +44,6 @@ export class AuthService {
                                 Math.random().toString(36).substring(2, 15);
     const hashedFingerprint = await bcrypt.hash(randomFingerprint, 10);
 
-
     const createdUser = await this.prisma.user.create({
       data: {
         email: data.email,
