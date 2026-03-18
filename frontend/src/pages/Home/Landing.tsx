@@ -28,18 +28,6 @@ export default function WireframeLanding() {
 		});
 	};
 
-	// Handle unauthorized redirect from protected routes
-	useEffect(() => {
-		if (location.state?.unauthorized) {
-			push({
-				type: 'error',
-				title: 'Access denied',
-				message: 'You need to be logged in to access this page.',
-				duration: 5000,
-			});
-		}
-	}, []);
-
 	useEffect(() => {
 		const handleAuthChange = () => checkAuth();
 		window.addEventListener('auth-change', handleAuthChange);
