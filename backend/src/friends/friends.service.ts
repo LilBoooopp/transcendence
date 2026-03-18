@@ -12,7 +12,7 @@ type FriendProfile = {
   currentStreak: number;
   bestStreak: number;
   bio?: string | null;
-};
+}
 
 type FriendProfileList = FriendProfile[];
 
@@ -49,14 +49,6 @@ export class FriendsService {
       },
     });
 
-    if (existing && existing.status === 'ACCEPTED') {
-      throw new ConflictException('Already friends');
-    }
-    if (existing && existing.status === 'PENDING') {
-      throw new ConflictException('Friend request already pending');
-    }
-
-    // Créer la requête
     return this.prisma.friend.create({
       data: {
         fromUserId,
@@ -82,8 +74,8 @@ export class FriendsService {
             avatarUrl: true,
             statistics: true,
             isOnline: true,
-            bio: true,
-          },
+            bio: true
+          }
         },
         toUser: {
           select: {
@@ -92,10 +84,10 @@ export class FriendsService {
             avatarUrl: true,
             statistics: true,
             isOnline: true,
-            bio: true,
-          },
-        },
-      },
+            bio: true
+          }
+        }
+      }
     });
 
     // Transformer les relations en FriendProfile[]
@@ -112,11 +104,11 @@ export class FriendsService {
         username: friend.username,
         avatarUrl: friend.avatarUrl,
         elo: friend.statistics?.blitzElo ?? 1200,
-        status: friend.isOnline ? (activeGameId ? 'in-game' : 'online') : 'offline',
-        gameId: activeGameId || undefined,
+        status: friend.isOnline ? 'online' : 'offline',
+        gameId: undefined,
         currentStreak: friend.statistics?.currentStreak ?? 0,
         bestStreak: friend.statistics?.bestStreak ?? 0,
-        bio: friend.bio,
+        bio: friend.bio
       };
     });
 
@@ -163,7 +155,7 @@ export class FriendsService {
             avatarUrl: true,
             statistics: true,
             isOnline: true,
-            bio: true,
+            bio: true
           },
         },
       },
@@ -179,8 +171,8 @@ export class FriendsService {
       username: friend.fromUser.username,
       avatarUrl: friend.fromUser.avatarUrl,
       elo: friend.fromUser.statistics?.blitzElo ?? 1200,
-      status: friend.fromUser.isOnline ? (activeGameId ? 'in-game' : 'online') : 'offline',
-      gameId: activeGameId || undefined,
+      status: friend.fromUser.isOnline ? 'online' : 'offline',
+      gameId: undefined,
       currentStreak: friend.fromUser.statistics?.currentStreak ?? 0,
       bestStreak: friend.fromUser.statistics?.bestStreak ?? 0,
       bio: friend.fromUser.bio,
@@ -195,7 +187,5 @@ export class FriendsService {
         respondedAt: new Date(),
       },
     });
-
-    return { success: true };
   }
 }

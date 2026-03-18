@@ -1111,16 +1111,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const blackId = gameRoom?.blackUserId ?? game?.blackPlayerId ?? null;
       const w = winner.toLowerCase();
 
-      if (whiteId) {
-        const outcome: 'win' | 'draw' | 'loss' =
-          w === 'white' ? 'win' : w === 'draw' ? 'draw' : 'loss';
-        await this.updatePlayerStats(whiteId, outcome, playTimeSeconds);
-      }
+      if (!game?.isAiGame) {
+        if (whiteId) {
+          const outcome: 'win' | 'draw' | 'loss' =
+            w === 'white' ? 'win' : w === 'draw' ? 'draw' : 'loss';
+          await this.updatePlayerStats(whiteId, outcome, playTimeSeconds);
+        }
 
-      if (blackId) {
-        const outcome: 'win' | 'draw' | 'loss' =
-          w === 'black' ? 'win' : w === 'draw' ? 'draw' : 'loss';
-        await this.updatePlayerStats(blackId, outcome, playTimeSeconds);
+        if (blackId) {
+          const outcome: 'win' | 'draw' | 'loss' =
+            w === 'black' ? 'win' : w === 'draw' ? 'draw' : 'loss';
+          await this.updatePlayerStats(blackId, outcome, playTimeSeconds);
+        }
       }
 
       if (!abandoned && game?.isRanked && !game?.isAiGame && whiteId && blackId) {
