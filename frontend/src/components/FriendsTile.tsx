@@ -29,8 +29,7 @@ export default function FriendsTile() {
     const [requests, setRequests] = useState<FriendRequest[]>([]);
     const [searchName, setSearchName] = useState('');
     const [requestStatus, setRequestStatus] = useState<'idle' | 'success' | 'error'>('idle');
-		const navigate = useNavigate();
-
+	const navigate = useNavigate();
 
     // add by syl to get friends
     useEffect(() => {

@@ -39,7 +39,6 @@ export class FriendsService {
     if (!toUser) throw new NotFoundException('User not found');
     if (toUser.id === fromUserId) throw new BadRequestException('Cannot add yourself');
 
-    // Vérifier s'il y a déjà une relation (dans les deux sens)
     const existing = await this.prisma.friend.findFirst({
       where: {
         OR: [
@@ -97,10 +96,10 @@ export class FriendsService {
       }
     });
 
-    // Transformer les relations en FriendProfile[]
-    const friends: FriendProfileList = friendRelations.map((relation) => {
-      // Déterminer qui est l'ami (pas l'utilisateur actuel)
-      const friend = relation.fromUserId === fromUserId ? relation.toUser : relation.fromUser;
+    const friends: FriendProfileList = friendRelations.map(relation => {
+      const friend = relation.fromUserId === fromUserId
+        ? relation.toUser
+        : relation.fromUser;
 
       const activeGameId = friend.isOnline
         ? this.gameGateway.getUserActiveGameId(friend.id)
@@ -147,7 +146,6 @@ export class FriendsService {
   }
 
   async acceptFriendRequest(userId: string, friendId: string) {
-    // Mettre à jour le statut de la requête à ACCEPTED
     const friend = await this.prisma.friend.update({
       where: { id: friendId },
       data: {
@@ -171,8 +169,6 @@ export class FriendsService {
     const activeGameId = friend.fromUser.isOnline
       ? this.gameGateway.getUserActiveGameId(friend.fromUser.id)
       : null;
-
-    // Retourner le profil du nouvel ami
     return {
       id: friend.fromUser.id,
       username: friend.fromUser.username,
@@ -187,13 +183,14 @@ export class FriendsService {
   }
 
   async rejectFriendRequest(userId: string, friendId: string) {
-    await this.prisma.friend.update({
-      where: { id: friendId },
-      data: {
-        status: 'REJECTED',
-        respondedAt: new Date(),
-      },
-    });
-		return { success: true };
+	await this.prisma.friend.update({
+	  where: { id: friendId },
+	  data: {
+		status: 'REJECTED',
+		respondedAt: new Date(),
+	  },
+	});
+
+	return { success: true };
   }
 }
