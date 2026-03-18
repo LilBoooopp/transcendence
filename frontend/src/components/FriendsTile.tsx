@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card } from './ui/Card';
 import Button from './Button';
 import { Check, X, Eye, Search } from 'lucide-react';
@@ -25,7 +24,6 @@ interface FriendRequest {
 }
 
 export default function FriendsTile() {
-    const navigate = useNavigate();
     //state
     const [friends, setFriends] = useState<Friend[]>([]);
     const [requests, setRequests] = useState<FriendRequest[]>([]);

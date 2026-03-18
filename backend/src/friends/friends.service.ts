@@ -9,10 +9,10 @@ type FriendProfile = {
   elo: number;
   status: 'online' | 'offline' | 'in-game';
   gameId?: string;
-	currentStreak: number;
-	bestStreak: number;
-	bio?: string | null;
-}
+  currentStreak: number;
+  bestStreak: number;
+  bio?: string | null;
+};
 
 type FriendProfileList = FriendProfile[];
 
@@ -29,12 +29,13 @@ export class FriendsService {
   constructor(
     private prisma: PrismaService,
     private gameGateway: GameGateway,
-  ) { }
+  ) {}
 
   async friendRequest(fromUserId: string, toUsername: string) {
     const toUser = await this.prisma.user.findUnique({
-      where: { username: toUsername.toLowerCase() }
+      where: { username: toUsername.toLowerCase() },
     });
+    
     if (!toUser) throw new NotFoundException('User not found');
     if (toUser.id === fromUserId) throw new BadRequestException('Cannot add yourself');
 
@@ -48,14 +49,22 @@ export class FriendsService {
       },
     });
 
-        return this.prisma.friend.create({
-            data: {
-                fromUserId,
-                toUserId: toUser.id,
-                status: 'PENDING',
-            },
-        });
+    if (existing && existing.status === 'ACCEPTED') {
+      throw new ConflictException('Already friends');
     }
+    if (existing && existing.status === 'PENDING') {
+      throw new ConflictException('Friend request already pending');
+    }
+
+    // Créer la requête
+    return this.prisma.friend.create({
+      data: {
+        fromUserId,
+        toUserId: toUser.id,
+        status: 'PENDING',
+      },
+    });
+  }
 
   async listFriends(fromUserId: string): Promise<FriendProfileList | null> {
     const friendRelations = await this.prisma.friend.findMany({
@@ -83,18 +92,16 @@ export class FriendsService {
             avatarUrl: true,
             statistics: true,
             isOnline: true,
-						bio: true
-          }
-        }
-      }
+            bio: true,
+          },
+        },
+      },
     });
 
     // Transformer les relations en FriendProfile[]
-    const friends: FriendProfileList = friendRelations.map(relation => {
+    const friends: FriendProfileList = friendRelations.map((relation) => {
       // Déterminer qui est l'ami (pas l'utilisateur actuel)
-      const friend = relation.fromUserId === fromUserId
-        ? relation.toUser
-        : relation.fromUser;
+      const friend = relation.fromUserId === fromUserId ? relation.toUser : relation.fromUser;
 
       const activeGameId = friend.isOnline
         ? this.gameGateway.getUserActiveGameId(friend.id)
@@ -105,8 +112,8 @@ export class FriendsService {
         username: friend.username,
         avatarUrl: friend.avatarUrl,
         elo: friend.statistics?.blitzElo ?? 1200,
-        status: friend.isOnline ? 'online' : 'offline',
-        gameId: undefined,
+        status: friend.isOnline ? (activeGameId ? 'in-game' : 'online') : 'offline',
+        gameId: activeGameId || undefined,
         currentStreak: friend.statistics?.currentStreak ?? 0,
         bestStreak: friend.statistics?.bestStreak ?? 0,
         bio: friend.bio,
@@ -120,27 +127,25 @@ export class FriendsService {
     const friendRequests = await this.prisma.friend.findMany({
       where: {
         toUserId: userId,
-        status: 'PENDING'
+        status: 'PENDING',
       },
       include: {
         fromUser: {
           select: {
             id: true,
             username: true,
-            avatarUrl: true
-          }
-        }
-      }
+            avatarUrl: true,
+          },
+        },
+      },
     });
 
-
-    return friendRequests.map(req => ({
+    return friendRequests.map((req) => ({
       id: req.id,
       username: req.fromUser.username,
-      avatarUrl: req.fromUser.avatarUrl
+      avatarUrl: req.fromUser.avatarUrl,
     }));
   }
-
 
   async acceptFriendRequest(userId: string, friendId: string) {
     // Mettre à jour le statut de la requête à ACCEPTED
@@ -174,8 +179,8 @@ export class FriendsService {
       username: friend.fromUser.username,
       avatarUrl: friend.fromUser.avatarUrl,
       elo: friend.fromUser.statistics?.blitzElo ?? 1200,
-      status: friend.fromUser.isOnline ? 'online' : 'offline',
-      gameId: undefined,
+      status: friend.fromUser.isOnline ? (activeGameId ? 'in-game' : 'online') : 'offline',
+      gameId: activeGameId || undefined,
       currentStreak: friend.fromUser.statistics?.currentStreak ?? 0,
       bestStreak: friend.fromUser.statistics?.bestStreak ?? 0,
       bio: friend.fromUser.bio,
@@ -190,36 +195,6 @@ export class FriendsService {
         respondedAt: new Date(),
       },
     });
-
-    async acceptFriendRequest(userId: string, friendId: string) {
-        const friend = await this.prisma.friend.update({
-            where: { id: friendId },
-            data: {
-                status: 'ACCEPTED',
-                respondedAt: new Date(),
-            },
-            include: {
-                fromUser: {
-                    select: {
-                        id: true,
-                        username: true,
-                        avatarUrl: true,
-                        statistics: true,
-                        isOnline: true,
-                    },
-                },
-            },
-        });
-
-        return {
-            id: friend.fromUser.id,
-            username: friend.fromUser.username,
-            avatarUrl: friend.fromUser.avatarUrl,
-            elo: friend.fromUser.statistics?.blitzElo ?? 1200,
-            status: friend.fromUser.isOnline ? 'online' : 'offline',
-            gameId: undefined,
-        };
-    }
 
     return { success: true };
   }
