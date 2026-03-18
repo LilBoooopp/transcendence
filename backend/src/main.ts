@@ -8,7 +8,6 @@ import { join } from 'path';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);//create the next app using the AppModule
 
-	// Important derriere Nginx: fait confiance au 1er proxy
   app.set('trust proxy', 1);
 
   app.useStaticAssets(join(__dirname, '..', 'src', 'uploads'), { prefix: '/uploads/' });
@@ -29,7 +28,7 @@ async function bootstrap() {
 et utiliser des DTO sur toutes les routes qui reçoivent un body.
 	*/
 
-  await app.listen(4000, '0.0.0.0');// il écoute sur ce port
+  await app.listen(4000, '0.0.0.0');
   console.log('Backend is running on http://localhost:4000');
 }
 

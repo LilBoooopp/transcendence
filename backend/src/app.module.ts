@@ -10,13 +10,8 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { RateLimitGuard } from './auth/guards/rate-limit.guard';
 import { FriendsModule } from './friends/friend.module';
-//AppModule is the Nestjs root module. 
-//that function is a decorator on an empty class??
-//we can create some modules with cli 'nest generate module modulename' and it will
-// be automatically added here
-//if we remove the moduls here, it is no longer part of the application. 
+
 @Module({
-  // import all the modules needed. 
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
