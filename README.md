@@ -23,6 +23,11 @@ An online chess platform built as the final project of the 42 Common Core. The p
 - Git (with submode support)
 - A `.env` file configured from `.env.example`
 
+### Environment Variables
+
+See `.env.example` for a full list of required variables, including:
+- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` - database credentials
+
 ### Setup
 
 1. Clone the repository with submodes:
@@ -31,25 +36,13 @@ An online chess platform built as the final project of the 42 Common Core. The p
     cd transcendence
     ```
 
-2. Copy and configure the environment file:
-    ```bash
-    cp .env.example .env
-    # Edit .env with your values (DB credentials, JWT secret, etc.)
-    ```
-
-3. Build and start all services:
+2. Build and start all services:
     ```bash
     make
     ```
 
-4. The application will be available at `https://localhost` (Nginx reverse proxy with HTTPS).
+3. The application will be available at `https://localhost:4443` (Nginx reverse proxy with HTTPS).
 
-### Environment Variables
-
-See `.env.example` for a full list of required variables, including:
-- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` - database credentials
-- `JWT_SECRET` - secret key for authentication tokens
-- `[PLACEHOLDER: list any other required .env variables]`
 
 ### Development
 
@@ -123,7 +116,83 @@ cd backend && npm install && npm run start
 
 ## Database Schema
 
-[PLACEHOLDER: insert a diagram maybe?]
+```mermaid
+erDiagram
+  User ||--o{ Game : "plays as white"
+  User ||--o{ Game : "plays as black"
+  User ||--o{ Friend : "sends request"
+  User ||--o{ Friend : "receives request"
+  User ||--o{ GameInvitation : "invites"
+  User ||--o{ GameInvitation : "invited to"
+  User ||--|| UserStatistics : "has"
+  User ||--o{ EloHistory : "tracks"
+
+  User {
+    uuid id PK
+    string email UK
+    string username UK
+    string password
+    string avatarUrl
+    boolean isOnline
+    datetime createdAt
+  }
+
+  Game {
+    uuid id PK
+    uuid whitePlayerId FK
+    uuid blackPlayerId FK
+    enum status
+    enum result
+    string pgn
+    string fen
+    json moves
+    string timeControl
+    boolean isAiGame
+    int aiDifficulty
+  }
+
+  Friend {
+    uuid id PK
+    uuid fromUserId FK
+    uuid toUserId FK
+    enum status
+    datetime createdAt
+  }
+
+  GameInvitation {
+    uuid id PK
+    uuid fromUserId FK
+    uuid toUserId FK
+    enum status
+    datetime createdAt
+  }
+
+  UserStatistics {
+    uuid id PK
+    uuid userId FK
+    int bulletElo
+    int blitzElo
+    int rapidElo
+    int totalGames
+    int wins
+    int losses
+    int draws
+    int currentStreak
+    int bestStreak
+  }
+
+  EloHistory {
+    uuid id PK
+    uuid userId FK
+    uuid gameId
+    enum gameType
+    int eloBefore
+    int eloAfter
+    int eloChange
+    int opponentElo
+    string result
+  }
+```
 
 ### Tables
 
@@ -166,48 +235,49 @@ cd backend && npm install && npm run start
 
 ## Modules
 
-**Total: 17 points** (6 major x 2pts + 5 minor * 1pt - see breakdown below)
+**Total: 20 points** (7 major x 2pts + 6 minor * 1pt - see breakdown below)
 
-### Web (7 points)
+### Web (9 points)
 
 | Module | Type | Points | Implementation | Memeber(s) |
 |--------|------|--------|----------------|------------|
 | Frontend + Backend frameworks (React/NestJS) | Major | 2 | React/TypeScript SPA served via Vite; NestJS REST WS gateway | everyone |
-| Real-time WebSocket features | Major | 2 | Socket.IO gateway with rooms, matchmaking, spectator events | cbopp |
+| Real-time WebSocket features | Major | 2 | Socket.IO gateway with rooms, matchmaking, spectator events | beboccas, cbopp |
 | ORM (Prisma) | Minor | 1 | Prisma schema + migrations; type-safe DB access throughout backend | everyone |
 | Custom-made design, reusable components | Minor | 1 | Shared component library (GamePage, MatchmakingWaiting, etc.) with Tailwind | bschmid |
-| Notification system | Minor | 1 | Implemented Toast-type notifications to inform user of various events. | cbopp |
+| Notification system | Minor | 1 | Implemented Toast-type notifications to inform user of various events. | bschmid, cbopp |
+| Public API | Major | 2 | [PLACEHOLDER] | beboccas, sforster |
 
-*Not yet implemented:*
-- Major: Public API (2pt) *-> Sylvie will do this!*
+### Accessibility and Internationalization (1 point)
+
+| Module | Type | Points | Implementation | Memeber(s) |
+|--------|------|--------|----------------|------------|
+| Support for additional browsers | Minor | 1 | Compatibility with Firefox and Safari | everyone |
 
 ### User Management (3 points)
 *-> Sylvie will do this!*
 | Module | Type | Points | Implementation | Member(s) |
 |--------|------|--------|----------------|-----------|
 | Standard user management | Major | 2 | [PLACEHOLDER] | everyone |
-| Game statistics | Minor | 1 | | [PLACEHOLDER] | bschmid, sforster |
+| Game statistics | Minor | 1 | | Save all information about game results, elo changes, match histories and win streaks | everyone |
 
 ### Gaming (7 points)
 
 | Module | Type | Points | Implementation | Member(s) |
 |--------|------|--------|----------------|-----------|
-| Web-based chess game | Major | 2 | Custom TS engine (flat 64-array board, fullrules) | cbopp |
+| Web-based chess game | Major | 2 | Custom TS engine (flat 64-array board, full rules) | cbopp |
 | Remote players | Major | 2 | Socket.IO rooms with role assignment (white/black/spectator) and reconnect handling | cbopp |
 | AI opponent (stockfish) | Major | 2 | Stockfish binary as persistent UCI subprocess per bot game | cbopp |
 | Watch live games | Minor | 1 | Spectators join game rooms in read-only mode | cbopp |
 
-*Not yet implemented:*
-- Minor: Tournament system (1pt) 
-
 ## Individual Contributions
 
 ### cbopp (Charlie Bopp)
-- Designed and implemented the entire WebSocket layer: Socket.IO gateway, game rooms, matchmaking system, reconnect logic
-- Built the time control system with additive increment and per-time-control queue routing
-- Integrated Stockfish as a UCI subprocess with persisten process management per bot game
-- Refactored frontend game logic into reusable hooks (`useGameSetup`, `useChessGame`) and shared components
-- **Challenges:** Stale closures in Socket.IO callbacks required refs for all mutable game state; socket timing required defensive checks for already-connected sockets; bot reconnect logic needed explicit branches since bot games set `gameStarted: true` immediately
+- Designed and implemented the entire WebSocket layer: Socket.IO gateway, game rooms, matchmaking system, reconnect logic.
+- Built the time control system with additive increment and per-time-control queue routing.
+- Integrated Stockfish as a UCI subprocess with persisten process management per bot game.
+- Refactored frontend game logic into reusable hooks (`useGameSetup`, `useChessGame`) and shared components.
+- **Challenges:** Stale closures in Socket.IO callbacks required refs for all mutable game state; socket timing required defensive checks for already-connected sockets; bot reconnect logic needed explicit branches since bot games set `gameStarted: true` immediately.
 
 ### bschmid (Bastian Schmid)
 [PLACEHOLDER]
