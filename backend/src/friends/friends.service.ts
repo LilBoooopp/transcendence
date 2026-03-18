@@ -8,9 +8,9 @@ type FriendProfile = {
   elo: number;
   status: 'online' | 'offline' | 'in-game';
   gameId?: string;
-	currentStreak: number;
-	bestStreak: number;
-	bio?: string | null;
+  currentStreak: number;
+  bestStreak: number;
+  bio?: string | null;
 }
 
 type FriendProfileList = FriendProfile[];
@@ -19,22 +19,21 @@ type FriendRequest = {
   id: string;
   username: string;
   avatarUrl?: string;
-}
+};
 
 type FriendRequestList = FriendRequest[];
 
 @Injectable()
 export class FriendsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async friendRequest(fromUserId: string, toUsername: string) {
     const toUser = await this.prisma.user.findUnique({
-      where: { username: toUsername.toLowerCase() }
+      where: { username: toUsername.toLowerCase() },
     });
     if (!toUser) throw new NotFoundException('User not found');
     if (toUser.id === fromUserId) throw new BadRequestException('Cannot add yourself');
 
-    // Vérifier s'il y a déjà une relation (dans les deux sens)
     const existing = await this.prisma.friend.findFirst({
       where: {
         OR: [
@@ -61,14 +60,13 @@ export class FriendsService {
     });
   }
 
-
   async listFriends(fromUserId: string): Promise<FriendProfileList | null> {
     const friendRelations = await this.prisma.friend.findMany({
       where: {
         OR: [
           { fromUserId, status: 'ACCEPTED' },
-          { toUserId: fromUserId, status: 'ACCEPTED' }
-        ]
+          { toUserId: fromUserId, status: 'ACCEPTED' },
+        ],
       },
       include: {
         fromUser: {
@@ -78,8 +76,8 @@ export class FriendsService {
             avatarUrl: true,
             statistics: true,
             isOnline: true,
-						bio: true
-          }
+            bio: true,
+          },
         },
         toUser: {
           select: {
@@ -88,15 +86,13 @@ export class FriendsService {
             avatarUrl: true,
             statistics: true,
             isOnline: true,
-						bio: true
-          }
-        }
-      }
+            bio: true,
+          },
+        },
+      },
     });
 
-    // Transformer les relations en FriendProfile[]
-    const friends: FriendProfileList = friendRelations.map(relation => {
-      // Déterminer qui est l'ami (pas l'utilisateur actuel)
+    const friends: FriendProfileList = friendRelations.map((relation) => {
       const friend = relation.fromUserId === fromUserId ? relation.toUser : relation.fromUser;
 
       return {
@@ -106,9 +102,9 @@ export class FriendsService {
         elo: friend.statistics?.blitzElo ?? 1200,
         status: friend.isOnline ? 'online' : 'offline',
         gameId: undefined,
-				currentStreak: friend.statistics?.currentStreak ?? 0,
-				bestStreak: friend.statistics?.bestStreak ?? 0,
-				bio: friend.bio
+        currentStreak: friend.statistics?.currentStreak ?? 0,
+        bestStreak: friend.statistics?.bestStreak ?? 0,
+        bio: friend.bio,
       };
     });
 
@@ -119,25 +115,25 @@ export class FriendsService {
     const friendRequests = await this.prisma.friend.findMany({
       where: {
         toUserId: userId,
-        status: 'PENDING'
+        status: 'PENDING',
       },
       include: {
         fromUser: {
           select: {
             id: true,
             username: true,
-            avatarUrl: true
-          }
-        }
-      }
+            avatarUrl: true,
+          },
+        },
+      },
     });
-    return friendRequests.map(req => ({
+
+    return friendRequests.map((req) => ({
       id: req.id,
       username: req.fromUser.username,
-      avatarUrl: req.fromUser.avatarUrl
+      avatarUrl: req.fromUser.avatarUrl,
     }));
   }
-
 
   async acceptFriendRequest(userId: string, friendId: string) {
     // Mettre à jour le statut de la requête à ACCEPTED
@@ -155,7 +151,7 @@ export class FriendsService {
             avatarUrl: true,
             statistics: true,
             isOnline: true,
-						bio: true
+            bio: true,
           },
         },
       },
@@ -169,9 +165,9 @@ export class FriendsService {
       elo: friend.fromUser.statistics?.blitzElo ?? 1200,
       status: friend.fromUser.isOnline ? 'online' : 'offline',
       gameId: undefined,
-			currentStreak: friend.fromUser.statistics?.currentStreak ?? 0,
-			bestStreak: friend.fromUser.statistics?.bestStreak ?? 0,
-			bio: friend.fromUser.bio,
+      currentStreak: friend.fromUser.statistics?.currentStreak ?? 0,
+      bestStreak: friend.fromUser.statistics?.bestStreak ?? 0,
+      bio: friend.fromUser.bio,
     };
   }
 
@@ -186,7 +182,4 @@ export class FriendsService {
 
     return { success: true };
   }
-
-
-  // ...other methods...
 }
