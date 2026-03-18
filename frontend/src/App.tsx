@@ -7,6 +7,8 @@ import WireframeGameMode from './pages/Game/GameMode';
 import WireframeBotMode from './pages/Game/BotMode';
 import ProfilePage from './pages/User/ProfilePage';
 import FriendProfilePage from './pages/User/FriendProfilePage';
+import PrivacyPolicy from './pages/Legal/PrivacyPolicy';
+import TermsOfService from './pages/Legal/TermsOfService';
 
 import MatchmakingWaiting from './pages/Game/MatchmakingWaiting';
 import BotGameLauncher from './components/BotGameLauncher';

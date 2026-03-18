@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Card } from './ui/Card';
-import { Pencil, Check, X, Camera, AlertTriangle } from 'lucide-react'; // Added AlertTriangle
+import { Pencil, Check, X, Camera, AlertTriangle } from 'lucide-react';
 import Button from '../components/Button'
 
 export interface ProfileTileProps {
