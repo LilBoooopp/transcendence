@@ -17,14 +17,31 @@ export default function WireframeLanding() {
 	const checkAuth = () => {
 		isLoggedIn().then(({ connected, username }) => {
 			setLoggedIn(connected);
-			setUsername(username ?? null);
+			if (connected) {
+				setUsername(username ?? null);
+			} else {
+				setUsername(null);
+				setHistory([]);
+			}
 			console.log("User is logged in:", connected);
 		});
 	};
 
 	useEffect(() => {
+		const handleAuthChange = () => {
+			checkAuth();
+		};
+		window.addEventListener('auth-change', handleAuthChange);
+		checkAuth();
+		return () => {
+			window.removeEventListener('auth-change', handleAuthChange);
+		};
+	}, []);
+
+	useEffect(() => {
 		const token = localStorage.getItem('token');
-		if (!token) return;
+		// If no token or not logged in, don't fetch
+		if (!token || !loggedIn) return; 
 
 		fetch('/api/users/history', {
 			method: 'GET',
@@ -45,10 +62,6 @@ export default function WireframeLanding() {
 				setHistory([]);
 			});
 	}, [loggedIn]);
-
-	useEffect(() => {
-		checkAuth();
-	}, []);
 
 	const features = [
 		{
@@ -75,13 +88,7 @@ export default function WireframeLanding() {
 		<div className="flex flex-col items-center justify-center min-h-[80vh] px-4 max-w-5xl mx-auto py-12">
 
 			<h1 className="text-4xl font-heading font-bold mb-12 text-center">
-				{username ? (
-					<>
-						Welcome <span className="text-accent">{username}</span>!
-					</>
-				) : (
-					'Welcome to 42 Chess!'
-				)}
+				{username ? `Welcome ${username}` : 'Welcome to 42 Chess!'}
 			</h1>
 
 			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 w-full max-w-4xl">
@@ -97,14 +104,17 @@ export default function WireframeLanding() {
 			</div>
 
 			{/* HISTORY / LOGIN SECTION */}
-			<div className="w-full mt-12">
+			<div className="w-full mt-12 flex justify-center">
 				{loggedIn ? (
 					<GameHistoryList history={history} />
 				) : (
 					<LoginTile
 						onLogin={() => console.log('Login clicked')}
 						onRegister={() => console.log('Register clicked')}
-						onLoginSuccess={checkAuth}
+						onLoginSuccess={() => {
+							checkAuth();
+							window.dispatchEvent(new Event('auth-change'));
+						}}
 					/>
 				)}
 			</div>

@@ -9,6 +9,8 @@ type FriendProfile = {
   elo: number;
   status: 'online' | 'offline' | 'in-game';
   gameId?: string;
+  currentStreak: number;
+  bestStreak: number;
 }
 
 type FriendProfileList = FriendProfile[];
@@ -111,6 +113,8 @@ export class FriendsService {
         elo: friend.statistics?.blitzElo ?? 1200,
         status: activeGameId ? 'in-game' : friend.isOnline ? 'online' : 'offline',
         gameId: activeGameId ?? undefined,
+        currentStreak: friend.statistics?.currentStreak ?? 0,
+        bestStreak: friend.statistics?.bestStreak ?? 0,
       };
     });
 

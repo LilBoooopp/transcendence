@@ -1,12 +1,15 @@
 import React from 'react';
 import { Card } from './ui/Card';
 import { Trophy } from 'lucide-react';
+import StreakPill from './StreakPill'; // <-- IMPORT THIS
 
 export interface LeaderboardPlayer {
   id: string;
   username: string;
   elo: number;
   avatarUrl?: string;
+  currentStreak: number;
+  bestStreak: number;
 }
 
 interface LeaderboardTileProps {
@@ -45,16 +48,22 @@ export default function LeaderboardTile({ players }: LeaderboardTileProps) {
                 #{index + 1}
               </span>
               
-              {/* Avatar */}
-              <img
-                src={player.avatarUrl || `https://ui-avatars.com/api/?name=${player.username || 'User'}&background=random`}
-                alt={player.username}
-                className="w-10 h-10 shrink-0 rounded-full object-cover shadow-sm border border-gray-700"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${player.username || 'User'}&background=random`;
-                }}
-              />
-              
+              {/* --- AVATAR W STREAK PILL --- */}
+              <div className="relative shrink-0 mb-1">
+                <img
+                  src={player.avatarUrl || `https://ui-avatars.com/api/?name=${player.username || 'User'}&background=random`}
+                  alt={player.username}
+                  className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-700"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${player.username || 'User'}&background=random`;
+                  }}
+                />
+								<StreakPill 
+										currentStreak={player.currentStreak} 
+										bestStreak={player.bestStreak} 
+										className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-10 scale-[0.65] origin-top" 
+								/>
+              </div>
               {/* Username */}
               <div className="flex flex-col flex-1 min-w-0">
                 <span className="text-sm font-semibold text-text-default truncate">

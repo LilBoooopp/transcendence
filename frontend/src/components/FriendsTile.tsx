@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from './ui/Card';
 import Button from './Button';
 import { Check, X, Eye, Search } from 'lucide-react';
+import StreakPill from './StreakPill';
 
-// --- MOCK INTERFACES & DATA ---
 interface Friend {
     id: string;
     username: string;
@@ -12,6 +12,8 @@ interface Friend {
     elo: number;
     status: 'online' | 'offline' | 'in-game';
     gameId?: string;
+    currentStreak?: number;
+    bestStreak?: number;
 }
 
 interface FriendRequest {
@@ -250,14 +252,21 @@ export default function FriendsTile() {
                         return (
                             <div key={friend.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-primary/30 transition-colors">
                                 <div className="flex items-center gap-3 truncate">
-                                    <img
-                                        src={avatarSrc}
-                                        alt={friend.username}
-                                        onError={(e) => {
-                                            e.currentTarget.src = placeholderImage;
-                                        }}
-                                        className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-700"
-                                    />
+                                    <div className="relative shrink-0 mb-2.5 mt-2.5">
+                                      <img
+                                          src={avatarSrc}
+                                          alt={friend.username}
+                                          onError={(e) => {
+                                              e.currentTarget.src = placeholderImage;
+                                          }}
+                                          className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-700"
+                                      />
+                                      <StreakPill 
+                                        currentStreak={friend.currentStreak} 
+                                        bestStreak={friend.bestStreak} 
+                                        className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-10 scale-[0.65] origin-top" 
+                                      />
+                                    </div>                                    
                                     <div className="flex flex-col truncate">
                                         <span className="text-sm font-semibold text-text-default truncate">{friend.username}</span>
                                         <span className="text-xs text-gray-400">Avg. Elo: {friend.elo}</span>

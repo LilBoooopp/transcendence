@@ -35,6 +35,8 @@ type UserStat = {
   bulletRating?: number;
   blitzRating?: number;
   rapidRating?: number;
+	currentStreak?: number;
+	bestStreak?: number;
 };
 const DEFAULT_AVATAR_FILENAME = '';
 const UPLOADS_DIR = join(process.cwd(), 'src', 'uploads');
@@ -170,6 +172,8 @@ export class UserService {
       bulletRating: user.statistics?.bulletElo,
       blitzRating: user.statistics?.blitzElo,
       rapidRating: user.statistics?.rapidElo,
+			currentStreak: user.statistics?.currentStreak,
+			bestStreak: user.statistics?.bestStreak
     };
   }
 
