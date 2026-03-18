@@ -210,7 +210,14 @@ cd backend && npm install && npm run start
 - **Challenges:** Stale closures in Socket.IO callbacks required refs for all mutable game state; socket timing required defensive checks for already-connected sockets; bot reconnect logic needed explicit branches since bot games set `gameStarted: true` immediately
 
 ### bschmid (Bastian Schmid)
-[PLACEHOLDER]
+- Designed and implemented frontend: created all UI components except chessGame
+- Implemented coherant UI design
+- Created reusable component library
+- Created corparate design: color, font and style for components
+- Organized meetings
+- Setup GitHub Project
+- Maintainded GitHub Project and distributed tasks
+- Optimized UI for mobile
 
 ### sforster (Sylvie Forster)
 - Design and implement the entire API routes. 
