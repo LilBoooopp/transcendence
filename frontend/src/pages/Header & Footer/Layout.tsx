@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../../components/Navbar";
+import Footer from "../../components/Footer"; // Import the Footer
 import { useDarkMode } from '../../hooks/darkMode'
 
 interface LayoutProps {
@@ -17,8 +18,9 @@ export default function Layout({ children }: LayoutProps) {
     }
   }, [isDarkMode]);
 
+  // Notice the flex flex-col min-h-screen which naturally pushes the mt-auto footer to the bottom
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
 
       <Navbar
         isDarkMode={isDarkMode}
@@ -28,6 +30,9 @@ export default function Layout({ children }: LayoutProps) {
       <main className="flex-1 max-w-7xl w-full mx-auto p-6">
         {children}
       </main>
+
+      {/* Add the Footer here */}
+      <Footer />
 
     </div>
   );
