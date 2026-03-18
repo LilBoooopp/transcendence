@@ -25,14 +25,14 @@ export default function UserTile({
   bestStreak = 0,    
   onClick 
 }: UserTileProps) {
+  //const placeholderImage = "https://ui-avatars.com/api/?name=" + username + "&background=random";
+
   const placeholderImage = "https://ui-avatars.com/api/?name=" + username + "&background=random";
+	const avatarSrc =
+  avatarUrl && avatarUrl.trim() !== ''
+    ? `/api/uploads/${avatarUrl.trim().replace(/^\/?(api\/)?uploads\//, '')}`
+    : placeholderImage;
 
-  let avatarSrc = placeholderImage;
-
-  if (typeof avatarUrl === 'string' && avatarUrl.trim() !== '') {
-    const filename = avatarUrl.trim().replace(/^\/?(api\/)?uploads\//, '');
-    avatarSrc = `/api/uploads/${filename}`;
-  }
 
   const displayInfoParts: string[] = [];
   if (MemberSince) displayInfoParts.push(`Member since ${MemberSince}`);
