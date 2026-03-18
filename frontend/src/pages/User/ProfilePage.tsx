@@ -99,32 +99,32 @@ const ProfilePage = () => {
 		}));
 	};
 
-	const handleChangePassword = async (oldPassword: string, newPassword: string) => {
-		const token = localStorage.getItem('token');
-		if (!token) throw new Error('No token');
+	const handleChangePassword = async (oldPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+	    const token = localStorage.getItem('token');
+	    if (!token) return { success: false, message: 'No token' };
+	
+	    try {
+	        const res = await fetch('/api/users/password', {
+	            method: 'PATCH',
+	            headers: {
+	                'Content-Type': 'application/json',
+	                Authorization: `Bearer ${token}`,
+	            },
+	            body: JSON.stringify({ oldPassword, newPassword }),
+	        });
 		
-		try {
-			const res = await fetch('/api/users/password', {
-				method: 'PATCH',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${token}`,
-				},
-				body: JSON.stringify({ oldPassword, newPassword }),
-			});
-
-			if (!res.ok) {
-				throw new Error('Failed to update password');
-			}
-			
-			const data = await res.json();
-
-			if (data.accessToken) {
-				localStorage.setItem('token', data.accessToken);
-			}
-		} catch (error) {
-			console.error('Error changing password account:', error);
-		}
+	        if (!res.ok) {
+	            const data = await res.json().catch(() => ({}));
+	            return { success: false, message: data.message ?? 'Incorrect old password.' };
+	        }
+		
+	        const data = await res.json();
+	        if (data.accessToken) localStorage.setItem('token', data.accessToken);
+		
+	        return { success: true, message: 'Password changed successfully' };
+	    } catch {
+	        return { success: false, message: 'Network error.' };
+	    }
 	};
 
 

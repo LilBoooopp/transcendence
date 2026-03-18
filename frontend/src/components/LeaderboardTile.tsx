@@ -18,6 +18,20 @@ interface LeaderboardTileProps {
 
 export default function LeaderboardTile({ players }: LeaderboardTileProps) {
   const topPlayers = players.slice(0, 10);
+
+  const getAvatarSrc = (avatarUrl?: string, username?: string) => {
+    const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      username || 'User',
+    )}&background=random`;
+    if (!avatarUrl) return fallback;
+    try {
+      const lower = avatarUrl.toLowerCase();
+      if (lower.startsWith('http://') || lower.startsWith('https://')) return avatarUrl;
+    } catch (e) {
+      return fallback;
+    }
+    return `/api/uploads/${avatarUrl}`;
+  };
   return (
     <Card variant="surface" className="flex flex-col p-5 w-full h-full max-h-[400px] gap-4 overflow-hidden">
       {/* Header */}
@@ -51,11 +65,13 @@ export default function LeaderboardTile({ players }: LeaderboardTileProps) {
               {/* --- AVATAR W STREAK PILL --- */}
               <div className="relative shrink-0 mb-1">
                 <img
-                  src={player.avatarUrl || `https://ui-avatars.com/api/?name=${player.username || 'User'}&background=random`}
+                  src={getAvatarSrc(player.avatarUrl, player.username)}
                   alt={player.username}
                   className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-700"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${player.username || 'User'}&background=random`;
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      player.username || 'User',
+                    )}&background=random`;
                   }}
                 />
 								<StreakPill 
