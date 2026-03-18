@@ -8,6 +8,9 @@ type FriendProfile = {
   elo: number;
   status: 'online' | 'offline' | 'in-game';
   gameId?: string;
+	currentStreak: number;
+	bestStreak: number;
+	bio?: string | null;
 }
 
 type FriendProfileList = FriendProfile[];
@@ -56,38 +59,43 @@ export class FriendsService {
         });
     }
 
-    async listFriends(fromUserId: string): Promise<FriendProfileList | null> {
-        const friendRelations = await this.prisma.friend.findMany({
-            where: {
-                OR: [
-                    { fromUserId, status: 'ACCEPTED' },
-                    { toUserId: fromUserId, status: 'ACCEPTED' },
-                ],
-            },
-            include: {
-                fromUser: {
-                    select: {
-                        id: true,
-                        username: true,
-                        avatarUrl: true,
-                        statistics: true,
-                        isOnline: true,
-                    },
-                },
-                toUser: {
-                    select: {
-                        id: true,
-                        username: true,
-                        avatarUrl: true,
-                        statistics: true,
-                        isOnline: true,
-                    },
-                },
-            },
-        });
 
-        const friends: FriendProfileList = friendRelations.map((relation) => {
-            const friend = relation.fromUserId === fromUserId ? relation.toUser : relation.fromUser;
+  async listFriends(fromUserId: string): Promise<FriendProfileList | null> {
+    const friendRelations = await this.prisma.friend.findMany({
+      where: {
+        OR: [
+          { fromUserId, status: 'ACCEPTED' },
+          { toUserId: fromUserId, status: 'ACCEPTED' }
+        ]
+      },
+      include: {
+        fromUser: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+            statistics: true,
+            isOnline: true,
+						bio: true
+          }
+        },
+        toUser: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+            statistics: true,
+            isOnline: true,
+						bio: true
+          }
+        }
+      }
+    });
+
+    // Transformer les relations en FriendProfile[]
+    const friends: FriendProfileList = friendRelations.map(relation => {
+      // Déterminer qui est l'ami (pas l'utilisateur actuel)
+      const friend = relation.fromUserId === fromUserId ? relation.toUser : relation.fromUser;
 
       return {
         id: friend.id,
@@ -98,35 +106,81 @@ export class FriendsService {
         gameId: undefined,
 				currentStreak: friend.statistics?.currentStreak ?? 0,
 				bestStreak: friend.statistics?.bestStreak ?? 0,
+				bio: friend.bio
       };
     });
 
-        return friends;
-    }
+    return friends;
+  }
 
-    async listFriendsRequest(userId: string): Promise<FriendRequestList | null> {
-        const friendRequests = await this.prisma.friend.findMany({
-            where: {
-                toUserId: userId,
-                status: 'PENDING',
-            },
-            include: {
-                fromUser: {
-                    select: {
-                        id: true,
-                        username: true,
-                        avatarUrl: true,
-                    },
-                },
-            },
-        });
+  async listFriendsRequest(userId: string): Promise<FriendRequestList | null> {
+    const friendRequests = await this.prisma.friend.findMany({
+      where: {
+        toUserId: userId,
+        status: 'PENDING'
+      },
+      include: {
+        fromUser: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true
+          }
+        }
+      }
+    });
+    return friendRequests.map(req => ({
+      id: req.id,
+      username: req.fromUser.username,
+      avatarUrl: req.fromUser.avatarUrl
+    }));
+  }
 
-        return friendRequests.map((req) => ({
-            id: req.id,
-            username: req.fromUser.username,
-            avatarUrl: req.fromUser.avatarUrl,
-        }));
-    }
+
+  async acceptFriendRequest(userId: string, friendId: string) {
+    // Mettre à jour le statut de la requête à ACCEPTED
+    const friend = await this.prisma.friend.update({
+      where: { id: friendId },
+      data: {
+        status: 'ACCEPTED',
+        respondedAt: new Date(),
+      },
+      include: {
+        fromUser: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+            statistics: true,
+            isOnline: true,
+						bio: true
+          },
+        },
+      },
+    });
+
+    // Retourner le profil du nouvel ami
+    return {
+      id: friend.fromUser.id,
+      username: friend.fromUser.username,
+      avatarUrl: friend.fromUser.avatarUrl,
+      elo: friend.fromUser.statistics?.blitzElo ?? 1200,
+      status: friend.fromUser.isOnline ? 'online' : 'offline',
+      gameId: undefined,
+			currentStreak: friend.fromUser.statistics?.currentStreak ?? 0,
+			bestStreak: friend.fromUser.statistics?.bestStreak ?? 0,
+			bio: friend.fromUser.bio,
+    };
+  }
+
+  async rejectFriendRequest(userId: string, friendId: string) {
+    await this.prisma.friend.update({
+      where: { id: friendId },
+      data: {
+        status: 'REJECTED',
+        respondedAt: new Date(),
+      },
+    });
 
     async acceptFriendRequest(userId: string, friendId: string) {
         const friend = await this.prisma.friend.update({
