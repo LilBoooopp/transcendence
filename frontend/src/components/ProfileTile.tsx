@@ -13,7 +13,7 @@ export interface ProfileTileProps {
 	onUpdateField: (field: string, newValue: string) => void; 
 	onUploadAvatar: (file: File) => Promise<void>;
 	// NEW PROPS: Pass these down from ProfilePage.tsx to handle the backend logic
-	onChangePassword: (oldPass: string, newPass: string) => Promise<void>;
+	onChangePassword: (oldPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
 	onDeleteAccount: () => Promise<void>;
 }
 
@@ -94,10 +94,7 @@ export default function ProfileTile({
 	const [passwordError, setPasswordError] = useState('');
 
 	const placeholderImage = "https://ui-avatars.com/api/?name=" + username + "&background=random";
-	const avatarSrc =
-  avatarUrl && avatarUrl.trim() !== ''
-    ? `/api/uploads/${avatarUrl.trim().replace(/^\/?(api\/)?uploads\//, '')}`
-    : placeholderImage;
+	const avatarSrc = avatarUrl && avatarUrl.trim() !== '' ? `/api/uploads/${avatarUrl.trim().replace(/^\/?(api\/)?uploads\//, '')}` : placeholderImage;
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -119,41 +116,44 @@ export default function ProfileTile({
 	};
 
 	const handleSubmitPassword = async () => {
-		const passRegex = /^[a-zA-Z0-9!@#$%^&*()_+\=[\]{}|;:,.<>?-]+$/;
-		setPasswordError('');
-		if (!oldPassword || !newPassword || !confirmPassword) {
-			setPasswordError("All fields are required.");
-			return;
-		}
-		if (newPassword.length < 8 || newPassword.length > 64 ) {
-			setPasswordError("New password must be between 8 and 64 characters.");
-			return;
-		}
-		if (!passRegex.test(newPassword)) {
-			setPasswordError("Your password must contain letters, digits, and special characters !@#$%^&*()_+-=[]{}|;:,.<>? only.");
-			return;
-		}
-		if (oldPassword === newPassword) {
-			setPasswordError("New password cannot be the same as the old password.");
-			return;
-		}
-		if (newPassword !== confirmPassword) {
-			setPasswordError("New passwords do not match.");
-			return;
-		}
+	    const passRegex = /^[a-zA-Z0-9!@#$%^&*()_+\=[\]{}|;:,.<>?-]+$/;
+	    setPasswordError('');
 
+	    // Validations locales
+	    if (!oldPassword || !newPassword || !confirmPassword) {
+	        setPasswordError("All fields are required.");
+	        return;
+	    }
+	    if (newPassword.length < 8 || newPassword.length > 64) {
+	        setPasswordError("New password must be between 8 and 64 characters.");
+	        return;
+	    }
+	    if (!passRegex.test(newPassword)) {
+	        setPasswordError("Your password must contain letters, digits, and special characters only.");
+	        return;
+	    }
+	    if (oldPassword === newPassword) {
+	        setPasswordError("New password cannot be the same as the old password.");
+	        return;
+	    }
+	    if (newPassword !== confirmPassword) {
+	        setPasswordError("New passwords do not match.");
+	        return;
+	    }
 
-		
-		try {
-			await onChangePassword(oldPassword, newPassword);
-			// Reset and close on success
-			setOldPassword('');
-			setNewPassword('');
-			setConfirmPassword('');
-			setIsPasswordModalOpen(false);
-		} catch (err) {
-			setPasswordError("Failed to change password. Please check your old password.");
-		}
+	    // Appel backend
+	    const result = await onChangePassword(oldPassword, newPassword);
+
+	    if (!result.success) {
+	        setPasswordError(result.message);
+	        return;
+	    }
+
+	    // Succès
+	    setOldPassword('');
+	    setNewPassword('');
+	    setConfirmPassword('');
+	    setIsPasswordModalOpen(false);
 	};
 
 	return (
@@ -222,9 +222,6 @@ export default function ProfileTile({
 								placeholder="Old Password" 
 								value={oldPassword}
 								onChange={(e) => setOldPassword(e.target.value)}
-								minLength={8}
-								maxLength={64}
-								pattern="^[a-zA-Z0-9!@#$%^&*()_+\=[\]{}|;:,.<>?-]+$"
 								title="Letters, digits, and special characters !@#$%^&*()_+-=[]{}|;:,.<>? only"
 								className="rounded px-3 py-2 text-text-dark bg-background-light"
 								required
@@ -234,9 +231,6 @@ export default function ProfileTile({
 								placeholder="New Password" 
 								value={newPassword}
 								onChange={(e) => setNewPassword(e.target.value)}
-								minLength={8}
-								maxLength={64}
-								pattern="^[a-zA-Z0-9!@#$%^&*()_+\=[\]{}|;:,.<>?-]+$"
 								title="Letters, digits, and special characters !@#$%^&*()_+-=[]{}|;:,.<>? only"
 								className="rounded px-3 py-2 text-text-dark bg-background-light"
 								required
@@ -246,9 +240,6 @@ export default function ProfileTile({
 								placeholder="Confirm New Password" 
 								value={confirmPassword}
 								onChange={(e) => setConfirmPassword(e.target.value)}
-								minLength={8}
-								maxLength={64}
-								pattern="^[a-zA-Z0-9!@#$%^&*()_+\=[\]{}|;:,.<>?-]+$"
 								title="Letters, digits, and special characters !@#$%^&*()_+-=[]{}|;:,.<>? only"
 								className="rounded px-3 py-2 text-text-dark bg-background-light"
 								required
