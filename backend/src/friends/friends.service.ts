@@ -10,6 +10,7 @@ type FriendProfile = {
   gameId?: string;
 	currentStreak: number;
 	bestStreak: number;
+	bio?: string | null;
 }
 
 type FriendProfileList = FriendProfile[];
@@ -76,7 +77,8 @@ export class FriendsService {
             username: true,
             avatarUrl: true,
             statistics: true,
-            isOnline: true
+            isOnline: true,
+						bio: true
           }
         },
         toUser: {
@@ -85,7 +87,8 @@ export class FriendsService {
             username: true,
             avatarUrl: true,
             statistics: true,
-            isOnline: true
+            isOnline: true,
+						bio: true
           }
         }
       }
@@ -105,6 +108,7 @@ export class FriendsService {
         gameId: undefined,
 				currentStreak: friend.statistics?.currentStreak ?? 0,
 				bestStreak: friend.statistics?.bestStreak ?? 0,
+				bio: friend.bio
       };
     });
 
@@ -151,6 +155,7 @@ export class FriendsService {
             avatarUrl: true,
             statistics: true,
             isOnline: true,
+						bio: true
           },
         },
       },
@@ -164,6 +169,9 @@ export class FriendsService {
       elo: friend.fromUser.statistics?.blitzElo ?? 1200,
       status: friend.fromUser.isOnline ? 'online' : 'offline',
       gameId: undefined,
+			currentStreak: friend.fromUser.statistics?.currentStreak ?? 0,
+			bestStreak: friend.fromUser.statistics?.bestStreak ?? 0,
+			bio: friend.fromUser.bio,
     };
   }
 
