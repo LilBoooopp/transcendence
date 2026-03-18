@@ -211,13 +211,19 @@ cd backend && npm install && npm run start
 
 ### bschmid (Bastian Schmid)
 - Designed and implemented frontend: created all UI components except chessGame
-- Implemented coherant UI design
+- Implemented coherent UI design
 - Created reusable component library
-- Created corparate design: color, font and style for components
+- Created corporate design: color, font and style for components
 - Organized meetings
 - Setup GitHub Project
 - Maintainded GitHub Project and distributed tasks
 - Optimized UI for mobile
+- Prepared frontend data-interfaces for api calls
+
+**Challanges:**
+- Getting a coherent UI that is nice on all devices
+- Finding the balance of using Mock data, Mock API calls and preparing to receive real data
+- Decide when to do a new component or add to an existing one
 
 ### sforster (Sylvie Forster)
 - Design and implement the entire API routes. 
