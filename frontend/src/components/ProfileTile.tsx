@@ -2,6 +2,8 @@ import React, { useState, useRef } from 'react';
 import { Card } from './ui/Card';
 import { Pencil, Check, X, Camera, AlertTriangle } from 'lucide-react';
 import Button from '../components/Button'
+//import notifi
+import { useNotification } from "../notifications";
 
 export interface ProfileTileProps {
 	username: string;
@@ -82,7 +84,7 @@ export default function ProfileTile({
 	onChangePassword,
 	onDeleteAccount
 }: ProfileTileProps) {
-	
+	const { push } = useNotification();
 	// States for Modals
 	const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -150,6 +152,7 @@ export default function ProfileTile({
 	    }
 
 	    // Succès
+		push({ type: 'success', title:"Success", message: 'Password changed successfully!' });
 	    setOldPassword('');
 	    setNewPassword('');
 	    setConfirmPassword('');
