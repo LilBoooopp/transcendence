@@ -4,6 +4,7 @@ import { Card } from './ui/Card';
 import Button from './Button';
 import { Check, X, Eye, Search } from 'lucide-react';
 import StreakPill from './StreakPill';
+import { useNavigate } from 'react-router-dom';
 
 interface Friend {
     id: string;
@@ -14,6 +15,7 @@ interface Friend {
     gameId?: string;
     currentStreak?: number;
     bestStreak?: number;
+		bio?: string;
 }
 
 interface FriendRequest {
@@ -29,8 +31,9 @@ export default function FriendsTile() {
     const [requests, setRequests] = useState<FriendRequest[]>([]);
     const [searchName, setSearchName] = useState('');
     const [requestStatus, setRequestStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const navigate = useNavigate();
 
-    //add by syl to get friends
+    // add by syl to get friends
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (!token) return;
@@ -43,8 +46,19 @@ export default function FriendsTile() {
             },
         })
             .then(res => res.json())
-            .then(data => setFriends(data))
-            .catch(error => console.error('Error fetching friends:', error));
+            .then(data => {
+                // DEFENSIVE CHECK: Make sure it's an array before setting!
+                if (Array.isArray(data)) {
+                    setFriends(data);
+                } else {
+                    console.error('Backend did not return an array for friends:', data);
+                    setFriends([]); // Fallback to empty array to prevent crash
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching friends:', error);
+                setFriends([]);
+            });
     }, []);
 
     // add by syl to get friends requests
@@ -60,8 +74,19 @@ export default function FriendsTile() {
             },
         })
             .then(res => res.json())
-            .then(data => setRequests(data))
-            .catch(error => console.error('Error fetching requests:', error));
+            .then(data => {
+                // added because caused crash
+                if (Array.isArray(data)) {
+                    setRequests(data);
+                } else {
+                    console.error('Backend did not return an array for requests:', data);
+                    setRequests([]); // Fallback to empty array to prevent crash
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching requests:', error);
+                setRequests([]);
+            });
     }, []);
 
     // Handlers for Add Friend
@@ -250,9 +275,13 @@ export default function FriendsTile() {
                         const { avatarSrc, placeholderImage } = getAvatarSrc(friend.username, friend.avatarUrl);
 
                         return (
-                            <div key={friend.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-primary/30 transition-colors">
+                            <div 
+                                key={friend.id} 
+                                onClick={() => navigate(`/friend/${friend.username}`, { state: { friendData: friend } })}
+                                className="flex items-center justify-between p-2 rounded-lg hover:bg-primary/30 transition-colors cursor-pointer"
+                            >
                                 <div className="flex items-center gap-3 truncate">
-                                    <div className="relative shrink-0 mb-2.5 mt-2.5">
+                                    <div className="relative shrink-0 ml-2 mb-2.5 mt-2.5">
                                       <img
                                           src={avatarSrc}
                                           alt={friend.username}
@@ -283,7 +312,10 @@ export default function FriendsTile() {
                                     )}
                                     {friend.status === 'in-game' && (
                                         <button
-                                            onClick={() => handleSpectate(friend.gameId)}
+                                            onClick={(e) => {
+                                                e.stopPropagation(); 
+                                                handleSpectate(friend.gameId);
+                                            }}
                                             className="p-1.5 rounded-full bg-accent/20 text-text-default hover:bg-accent/40 hover:scale-110 transition-all"
                                             title="Watch Game"
                                         >

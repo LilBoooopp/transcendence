@@ -8,7 +8,7 @@ import { GameModule } from 'src/game/game.module';
   imports: [PrismaModule, GameModule],
   controllers: [FriendsController],
   providers: [FriendsService],
-  exports: [FriendsService], // exporte pour que d'autres modules puissent l'utiliser
+  exports: [FriendsService],
 })
 export class FriendsModule { }
 
