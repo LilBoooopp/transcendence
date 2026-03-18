@@ -1,5 +1,6 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { GameGateway } from '../game/game.gateway';
 
 type FriendProfile = {
   id: string;
@@ -25,30 +26,27 @@ type FriendRequestList = FriendRequest[];
 
 @Injectable()
 export class FriendsService {
-    constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private gameGateway: GameGateway,
+  ) { }
 
-    async friendRequest(fromUserId: string, toUsername: string) {
-        const toUser = await this.prisma.user.findUnique({
-            where: { username: toUsername.toLowerCase() },
-        });
-        if (!toUser) throw new NotFoundException('User not found');
-        if (toUser.id === fromUserId) throw new BadRequestException('Cannot add yourself');
+  async friendRequest(fromUserId: string, toUsername: string) {
+    const toUser = await this.prisma.user.findUnique({
+      where: { username: toUsername.toLowerCase() }
+    });
+    if (!toUser) throw new NotFoundException('User not found');
+    if (toUser.id === fromUserId) throw new BadRequestException('Cannot add yourself');
 
-        const existing = await this.prisma.friend.findFirst({
-            where: {
-                OR: [
-                    { fromUserId, toUserId: toUser.id },
-                    { fromUserId: toUser.id, toUserId: fromUserId },
-                ],
-            },
-        });
-
-        if (existing && existing.status === 'ACCEPTED') {
-            throw new ConflictException('Already friends');
-        }
-        if (existing && existing.status === 'PENDING') {
-            throw new ConflictException('Friend request already pending');
-        }
+    // Vérifier s'il y a déjà une relation (dans les deux sens)
+    const existing = await this.prisma.friend.findFirst({
+      where: {
+        OR: [
+          { fromUserId, toUserId: toUser.id },
+          { fromUserId: toUser.id, toUserId: fromUserId },
+        ],
+      },
+    });
 
         return this.prisma.friend.create({
             data: {
@@ -95,7 +93,13 @@ export class FriendsService {
     // Transformer les relations en FriendProfile[]
     const friends: FriendProfileList = friendRelations.map(relation => {
       // Déterminer qui est l'ami (pas l'utilisateur actuel)
-      const friend = relation.fromUserId === fromUserId ? relation.toUser : relation.fromUser;
+      const friend = relation.fromUserId === fromUserId
+        ? relation.toUser
+        : relation.fromUser;
+
+      const activeGameId = friend.isOnline
+        ? this.gameGateway.getUserActiveGameId(friend.id)
+        : null;
 
       return {
         id: friend.id,
@@ -129,6 +133,8 @@ export class FriendsService {
         }
       }
     });
+
+
     return friendRequests.map(req => ({
       id: req.id,
       username: req.fromUser.username,
@@ -158,6 +164,10 @@ export class FriendsService {
         },
       },
     });
+
+    const activeGameId = friend.fromUser.isOnline
+      ? this.gameGateway.getUserActiveGameId(friend.fromUser.id)
+      : null;
 
     // Retourner le profil du nouvel ami
     return {
