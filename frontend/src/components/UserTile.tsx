@@ -34,6 +34,7 @@ export default function UserTile({
     avatarSrc = `/api/uploads/${filename}`;
   }
 
+
   const displayInfoParts: string[] = [];
   if (MemberSince) displayInfoParts.push(`Member since ${MemberSince}`);
   if (TotalGames !== undefined && TotalGames !== null) displayInfoParts.push(`${TotalGames} Games Played`);
@@ -57,7 +58,8 @@ export default function UserTile({
       {/* Avatar Container */}
       <div className="relative flex-shrink-0 mb-2">
         <img
-          src={avatarSrc}
+          //src={avatarSrc}
+		  src={`/api/uploads/${avatarUrl}`}
           alt={`${username}'s avatar`}
           onError={(e) => {
             e.currentTarget.src = placeholderImage;
