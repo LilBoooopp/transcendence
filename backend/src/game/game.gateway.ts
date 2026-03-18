@@ -184,9 +184,17 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
           this.clearGameTimer(gameId);
           this.stockfishService.stopEngine(gameId);
-          this.activeGames.delete(gameId);
+
+          const result = 'Player abandoned';
+          this.server.to(`game:${gameId}`).emit('game:over', {
+            winner: 'Draw',
+            result,
+          });
+
+          this.notificationService.gameOver(gameId, result);
 
           await this.persistGameResult(gameId, 'Draw', 'Player abandoned', true).catch(() => { });
+          this.activeGames.delete(gameId);
           console.log(`Bot game ${gameId} marked ABANDONED after reconnect timeout`);
         }, BOT_RECONNECT_SECONDS * 1000);
 
