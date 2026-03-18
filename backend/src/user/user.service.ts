@@ -36,16 +36,16 @@ type UserHistoryItem = {
 type UserHistory = UserHistoryItem[];
 
 type UserStat = {
-  username: string;
-  avatarUrl?: string | null;
-  memberSince: string;
-  totalGames: number;
-  avgScore: number;
-  bulletRating?: number;
-  blitzRating?: number;
-  rapidRating?: number;
-	currentStreak?: number;
-	bestStreak?: number;
+    username: string;
+    avatarUrl?: string | null;
+    memberSince: string;
+    totalGames: number;
+    avgScore: number;
+    bulletRating?: number;
+    blitzRating?: number;
+    rapidRating?: number;
+    currentStreak?: number;
+    bestStreak?: number;
 };
 
 const DEFAULT_AVATAR_FILENAME = '';
@@ -53,7 +53,7 @@ const UPLOADS_DIR = join(process.cwd(), 'src', 'uploads');
 
 @Injectable()
 export class UserService {
-    constructor(private prisma: PrismaService) {}
+    constructor(private prisma: PrismaService) { }
 
     async findByEmail(email: string): Promise<UserProfile | null> {
         return this.prisma.user.findUnique({

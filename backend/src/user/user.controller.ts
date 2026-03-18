@@ -14,6 +14,7 @@ import {
     BadRequestException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
+import { AuthService } from '../auth/auth.service';
 import { AuthGuard } from '../auth/guards/auth.guards';
 import { Throttle } from '@nestjs/throttler';
 import { RateLimitGuard } from '../auth/guards/rate-limit.guard';

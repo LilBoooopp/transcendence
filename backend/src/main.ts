@@ -10,7 +10,9 @@ async function bootstrap() {
 
   app.set('trust proxy', 1);
 
-  app.useStaticAssets(join(__dirname, '..', 'src', 'uploads'), { prefix: '/uploads/' });
+  app.useStaticAssets(join(process.cwd(), 'src', 'uploads'), {
+  prefix: '/uploads/',
+});
 
   app.enableCors({
 	origin: ['https://localhost:4443', 'http://localhost:3000'],
@@ -18,7 +20,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Enable vlaidation pas encore compris...
+  // Enable vlaidation pas encore compriss...
 //  app.useGlobalPipes(new ValidationPipe());
 /*app.useGlobalPipes(new ValidationPipe({
   whitelist: true,
