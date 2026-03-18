@@ -164,9 +164,9 @@ export default function ProfileTile({
 					<img
 						src={avatarSrc}
 						alt={`${username}'s avatar`}
-            onError={(e) => {
-    e.currentTarget.src = placeholderImage;
-  }}
+            			onError={(e) => {
+    						e.currentTarget.src = placeholderImage;
+  						}}
 						className="w-24 h-24 rounded-full object-cover shadow-sm border-2 border-accent"
 					/>
 					<div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
