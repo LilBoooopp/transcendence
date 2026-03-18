@@ -95,12 +95,6 @@ const ProfilePage = () => {
 			});
 
 			if (!res.ok) throw new Error('PATCH failed');
-			const data = await res.json();
-
-			if (data.accessToken) {
-        		localStorage.setItem('token', data.accessToken);
-      		}
-
 			console.log(`Updated ${field} to: ${newValue} in database!`);
 		} catch (error) {
 			setProfileData(previous);

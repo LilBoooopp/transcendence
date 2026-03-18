@@ -100,14 +100,6 @@ export class AuthService {
     return { accessToken, username: user.username, userId: user.userId };
   }
 
-
-
-
-
-
-
-
-
   async logout(userId: string) {
     return true;
   }

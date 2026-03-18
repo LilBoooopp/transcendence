@@ -65,15 +65,6 @@ export class UserController {
 
         const response: any = { user: updatedUser };
 
-/*        if (updatedUser.username !== req.user.username) {
-			const updateUserFp = await this.userService.updateFingerprint(req.user.userId);
-
-            const tokenPayload = {
-                sub: req.user.userId,
-                fingerprint: updateUserFp.fingerprint,
-            };
-            response.accessToken = await this.jwtService.signAsync(tokenPayload);
-        }*/
         return response;
     }
 
