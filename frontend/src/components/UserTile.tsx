@@ -25,14 +25,13 @@ export default function UserTile({
   bestStreak = 0,    
   onClick 
 }: UserTileProps) {
+  //const placeholderImage = "https://ui-avatars.com/api/?name=" + username + "&background=random";
+
   const placeholderImage = "https://ui-avatars.com/api/?name=" + username + "&background=random";
-
-  let avatarSrc = placeholderImage;
-
-  if (typeof avatarUrl === 'string' && avatarUrl.trim() !== '') {
-    const filename = avatarUrl.trim().replace(/^\/?(api\/)?uploads\//, '');
-    avatarSrc = `/api/uploads/${filename}`;
-  }
+	const avatarSrc =
+  avatarUrl && avatarUrl.trim() !== ''
+    ? `/api/uploads/${avatarUrl.trim().replace(/^\/?(api\/)?uploads\//, '')}`
+    : placeholderImage;
 
 
   const displayInfoParts: string[] = [];
@@ -58,8 +57,7 @@ export default function UserTile({
       {/* Avatar Container */}
       <div className="relative flex-shrink-0 mb-2">
         <img
-          //src={avatarSrc}
-		  src={`/api/uploads/${avatarUrl}`}
+          src={avatarSrc}
           alt={`${username}'s avatar`}
           onError={(e) => {
             e.currentTarget.src = placeholderImage;
