@@ -29,13 +29,13 @@ export class FriendsService {
   constructor(
     private prisma: PrismaService,
     private gameGateway: GameGateway,
-  ) {}
+  ) { }
 
   async friendRequest(fromUserId: string, toUsername: string) {
     const toUser = await this.prisma.user.findUnique({
       where: { username: toUsername.toLowerCase() },
     });
-    
+
     if (!toUser) throw new NotFoundException('User not found');
     if (toUser.id === fromUserId) throw new BadRequestException('Cannot add yourself');
 
@@ -48,7 +48,7 @@ export class FriendsService {
       },
     });
 
-		if (existing && existing.status === 'ACCEPTED') {
+    if (existing && existing.status === 'ACCEPTED') {
       throw new ConflictException('Already friends');
     }
     if (existing && existing.status === 'PENDING') {
@@ -110,8 +110,8 @@ export class FriendsService {
         username: friend.username,
         avatarUrl: friend.avatarUrl,
         elo: friend.statistics?.blitzElo ?? 1200,
-        status: friend.isOnline ? 'online' : 'offline',
-        gameId: undefined,
+        status: activeGameId ? 'in-game' : friend.isOnline ? 'online' : 'offline',
+        gameId: activeGameId ?? undefined,
         currentStreak: friend.statistics?.currentStreak ?? 0,
         bestStreak: friend.statistics?.bestStreak ?? 0,
         bio: friend.bio
@@ -183,14 +183,14 @@ export class FriendsService {
   }
 
   async rejectFriendRequest(userId: string, friendId: string) {
-	await this.prisma.friend.update({
-	  where: { id: friendId },
-	  data: {
-		status: 'REJECTED',
-		respondedAt: new Date(),
-	  },
-	});
+    await this.prisma.friend.update({
+      where: { id: friendId },
+      data: {
+        status: 'REJECTED',
+        respondedAt: new Date(),
+      },
+    });
 
-	return { success: true };
+    return { success: true };
   }
 }

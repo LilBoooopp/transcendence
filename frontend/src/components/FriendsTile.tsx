@@ -143,6 +143,7 @@ export default function FriendsTile() {
     };
 
     const handleSpectate = (gameId?: string) => {
+        console.log(`friend.gameId: ${gameId}`);
         if (!gameId) return;
         navigate(`/game/${gameId}`);
     };
