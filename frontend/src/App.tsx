@@ -66,7 +66,7 @@ const router = createBrowserRouter([
 
           { path: "/dashboard", element: <WireframeDashboard />, loader: dashboardLoader, errorElement: <ErrorPage /> },
           { path: "/user", element: <ProfilePage />, loader: userLoader, errorElement: <ErrorPage /> },
-          { path: "/friend/:username", element: <FriendProfilePage />, loader: friendLoader, errorElement: <ErrorPage /> },
+          { path: "/friend/:username", element: <FriendProfilePage /> },
 
           { path: "/play", element: <MatchmakingWaiting /> },
           { path: "/bot-launch", element: <BotGameLauncher /> },

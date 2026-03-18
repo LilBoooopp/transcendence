@@ -5,16 +5,6 @@ const getApiHeaders = () => ({
   Authorization: `Bearer ${localStorage.getItem('token')}`,
 });
 
-export async function protectedLoader() {
-    const res = await fetch('/api/auth/me', { headers: getApiHeaders() });
-    
-    if (res.status === 401 || res.status === 403) throw redirect('/?unauthorized=true');
-    if (res.status === 429) throw new Error('Rate limited — please wait a moment.');
-    if (!res.ok) throw new Error('Something went wrong.');
-    
-    return res.json();
-}
-
 export async function dashboardLoader() {
   const [statsRes, eloRes, historyRes, usersRes] = await Promise.all([
     fetch('/api/users/stats', { headers: getApiHeaders() }),
@@ -65,9 +55,4 @@ export async function userLoader() {
   ]);
   
   return { userData };
-}
-
-export async function friendLoader() {
-
-  return {};
 }
