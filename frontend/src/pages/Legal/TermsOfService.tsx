@@ -10,18 +10,18 @@ export default function TermsOfService() {
         <section>
           <h2 className="text-2xl font-semibold mb-3 text-gray-900 dark:text-white">1. Acceptance of Terms</h2>
           <p>
-            By accessing or using the Transcendence platform, you agree to be bound by these Terms of Service. If you do not agree with any part of these terms, you are prohibited from using the platform.
+            By accessing or using the Chess 42 platform, you agree to be bound by these Terms of Service. If you do not agree with any part of these terms, you are prohibited from using the platform.
           </p>
         </section>
 
         <section>
           <h2 className="text-2xl font-semibold mb-3 text-gray-900 dark:text-white">2. User Conduct and Fair Play</h2>
           <p>
-            Transcendence is built around competitive and fair multiplayer experiences. By playing on our platform, you agree to the following rules of conduct:
+            Chess 42 is built around competitive and fair multiplayer experiences. By playing on our platform, you agree to the following rules of conduct:
           </p>
           <ul className="list-disc pl-6 mt-2 space-y-1">
             <li><strong>No Cheating:</strong> You may not use external software, bots, AI engines (other than the official in-game Stockfish bot integration provided to you), or memory alteration tools to gain an unfair advantage in matchmaking or live games.</li>
-            <li><strong>Respectful Behavior:</strong> Harassment, hate speech, spamming, and toxic behavior in chats or usernames are strictly prohibited.</li>
+            <li><strong>Respectful Behavior:</strong> Inaporopriate usernames are strictly prohibited.</li>
             <li><strong>Account Integrity:</strong> You are entirely responsible for maintaining the confidentiality of your login credentials. Account sharing to manipulate matchmaking or rankings is not allowed.</li>
           </ul>
         </section>
