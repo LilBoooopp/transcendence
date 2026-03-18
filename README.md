@@ -94,7 +94,7 @@ We organized our development cycle into one-week sprints. Tasks were created, as
 
 - **Version control:** GitHub with branch rulesets (PR-before-merge, no force push, restricted deletions)
 - **Task tracking:** GitHub Issues and Projects.
-- **Communication:** a Discord server with categorized channels and a webhook linked to 
+- **Communication:** a Discord server with categorized channels and a webhook linked to the github repository to receive updates and changes as notifications.
 
 ### Meetings
 We made it a priority to hold an official meeting once a week as a complete group to discuss our general progress and outline our next steps. Outside of these weekly syncs, we collaborated regularly on an ad-hoc basis. This frequent communication was especially important when our individual sections intersected, allowing us to help each other, understand new concepts, and ensure seamless integration of everyone's work into the final project.
@@ -110,8 +110,8 @@ We made it a priority to hold an official meeting once a week as a complete grou
 ### Backend
 - **NestJS + TypeScript** - structured, modular server framework well-suited to WebSocket gateways and REST APIs
 - **Socket.IO (server)** - manages game rooms, matchmaking queues, and live event broadcasting
-- **Stockfish** - AI chess engine integrated as a persistent sub process vio the UCI protocol; chosen as a subprocess (not a library) so the team retains full understanding of the chess logic
-
+- **Stockfish** - AI chess engine integrated as a persistent sub process via the UCI protocol; chosen as a subprocess (not a library) so the team retains full understanding of the chess logic
+ 
 ### Database
 - **PostgreSQL 15** - chosen for its reliability, relational integrity, and strong support for complex queries (Elo calculations)
 - **Prisma ORM** - type-safe query builder that integrates directly with TypeScript; eliminates raw SQL boilerplate while keeping the schema version-controlled
@@ -121,7 +121,7 @@ We made it a priority to hold an official meeting once a week as a complete grou
 
 ### Infrastructure
 - **Docker + Docker Compose** - each service (frontend, backend, database, nginx) runs in its own container for reproducibility
-- **Nginx** -reverse proxy handling HTTPS termination and routing between rontend and backend
+- **Nginx** -reverse proxy handling HTTPS termination and routing between frontend and backend
 
 ## Database Schema
 
