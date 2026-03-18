@@ -5,6 +5,7 @@ This project was developed and primarily tested on **Google Chrome**. As part of
 ### Supported Browsers
 
 | Browser | Version Tested | Status |
+|---------|----------------|--------|
 | Google Chrome | 130+ | Primary development browser |
 | Mozilla Firefox | 130+ | Fully supported |
 | Safari | 26+ | Fully supported |
