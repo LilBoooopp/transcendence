@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Outlet, useLoaderData } from 'react-router-dom';
 
 import Layout from './pages/Header & Footer/Layout';
 import WireframeDashboard from './pages/User/Dashboard';
@@ -6,7 +6,6 @@ import WireframeLanding from './pages/Home/Landing';
 import WireframeGameMode from './pages/Game/GameMode';
 import WireframeBotMode from './pages/Game/BotMode';
 import ProfilePage from './pages/User/ProfilePage';
-import FriendProfilePage from './pages/User/FriendProfilePage';
 
 import MatchmakingWaiting from './pages/Game/MatchmakingWaiting';
 import BotGameLauncher from './components/BotGameLauncher';
@@ -17,49 +16,68 @@ import SoloLauncher from './pages/Game/SoloLauncher';
 import SoloGamePage from './pages/Game/SoloGamePage';
 
 import ProtectedRoute from './components/ProtectedRoute';
+
+//Import loaders from services
+import { dashboardLoader, userLoader } from './services/loaders.service';
+
 function NotificationListener({ children }: { children: React.ReactNode }) {
   useSocketNotification();
   return <>{children}</>;
 }
 
-function App() {
+function RootLayout() {
   return (
-    <BrowserRouter>
-      <NotificationProvider>
-        <NotificationListener>
-          <Routes>
-            <Route path="/" element={<Layout><WireframeLanding /></Layout>} />
-            <Route path="/home" element={<Layout><WireframeLanding /></Layout>} />
-            <Route path="/gamemode" element={<ProtectedRoute><Layout><WireframeGameMode /></Layout></ProtectedRoute>} />
-            <Route path="/botmode" element={<ProtectedRoute><Layout><WireframeBotMode /></Layout></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><Layout><WireframeDashboard /></Layout></ProtectedRoute>} />
-            <Route path="/user" element={<ProtectedRoute><Layout><ProfilePage /></Layout></ProtectedRoute>} />
-						<Route path="/friend/:username" element={<ProtectedRoute><Layout><FriendProfilePage /></Layout></ProtectedRoute>} />
-
-            <Route path="/play" element={<ProtectedRoute><Layout><MatchmakingWaiting /></Layout></ProtectedRoute>} />
-            <Route path="/bot-launch" element={<ProtectedRoute><Layout><BotGameLauncher /></Layout></ProtectedRoute>} />
-            <Route path="/game/:gameId" element={<ProtectedRoute><Layout><GamePage /></Layout></ProtectedRoute>} />
-
-            <Route path="/solo" element={<ProtectedRoute><Layout><SoloLauncher /></Layout></ProtectedRoute>} />
-            <Route path="/solo-game" element={<ProtectedRoute><Layout><SoloGamePage /></Layout></ProtectedRoute>} />
-            <Route path="*" element={<Layout><NotFound /></Layout>} />
-          </Routes>
-        </NotificationListener>
-      </NotificationProvider>
-    </BrowserRouter>
+    <NotificationProvider>
+      <NotificationListener>
+        <Layout>
+          <Outlet />
+        </Layout>
+      </NotificationListener>
+    </NotificationProvider>
   );
 }
 
-function NotFound() {
+function ProtectedLayout() {
   return (
-    <div className="flex flex-col items-center justify-center h-screen">
-      <h1 className="text-5xl font-bold mb-4">Uh Oh..</h1>
-      <h2 className="text-3xl font-semibold mb-2">404 - Page Not Found</h2>
-      <p className="text-lg text-gray-400">This page does not exists.</p>
-      <a href="/" className="mt-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Home</a>
-    </div>
+      <ProtectedRoute>
+        <Outlet />
+      </ProtectedRoute>
+  );
+}
+
+const router = createBrowserRouter([
+  {
+    element: <RootLayout />,
+    children: [
+      { path: "/", element: <WireframeLanding /> },
+      { path: "/home", element: <WireframeLanding /> },
+      {
+        element: <ProtectedLayout />, // Wrapper pour les routes protégées
+        children: [
+          { path: "/gamemode", element: <WireframeGameMode />, },
+          { path: "/botmode", element: <WireframeBotMode /> },
+
+          { path: "/dashboard", element: <WireframeDashboard />, loader: dashboardLoader/*, errorElement: <ErrorPage err={error.message} /> */},
+          { path: "/user", element: <ProfilePage />, loader: userLoader/*, errorElement: <ErrorPage err={error.message} /> */},
+
+          { path: "/play", element: <MatchmakingWaiting /> },
+          { path: "/bot-launch", element: <BotGameLauncher /> },
+
+          { path: "/game/:gameId", element: <GamePage /> },
+
+          { path: "/solo", element: <SoloLauncher /> },
+          { path: "/solo-game", element: <SoloGamePage /> },
+        ],
+       }
+
+    ]
+  }
+]);
+
+function App() {
+  return (
+    <RouterProvider router={router} />
   );
 }
 
 export default App;
-

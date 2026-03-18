@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLoaderData } from 'react-router-dom';
 import * as Icons from 'lucide-react';
 import { GameModeStatsCard } from '../../components/GameModeStatsCard';
 import GameHistoryList, { GameHistoryItem } from '../../components/GameHistoryList';
@@ -6,6 +7,26 @@ import UserTile from '../../components/UserTile';
 import FriendsTile from '../../components/FriendsTile';
 import LeaderboardTile, { LeaderboardPlayer } from '../../components/LeaderboardTile';
 
+interface DashboardData {
+  stats: {
+    username: string;
+    memberSince: string;
+    totalGames: number;
+    avgScore: number;
+    blitzRating: number;
+    rapidRating: number;
+    bulletRating: number;
+    currentStreak: number;
+    bestStreak: number;
+  };
+  chartData: {
+    bullet: { date: string; rating: number }[];
+    blitz: { date: string; rating: number }[];
+    rapid: { date: string; rating: number }[];
+  };
+  history: GameHistoryItem[];
+  leaderboard: LeaderboardPlayer[];
+}
 
 interface ChartDataPoint {
     date: string;
@@ -58,134 +79,8 @@ const StatsView = ({ chartData }: StatsViewProps) => {
 
 // --- MAIN DASHBOARD COMPONENT ---
 const WireframeDashboard = () => {
+    const { stats, chartData, history, leaderboard } = useLoaderData() as DashboardData;
     const [view, setView] = useState<'menu' | 'time-selection'>('menu');
-    const [history, setHistory] = useState<GameHistoryItem[]>([]);
-    const [leaderboard, setLeaderboard] = useState<LeaderboardPlayer[]>([]);
-
-    const [chartData, setChartData] = useState({
-        bullet: [],
-        blitz: [],
-        rapid: [],
-    });
-    //user state
-    const [stats, setStats] = useState({
-        username: '',
-        memberSince: '',
-        totalGames: 0,
-        avgScore: 0,
-        blitzRating: 0,
-        rapidRating: 0,
-        bulletRating: 0,
-				currentStreak: 0,
-				bestStreak: 0,
-    });
-
-    // useEffect pour fetcher les stats
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        fetch('/api/users/stats', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        })
-            .then((res) => {
-                if (!res.ok) throw new Error('Failed to fetch stats');
-                return res.json();
-            })
-            .then((data) => {
-                setStats(data);
-            })
-            .catch((error) => {
-                console.error('Error fetching stats:', error);
-            });
-    }, []);
-
-    //Elo
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        fetch('/api/users/elo-history', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        })
-            .then(r => r.json())
-            .then(data => setChartData(data))
-            .catch(error => console.error('Error:', error));
-    }, []);
-
-    // history
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        fetch('/api/users/history', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        })
-            .then((res) => {
-                if (!res.ok) throw new Error('Failed to fetch history');
-                return res.json();
-            })
-            .then((data) => {
-                setHistory(data);
-            })
-            .catch((error) => {
-                console.error('Error fetching game history:', error);
-                setHistory([]);
-            });
-    }, []);
-
-// Leaderboard fetcher
-useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-    fetch('/api/users', {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-        },
-    })
-    .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch users for leaderboard');
-        return res.json();
-    })
-    .then((data) => {
-        const formattedLeaderboard: LeaderboardPlayer[] = data.map((user: any, index: number) => {
-            const s = user.statistics || {};
-            const rapidElo = s.rapidElo ?? 1200;
-            const bulletElo = s.bulletElo ?? 1200;
-            const blitzElo = s.blitzElo ?? 1200;
-            const userElo = Math.round((rapidElo + bulletElo + blitzElo) / 3);
-            const safeUsername = user.username ? encodeURIComponent(user.username) : 'Unknown';
-            return {
-                id: user.id || user.userId || user._id || `fallback-id-${index}`,
-                username: user.username || 'Unknown Player',
-                elo: userElo,
-                avatarUrl: user.avatarUrl,
-								currentStreak: s.currentStreak ?? user.currentStreak,
-								bestStreak: s.bestStreak ?? user.bestStreak,
-            };
-        });
-        formattedLeaderboard.sort((a, b) => (b.elo || 0) - (a.elo || 0));
-        setLeaderboard(formattedLeaderboard);
-    })
-    .catch((error) => {
-        console.error('Error fetching leaderboard:', error);
-        setLeaderboard([]);
-    });
-}, []);
 
     return (
         <div className="w-full max-w-5xl mx-auto py-8 px-4">
@@ -197,8 +92,8 @@ useEffect(() => {
                         MemberSince={stats.memberSince}
                         TotalGames={stats.totalGames}
                         AvgScore={stats.avgScore}
-												currentStreak={stats.currentStreak}
-						    				bestStreak={stats.bestStreak}
+						currentStreak={stats.currentStreak}
+						bestStreak={stats.bestStreak}
                     />
                 </div>
                 {/* BOTTOM SECTION: Statistics Dashboard */}

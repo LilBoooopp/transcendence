@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { isLoggedIn } from '../services/auth.service';
 import { useNotification } from '../notifications';
@@ -7,14 +7,14 @@ import { useNotification } from '../notifications';
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const [status, setStatus] = useState<'loading' | 'authed' | 'unauthed'>('loading');
     const location = useLocation();
-    let isDone = false;
+    let isDone = useRef(false);
     const { push } = useNotification();
 
     useEffect(() => {
         isLoggedIn().then(({ connected }) => {
             setStatus(connected ? 'authed' : 'unauthed');
             if (!connected && !isDone) {
-                isDone = true;
+                isDone = useRef(true);
                 push({
                     type: 'error',
                     title: "You are not logged in.",
