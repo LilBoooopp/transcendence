@@ -40,7 +40,8 @@ export default function UserTile({
   if (AvgScore !== undefined && AvgScore !== null) displayInfoParts.push(`Avg. Score: ${AvgScore}`);
 
   return (
-    <Card
+    <Card 
+      variant="surface"
       onClick={onClick}
       className={`relative flex flex-col items-center justify-center text-center p-8 gap-4 w-full h-full ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
     >

@@ -33,7 +33,7 @@ export default function LeaderboardTile({ players }: LeaderboardTileProps) {
         )}
 
         {topPlayers.map((player, index) => (
-          <div key={player.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary/50 transition-colors gap-3">
+          <div key={player.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-primary-hover transition-colors gap-3">
             
             {/* Left side: Rank, Avatar, Username */}
             <div className="flex items-center gap-3 flex-1 min-w-0">
