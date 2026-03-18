@@ -78,7 +78,17 @@ cd backend && npm install && npm run start
 
 ### Work Organization
 
-[PLACEHOLDER: describe how you divided the work - e.g., "We split the project into frontend, backend, and chess engine tracks, Each sprint lasted one week and was planned during a weekly meeting."]
+We divided the project into specialized tracks based on our individual strengths, while maintaining a collaborative approach for feature integration.
+
+ * **Frontend & UI/UX:** Bastian took ownership of the React frontend, establishing a unified corporate design, building the reusable component library with Tailwind CSS, and ensuring the application was fully responsive on mobile devices.
+
+ * **Backend REST API & Infrastructure:** Sylvie spearheaded the core backend architecture using NestJS. She designed the API routes, implemented the secure JWT authentication flow, managed the database schema (Prisma/PostgreSQL), and handled Docker containerization.
+
+ * **Real-Time Gateway & Game Engine:** Charlie focused on the live, stateful elements of the application. This included building the Socket.IO gateway, developing the matchmaking queues, implementing the custom TypeScript chess engine, and integrating the Stockfish AI subprocess.
+
+ * **Full-Stack & Feature Support:** Bertrand worked across the stack, collaborating on both the user authentication flow alongside Sylvie and the real-time WebSocket implementations alongside Charlie.
+
+We organized our development cycle into one-week sprints. Tasks were created, assigned, and tracked using GitHub Projects. To maintain code quality, we enforced branch rules requiring pull requests and code reviews before merging any features into the main branch.
 
 ### Tools Used
 
@@ -87,8 +97,7 @@ cd backend && npm install && npm run start
 - **Communication:** a Discord server with categorized channels and a webhook linked to 
 
 ### Meetings
-
-[PLACEHOLDER]
+We made it a priority to hold an official meeting once a week as a complete group to discuss our general progress and outline our next steps. Outside of these weekly syncs, we collaborated regularly on an ad-hoc basis. This frequent communication was especially important when our individual sections intersected, allowing us to help each other, understand new concepts, and ensure seamless integration of everyone's work into the final project.
 
 ## Technical Stack
 
@@ -216,22 +225,25 @@ erDiagram
 | pgn | STRING | Full game PGN |
 | created_at | TIMESTAMP | Game start time |
 
-...
-
 ## Features List
 
 | Feature | Description | Implemented by |
 |---------|-------------|----------------|
 | Real-time multiplayer | Two players matched via queue play chess live with WebSocket sync | cbopp |
-| Variable time contorls | Supports time+increment format (e.g., 3+2); parsed and enforced server-side | cbopp |
+| Variable time controls | Supports time+increment format (e.g., 3+2); parsed and enforced server-side | cbopp |
 | Matchmaking queues | Per-time-control queues; players are apried automatically | cbopp |
 | AI opponent (Stockfish) | Bot games against Stockfish at configurable depth; UCI subprocess per game | cbopp |
+| Custom chess engine | Full move generation and validation without external libraries | cbopp |
 | Spectator mode | Any authenticated user can watch a live game is read-only mode | cbopp |
 | Elo ratings | Rating updates after each rated game using standard Elo formula | cbopp |
 | User profiles | View your own stats, game history, and rating | bschmid |
 | User authentication | Registration, login, JWT-based sessions | beboccas, sforster |
-| Custom chess engine | Full move generation and validation without external libraries | cbopp |
-| [PLACEHOLDER] |
+| Friends management | Send, accept, or decline friend requests; view online status or spectate freinds | everyone |
+| Global Leaderboard & Stats | Track wins, losses, draws, streaks, and display ranked leaderboards based on Elo | everyone |
+| Match History | View past games, including dates, opponents, results, and PGNs | everyone |
+| Notification System | Rela-time toast notifications for game events and system alerts | bschmid, cbopp |
+| Responsive UI & Design | Custom component library built with Tailwind CSS, optimized for all devices | bschmid |
+| Public REST API | Secured endpoints for user data and game history with rate limiting | beboccas, sforster |
 
 ## Modules
 
@@ -255,11 +267,10 @@ erDiagram
 | Support for additional browsers | Minor | 1 | Compatibility with Firefox and Safari | everyone |
 
 ### User Management (3 points)
-*-> Sylvie will do this!*
 | Module | Type | Points | Implementation | Member(s) |
 |--------|------|--------|----------------|-----------|
 | Standard user management | Major | 2 | [PLACEHOLDER] | everyone |
-| Game statistics | Minor | 1 | | Save all information about game results, elo changes, match histories and win streaks | everyone |
+| Game statistics | Minor | 1 | Saves and displays all information about game results, elo changes, match histories and win streaks | everyone |
 
 ### Gaming (7 points)
 
@@ -280,7 +291,20 @@ erDiagram
 - **Challenges:** Stale closures in Socket.IO callbacks required refs for all mutable game state; socket timing required defensive checks for already-connected sockets; bot reconnect logic needed explicit branches since bot games set `gameStarted: true` immediately.
 
 ### bschmid (Bastian Schmid)
-[PLACEHOLDER]
+- Designed and implemented frontend: created all UI components except chessGame
+- Implemented coherent UI design
+- Created reusable component library
+- Created corporate design: color, font and style for components
+- Organized meetings
+- Setup GitHub Project
+- Maintainded GitHub Project and distributed tasks
+- Optimized UI for mobile
+- Prepared frontend data-interfaces for api calls
+
+**Challanges:**
+- Getting a coherent UI that is nice on all devices
+- Finding the balance of using Mock data, Mock API calls and preparing to receive real data
+- Decide when to do a new component or add to an existing one
 
 ### sforster (Sylvie Forster)
 - Design and implement the entire API routes. 
@@ -295,7 +319,12 @@ erDiagram
 - Implement friends management
 
 ### beboccas (Bertrand Boccassino)
-[PLACEHOLDER]
+- Full-Stack Integration: Worked across the stack to bridge the REST API and real-time components, ensuring seamless communication between the frontend and backend.
+- Authentication & Security: Collaborated with Sylvie to build the secure user authentication flow, including user registration, login, and JWT-based sessiong management.
+- Real-Time Communication: Paired with Charlie to implement the WS infrastructure, contributing to the Socket.IO gateway, game room management, and event broadcasting for matchmaking and spectator modes
+- Backend For Frontend (BFF): Refactored router and integrated loaders to centralize API calls and facilitate error handling. 
+**Challenges:**
+- Last minute full refactor of frontend API implementations. Updating router [PLACEHOLDER] 
 
 ## Resources
 
