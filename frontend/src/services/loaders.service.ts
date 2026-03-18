@@ -7,6 +7,15 @@ const getApiHeaders = () => ({
 });
 
 // Loaders
+
+export async function gamemodeLoader() {
+  return {};
+}
+export async function botmodeLoader() {
+  return {};
+}
+
+
 export async function dashboardLoader() {
   const [statsRes, eloRes, historyRes, usersRes] = await Promise.all([
     fetch('/api/users/stats', { headers: getApiHeaders() }),
@@ -57,9 +66,40 @@ export async function userLoader() {
     userRes.json(),
   ]);
 
+  /*
+  				username: user.username ?? '',
+					email: user.email ?? '',
+					firstName: user.firstName ?? '',
+					lastName: user.lastName ?? '',
+					bio: user.bio ?? '',
+					avatarUrl: user.avatarUrl ?? '',
+  */
+  // format the data like so
+  
   return { userData };
 }
 
+
+
+export async function playLoader() {
+  return {};
+}
+export async function botLaunchLoader() {
+  return {};
+}
+
+
+export async function gameLoader() {
+  return {};
+}
+
+
+export async function soloLoader() {
+  return {};
+}
+export async function soloGameLoader() {
+  return {};
+}
 
 
 /*

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLoaderData } from 'react-router-dom';
 import ProfileTile from '../../components/ProfileTile';
 
 type ProfileData = {
@@ -21,7 +21,8 @@ type UpdateUserBody = {
 
 const ProfilePage = () => {
 	const navigate = useNavigate();
-
+	const { userData } = useLoaderData();
+	console.log('Loader data in ProfilePage:', userData);
 	const [profileData, setProfileData] = useState<ProfileData>({
 		username: '',
 		email: '@example.com',
