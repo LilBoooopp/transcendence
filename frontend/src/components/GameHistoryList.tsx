@@ -37,7 +37,7 @@ export default function GameHistoryList({ history }: GameHistoryListProps) {
       </div>
       
       {/* DESKTOP Table Header (Hidden on Mobile) */}
-      <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 bg-secondary text-xs font-body text-text-default uppercase tracking-wider">
+      <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 bg-contrast text-xs font-body text-text-default uppercase tracking-wider">
         <div className="col-span-1 text-center">Mode</div>
         <div className="col-span-4 text-left">Opponent</div>
         <div className="col-span-2 text-center">Result</div>
@@ -54,7 +54,7 @@ export default function GameHistoryList({ history }: GameHistoryListProps) {
             <div 
               key={game.id} 
               className={`flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 p-4 md:px-6 md:items-center transition-colors ${
-                index % 2 === 0 ? 'bg-primary hover:bg-primary-hover' : 'bg-secondary hover:bg-secondary-hover'
+                index % 2 === 0 ? 'bg-primary' : 'bg-contrast-hover'
               }`}
             >
               

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card } from './ui/Card';
 import Button from './Button';
 import { Check, X, Eye, Search } from 'lucide-react';
@@ -15,7 +14,7 @@ interface Friend {
     gameId?: string;
     currentStreak?: number;
     bestStreak?: number;
-		bio?: string;
+    bio?: string;
 }
 
 interface FriendRequest {
@@ -24,92 +23,77 @@ interface FriendRequest {
     avatarUrl?: string;
 }
 
+type FetchError = 'rate-limited' | 'unauthorized' | 'error' | null;
+
+const getAuthHeaders = () => ({
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
+});
+
 export default function FriendsTile() {
     const navigate = useNavigate();
-    //state
+
     const [friends, setFriends] = useState<Friend[]>([]);
     const [requests, setRequests] = useState<FriendRequest[]>([]);
     const [searchName, setSearchName] = useState('');
     const [requestStatus, setRequestStatus] = useState<'idle' | 'success' | 'error'>('idle');
-    const navigate = useNavigate();
+    const [friendsError, setFriendsError] = useState<FetchError>(null);
+    const [requestsError, setRequestsError] = useState<FetchError>(null);
 
-    // add by syl to get friends
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        fetch('/api/friends', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        })
-            .then(res => res.json())
+        fetch('/api/friends', { method: 'GET', headers: getAuthHeaders() })
+            .then(res => {
+                if (res.status === 429) throw new Error('rate-limited');
+                if (res.status === 401 || res.status === 403) throw new Error('unauthorized');
+                if (!res.ok) throw new Error('error');
+                return res.json();
+            })
             .then(data => {
-                // DEFENSIVE CHECK: Make sure it's an array before setting!
                 if (Array.isArray(data)) {
                     setFriends(data);
                 } else {
                     console.error('Backend did not return an array for friends:', data);
-                    setFriends([]); // Fallback to empty array to prevent crash
+                    setFriends([]);
                 }
             })
-            .catch(error => {
-                console.error('Error fetching friends:', error);
+            .catch(err => {
+                setFriendsError(err.message as FetchError);
                 setFriends([]);
             });
     }, []);
 
-    // add by syl to get friends requests
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        fetch('/api/friends/request', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-        })
-            .then(res => res.json())
+        fetch('/api/friends/request', { method: 'GET', headers: getAuthHeaders() })
+            .then(res => {
+                if (res.status === 429) throw new Error('rate-limited');
+                if (res.status === 401 || res.status === 403) throw new Error('unauthorized');
+                if (!res.ok) throw new Error('error');
+                return res.json();
+            })
             .then(data => {
-                // added because caused crash
                 if (Array.isArray(data)) {
                     setRequests(data);
                 } else {
                     console.error('Backend did not return an array for requests:', data);
-                    setRequests([]); // Fallback to empty array to prevent crash
+                    setRequests([]);
                 }
             })
-            .catch(error => {
-                console.error('Error fetching requests:', error);
+            .catch(err => {
+                setRequestsError(err.message as FetchError);
                 setRequests([]);
             });
     }, []);
 
-    // Handlers for Add Friend
     const handleSendRequest = (e: React.FormEvent) => {
         e.preventDefault();
         if (!searchName.trim()) return;
 
-        const token = localStorage.getItem('token');
-        if (!token) {
-            setRequestStatus('error');
-            return;
-        }
-
         fetch('/api/friends', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ toUsername: searchName }),
         })
             .then(res => {
-                console.log('Status:', res.status);
                 if (!res.ok) {
                     return res.text().then(text => {
                         throw new Error(`Status ${res.status}: ${text}`);
@@ -131,27 +115,14 @@ export default function FriendsTile() {
     };
 
     const handleAccept = async (id: string) => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
         try {
             const res = await fetch(`/api/friends/accept/${id}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: getAuthHeaders(),
             });
-
             if (!res.ok) throw new Error('Failed to accept request');
-
-            // Récupérer le nouvel ami depuis la réponse
             const newFriend = await res.json();
-
-            // Ajouter l'ami à la liste
             setFriends(prev => [...prev, newFriend]);
-
-            // Supprimer la requête
             setRequests(prev => prev.filter(req => req.id !== id));
         } catch (error) {
             console.error('Error accepting request:', error);
@@ -159,52 +130,54 @@ export default function FriendsTile() {
     };
 
     const handleDeny = async (id: string) => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
         try {
             const res = await fetch(`/api/friends/reject/${id}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: getAuthHeaders(),
             });
-
             if (!res.ok) throw new Error('Failed to deny request');
-
-            // Supprimer la requête
             setRequests(prev => prev.filter(req => req.id !== id));
         } catch (error) {
             console.error('Error denying request:', error);
         }
     };
 
-    // a voir
     const handleSpectate = (gameId?: string) => {
         if (!gameId) return;
         navigate(`/game/${gameId}`);
-        console.log('Spectating game:', gameId);
     };
 
-    // Same avatar logic as UserTile
     const getAvatarSrc = (username: string, avatarUrl?: string) => {
-        const placeholderImage =
-            `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`;
-
+        const placeholderImage = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`;
         let avatarSrc = placeholderImage;
-
         if (typeof avatarUrl === 'string' && avatarUrl.trim() !== '') {
             const filename = avatarUrl.trim().replace(/^\/?(api\/)?uploads\//, '');
             avatarSrc = `/api/uploads/${filename}`;
         }
-
         return { avatarSrc, placeholderImage };
     };
 
-    //rendering
+    const renderError = (error: FetchError) => {
+        if (!error) return null;
+        const messages: Record<NonNullable<FetchError>, string> = {
+            'rate-limited': 'Too many requests — please wait a moment.',
+            'unauthorized': 'You are not authorized to view this.',
+            'error': 'Failed to load data.',
+        };
+        const colors: Record<NonNullable<FetchError>, string> = {
+            'rate-limited': 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+            'unauthorized': 'text-red-400 bg-red-500/10 border-red-500/20',
+            'error': 'text-red-400 bg-red-500/10 border-red-500/20',
+        };
+        return (
+            <div className={`text-xs border rounded-lg px-3 py-2 ${colors[error]}`}>
+                {messages[error]}
+            </div>
+        );
+    };
+
     return (
-        <Card className="flex flex-col p-5 w-full h-full max-h-[400px] gap-4 overflow-hidden">
+        <Card variant="surface" className="flex flex-col p-5 w-full h-full max-h-[400px] gap-4 overflow-hidden">
             {/* Header */}
             <div className="flex items-center gap-2 border-b border-gray-700 pb-2">
                 <h3 className="text-xl font-heading font-bold text-text-default m-0">Friends</h3>
@@ -233,21 +206,18 @@ export default function FriendsTile() {
 
             <div className="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
                 {/* Pending Requests Section */}
-                {requests.length > 0 && (
+                {requestsError ? renderError(requestsError) : requests.length > 0 && (
                     <div className="flex flex-col gap-2">
                         <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Requests ({requests.length})</span>
                         {requests.map(req => {
                             const { avatarSrc, placeholderImage } = getAvatarSrc(req.username, req.avatarUrl);
-
                             return (
                                 <div key={req.id} className="flex items-center justify-between bg-primary/50 p-2 rounded-lg border border-gray-700">
                                     <div className="flex items-center gap-3 truncate">
                                         <img
                                             src={avatarSrc}
                                             alt={req.username}
-                                            onError={(e) => {
-                                                e.currentTarget.src = placeholderImage;
-                                            }}
+                                            onError={(e) => { e.currentTarget.src = placeholderImage; }}
                                             className="w-8 h-8 rounded-full object-cover"
                                         />
                                         <span className="text-sm font-semibold text-text-default truncate">{req.username}</span>
@@ -269,63 +239,57 @@ export default function FriendsTile() {
                 {/* Friends List Section */}
                 <div className="flex flex-col gap-2">
                     <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">My Friends ({friends.length})</span>
-                    {friends.length === 0 && <span className="text-sm text-gray-500 italic">No friends added yet.</span>}
+                    {friendsError ? renderError(friendsError) : friends.length === 0
+                        ? <span className="text-sm text-gray-500 italic">No friends added yet.</span>
+                        : friends.map(friend => {
+                            const { avatarSrc, placeholderImage } = getAvatarSrc(friend.username, friend.avatarUrl);
+                            return (
+                                <div
+                                    key={friend.id}
+                                    onClick={() => navigate(`/friend/${friend.username}`, { state: { friendData: friend } })}
+                                    className="flex items-center justify-between p-2 rounded-lg hover:bg-primary-hover transition-colors cursor-pointer"
+                                >
+                                    <div className="flex items-center gap-3 truncate">
+                                        <div className="relative shrink-0 ml-2 mb-2.5 mt-2.5">
+                                            <img
+                                                src={avatarSrc}
+                                                alt={friend.username}
+                                                onError={(e) => { e.currentTarget.src = placeholderImage; }}
+                                                className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-700"
+                                            />
+                                            <StreakPill
+                                                currentStreak={friend.currentStreak}
+                                                bestStreak={friend.bestStreak}
+                                                className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-10 scale-[0.65] origin-top"
+                                            />
+                                        </div>
+                                        <div className="flex flex-col truncate">
+                                            <span className="text-sm font-semibold text-text-default truncate">{friend.username}</span>
+                                            <span className="text-xs text-gray-400">Avg. Elo: {friend.elo}</span>
+                                        </div>
+                                    </div>
 
-                    {friends.map(friend => {
-                        const { avatarSrc, placeholderImage } = getAvatarSrc(friend.username, friend.avatarUrl);
-
-                        return (
-                            <div 
-                                key={friend.id} 
-                                onClick={() => navigate(`/friend/${friend.username}`, { state: { friendData: friend } })}
-                                className="flex items-center justify-between p-2 rounded-lg hover:bg-primary/30 transition-colors cursor-pointer"
-                            >
-                                <div className="flex items-center gap-3 truncate">
-                                    <div className="relative shrink-0 ml-2 mb-2.5 mt-2.5">
-                                      <img
-                                          src={avatarSrc}
-                                          alt={friend.username}
-                                          onError={(e) => {
-                                              e.currentTarget.src = placeholderImage;
-                                          }}
-                                          className="w-10 h-10 rounded-full object-cover shadow-sm border border-gray-700"
-                                      />
-                                      <StreakPill 
-                                        currentStreak={friend.currentStreak} 
-                                        bestStreak={friend.bestStreak} 
-                                        className="absolute -bottom-4 left-1/2 -translate-x-1/2 z-10 scale-[0.65] origin-top" 
-                                      />
-                                    </div>                                    
-                                    <div className="flex flex-col truncate">
-                                        <span className="text-sm font-semibold text-text-default truncate">{friend.username}</span>
-                                        <span className="text-xs text-gray-400">Avg. Elo: {friend.elo}</span>
+                                    <div className="flex items-center justify-center w-8 shrink-0">
+                                        {friend.status === 'offline' && (
+                                            <div className="w-3 h-3 rounded-full bg-gray-600 border-2 border-transparent" title="Offline" />
+                                        )}
+                                        {friend.status === 'online' && (
+                                            <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" title="Online" />
+                                        )}
+                                        {friend.status === 'in-game' && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleSpectate(friend.gameId); }}
+                                                className="p-1.5 rounded-full bg-accent/20 text-text-default hover:bg-accent/40 hover:scale-110 transition-all"
+                                                title="Watch Game"
+                                            >
+                                                <Eye size={16} />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
-
-                                {/* Status Indicator */}
-                                <div className="flex items-center justify-center w-8 shrink-0">
-                                    {friend.status === 'offline' && (
-                                        <div className="w-3 h-3 rounded-full bg-gray-600 border-2 border-transparent" title="Offline" />
-                                    )}
-                                    {friend.status === 'online' && (
-                                        <div className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" title="Online" />
-                                    )}
-                                    {friend.status === 'in-game' && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation(); 
-                                                handleSpectate(friend.gameId);
-                                            }}
-                                            className="p-1.5 rounded-full bg-accent/20 text-text-default hover:bg-accent/40 hover:scale-110 transition-all"
-                                            title="Watch Game"
-                                        >
-                                            <Eye size={16} />
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })
+                    }
                 </div>
             </div>
         </Card>

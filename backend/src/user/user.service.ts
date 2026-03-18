@@ -21,8 +21,8 @@ type UserProfile = {
     email?: string | null;
 };
 
-type UserAuth = { id: string; username: string; password: string };
-
+type UserAuth = { id: string; username: string; password: string, fingerprint: string};
+type newFingerPrint = { id: string; fingerprint: string };
 type UserHistoryItem = {
     id: string;
     date: string;
@@ -101,7 +101,7 @@ export class UserService {
     async findAuthUser(username: string): Promise<UserAuth | null> {
         return this.prisma.user.findUnique({
             where: { username },
-            select: { id: true, username: true, password: true },
+            select: { id: true, username: true, password: true, fingerprint: true, },
         });
     }
 
@@ -176,7 +176,7 @@ export class UserService {
         if (newAvatar !== undefined && newAvatar !== null && newAvatar !== '') {
             data.avatarUrl = newAvatar;
         }
-
+        
         if (Object.keys(data).length === 0) {
             throw new BadRequestException('No fields to update');
         }
@@ -209,7 +209,33 @@ export class UserService {
         }
     }
 
-    async modifyPassword(id: string, oldPassword: string, newPassword: string) {
+    async updateFingerprint(id: string): Promise<newFingerPrint> {
+      const user = await this.prisma.user.findUnique({
+        where: { id },
+        select: { id: true },
+      });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      const randomFingerprint = Math.random().toString(36).substring(2, 15) + 
+                                Math.random().toString(36).substring(2, 15);
+      const hashedFingerprint = await bcrypt.hash(randomFingerprint, 10);
+
+      const updated = await this.prisma.user.update({
+        where: { id },
+        data: { fingerprint: hashedFingerprint },
+        select: { id: true, fingerprint: true },
+      });
+
+      return {
+        id: updated.id,
+        fingerprint: updated.fingerprint,
+      };
+    }
+
+    async modifyPassword(id: string, oldPassword: string, newPassword: string) : Promise<UserProfile | null> {
         const user = await this.prisma.user.findUnique({
             where: { id },
             select: { id: true, password: true },
@@ -226,12 +252,18 @@ export class UserService {
 
         const hashed = await bcrypt.hash(newPassword, 10);
 
-        await this.prisma.user.update({
-            where: { id },
-            data: { password: hashed },
-        });
-
-        return { success: true };
+        return await this.prisma.user.update({
+        where: { id },
+        data: { password: hashed },
+        select: {
+            username: true,
+            id: true,
+            firstName: true,
+            bio: true,
+            isOnline: true,
+            avatarUrl: true,
+        },
+    });
     }
 
     async getUserStat(id: string): Promise<UserStat> {

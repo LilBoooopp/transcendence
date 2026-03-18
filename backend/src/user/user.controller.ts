@@ -1,4 +1,3 @@
-//bien
 import {
     Controller,
     Patch,
@@ -22,6 +21,21 @@ import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { mkdirSync } from 'fs';
 import { JwtService } from '@nestjs/jwt';
+import {
+  UserControllerDocs,
+  GetAllUsersDocs,
+  GetMeDocs,
+  GetStatsDocs,
+  GetEloHistoryDocs,
+  GetHistoryDocs,
+  GetByEmailDocs,
+  GetByUsernameDocs,
+  GetByIdDocs,
+  PatchUserDocs,
+  PatchPasswordDocs,
+  PatchAvatarDocs,
+  DeleteUserDocs,
+} from './user.documentation';
 
 interface UploadedFile {
     filename: string;
@@ -33,6 +47,7 @@ interface UploadedFile {
 const UPLOADS_DIR = join(process.cwd(), 'src', 'uploads');
 
 @Controller('users')
+@UserControllerDocs()
 @UseGuards(RateLimitGuard, AuthGuard)
 @Throttle({ default: { limit: 60, ttl: 60_000 } })
 export class UserController {
@@ -42,16 +57,19 @@ export class UserController {
     ) {}
 
     @Get()
+	@GetAllUsersDocs()
     async getAllUsers() {
         return this.userService.getAllUsers();
     }
 
     @Delete()
+    @DeleteUserDocs()
     async deleteUser(@Req() req: any) {
         return this.userService.deleteUser(req.user.userId);
     }
 
     @Patch()
+    @PatchUserDocs()
     async modifyUser(@Req() req: any, @Body() body) {
         const updatedUser = await this.userService.modifyUser(
             req.user.userId,
@@ -65,19 +83,11 @@ export class UserController {
 
         const response: any = { user: updatedUser };
 
-        if (updatedUser.username !== req.user.username) {
-            const tokenPayload = {
-                sub: req.user.userId,
-                username: updatedUser.username,
-                //finger print??
-            };
-            response.accessToken = await this.jwtService.signAsync(tokenPayload);
-        }
-
         return response;
     }
 
     @Patch('password')
+    @PatchPasswordDocs()
     async uploadPassword(@Req() req: any, @Body() body) {
         const updatedUser = await this.userService.modifyPassword(
             req.user.userId,
@@ -85,17 +95,25 @@ export class UserController {
             body.newPassword,
         );
 
-        const response: any = { user: updatedUser };
-        const tokenPayload = {
+		const response: any = { user: updatedUser };
+
+		if (updatedUser)
+		{
+			const updateUserFp = await this.userService.updateFingerprint(req.user.userId);
+
+        	const tokenPayload = {
             sub: req.user.userId,
-            username: req.user.username,
-            //finger print??
+            fingerprint: updateUserFp.fingerprint,
         };
         response.accessToken = await this.jwtService.signAsync(tokenPayload);
+		response.id = req.user.userId;
+		}
+
         return response;
     }
 
     @Patch('avatar')
+    @PatchAvatarDocs()
     @UseInterceptors(
         FileInterceptor('avatar', {
             storage: diskStorage({
@@ -127,23 +145,27 @@ export class UserController {
     }
 
     @Get('me')
+    @GetMeDocs()
     async getUserProfile(@Req() req: any) {
         return await this.userService.getUserProfile(req.user.userId);
     }
 
     @UseGuards(AuthGuard)
     @Get('stats')
+    @GetStatsDocs()
     async getUserStat(@Req() req: any) {
         return await this.userService.getUserStat(req.user.userId);
     }
 
     @UseGuards(AuthGuard)
     @Get('elo-history')
+    @GetEloHistoryDocs()
     async getUserElo(@Req() req: any) {
         return await this.userService.getUserElo(req.user.userId);
     }
 
     @Get('email/:email')
+    @GetByEmailDocs()
     async getUserByEmail(@Param('email') email: string) {
         const user = await this.userService.findByEmail(email);
         if (!user) throw new NotFoundException('User not found');
@@ -151,6 +173,7 @@ export class UserController {
     }
 
     @Get('username/:username')
+    @GetByUsernameDocs()
     async getUserByUsername(@Param('username') username: string) {
         const user = await this.userService.findByUsername(username);
         if (!user) throw new NotFoundException('User not found');
@@ -159,12 +182,14 @@ export class UserController {
 
     @UseGuards(AuthGuard)
     @Get('history')
+    @GetHistoryDocs()
     async getUserHistory(@Req() req: any) {
         const history = await this.userService.getUserHistory(req.user.userId);
         return history;
     }
 
     @Get(':id')
+    @GetByIdDocs()
     async getUserById(@Param('id') id: string) {
         const user = await this.userService.findById(id);
         if (!user) throw new NotFoundException('User not found');
