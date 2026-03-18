@@ -88,3 +88,9 @@ function App() {
 }
 
 export default App;
+
+/**
+ * 						<Route path="/privacy-policy" element={<Layout><PrivacyPolicy /></Layout>} />
+            <Route path="/terms-of-service" element={<Layout><TermsOfService /></Layout>} />
+
+ */
