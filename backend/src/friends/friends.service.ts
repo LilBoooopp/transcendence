@@ -39,7 +39,6 @@ export class FriendsService {
     if (!toUser) throw new NotFoundException('User not found');
     if (toUser.id === fromUserId) throw new BadRequestException('Cannot add yourself');
 
-    // Vérifier s'il y a déjà une relation (dans les deux sens)
     const existing = await this.prisma.friend.findFirst({
       where: {
         OR: [
