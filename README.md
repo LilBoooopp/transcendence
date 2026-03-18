@@ -200,8 +200,8 @@ erDiagram
 | Field | Type | Description|
 |-------|------|------------|
 | id | UUID | Primary key |
-| login | VARCHAR | 42 login, unique |
-| display_name | VARCHAR | Public display name |
+| login | STRING | 42 login, unique |
+| display_name | STRING | Public display name |
 | elo | INT | Current Elo rating |
 | created_at | TIMESTAMP | Account creation data |
 
@@ -211,9 +211,9 @@ erDiagram
 | id | UUID | Primary key |
 | white_id | UUID | FK -> users.id |
 | black_id | UUID | FK -> users.id |
-| time_control | VARCHAR | e.g. "5+3" |
+| time_control | STRING | e.g. "5+3" |
 | result | ENUM | white_win / black_win / draw |
-| pgn | TEXT | Full game PGN |
+| pgn | STRING | Full game PGN |
 | created_at | TIMESTAMP | Game start time |
 
 ...
