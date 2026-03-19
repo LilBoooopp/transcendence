@@ -38,7 +38,8 @@ Thumbs.db
 nginx/ssl/*.pem
 
 # user avatars
-backend/src/uploads/*.png
+backend/src/uploads/*
+
 
 # Test coverage
 coverage/
