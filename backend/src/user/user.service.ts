@@ -21,7 +21,7 @@ type UserProfile = {
     email?: string | null;
 };
 
-type UserAuth = { id: string; username: string; password: string, fingerprint: string};
+type UserAuth = { id: string; username: string; password: string, fingerprint: string };
 type newFingerPrint = { id: string; fingerprint: string };
 type UserHistoryItem = {
     id: string;
@@ -36,16 +36,16 @@ type UserHistoryItem = {
 type UserHistory = UserHistoryItem[];
 
 type UserStat = {
-  username: string;
-  avatarUrl?: string | null;
-  memberSince: string;
-  totalGames: number;
-  avgScore: number;
-  bulletRating?: number;
-  blitzRating?: number;
-  rapidRating?: number;
-	currentStreak?: number;
-	bestStreak?: number;
+    username: string;
+    avatarUrl?: string | null;
+    memberSince: string;
+    totalGames: number;
+    avgScore: number;
+    bulletRating?: number;
+    blitzRating?: number;
+    rapidRating?: number;
+    currentStreak?: number;
+    bestStreak?: number;
 };
 
 const DEFAULT_AVATAR_FILENAME = '';
@@ -53,7 +53,7 @@ const UPLOADS_DIR = join(process.cwd(), 'src', 'uploads');
 
 @Injectable()
 export class UserService {
-    constructor(private prisma: PrismaService) {}
+    constructor(private prisma: PrismaService) { }
 
     async findByEmail(email: string): Promise<UserProfile | null> {
         return this.prisma.user.findUnique({
@@ -119,6 +119,8 @@ export class UserService {
                         bulletElo: true,
                         blitzElo: true,
                         rapidElo: true,
+                        currentStreak: true,
+                        bestStreak: true,
                     },
                 },
             },
@@ -176,7 +178,7 @@ export class UserService {
         if (newAvatar !== undefined && newAvatar !== null && newAvatar !== '') {
             data.avatarUrl = newAvatar;
         }
-        
+
         if (Object.keys(data).length === 0) {
             throw new BadRequestException('No fields to update');
         }
@@ -210,32 +212,32 @@ export class UserService {
     }
 
     async updateFingerprint(id: string): Promise<newFingerPrint> {
-      const user = await this.prisma.user.findUnique({
-        where: { id },
-        select: { id: true },
-      });
+        const user = await this.prisma.user.findUnique({
+            where: { id },
+            select: { id: true },
+        });
 
-      if (!user) {
-        throw new NotFoundException('User not found');
-      }
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
 
-      const randomFingerprint = Math.random().toString(36).substring(2, 15) + 
-                                Math.random().toString(36).substring(2, 15);
-      const hashedFingerprint = await bcrypt.hash(randomFingerprint, 10);
+        const randomFingerprint = Math.random().toString(36).substring(2, 15) +
+            Math.random().toString(36).substring(2, 15);
+        const hashedFingerprint = await bcrypt.hash(randomFingerprint, 10);
 
-      const updated = await this.prisma.user.update({
-        where: { id },
-        data: { fingerprint: hashedFingerprint },
-        select: { id: true, fingerprint: true },
-      });
+        const updated = await this.prisma.user.update({
+            where: { id },
+            data: { fingerprint: hashedFingerprint },
+            select: { id: true, fingerprint: true },
+        });
 
-      return {
-        id: updated.id,
-        fingerprint: updated.fingerprint,
-      };
+        return {
+            id: updated.id,
+            fingerprint: updated.fingerprint,
+        };
     }
 
-    async modifyPassword(id: string, oldPassword: string, newPassword: string) : Promise<UserProfile | null> {
+    async modifyPassword(id: string, oldPassword: string, newPassword: string): Promise<UserProfile | null> {
         const user = await this.prisma.user.findUnique({
             where: { id },
             select: { id: true, password: true },
@@ -253,17 +255,17 @@ export class UserService {
         const hashed = await bcrypt.hash(newPassword, 10);
 
         return await this.prisma.user.update({
-        where: { id },
-        data: { password: hashed },
-        select: {
-            username: true,
-            id: true,
-            firstName: true,
-            bio: true,
-            isOnline: true,
-            avatarUrl: true,
-        },
-    });
+            where: { id },
+            data: { password: hashed },
+            select: {
+                username: true,
+                id: true,
+                firstName: true,
+                bio: true,
+                isOnline: true,
+                avatarUrl: true,
+            },
+        });
     }
 
     async getUserStat(id: string): Promise<UserStat> {
@@ -301,6 +303,8 @@ export class UserService {
             bulletRating: user.statistics?.bulletElo,
             blitzRating: user.statistics?.blitzElo,
             rapidRating: user.statistics?.rapidElo,
+            currentStreak: user.statistics?.currentStreak ?? 0,
+            bestStreak: user.statistics?.bestStreak ?? 0,
         };
     }
 
