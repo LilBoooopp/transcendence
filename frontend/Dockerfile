@@ -9,4 +9,6 @@ RUN npm ci
 
 COPY . .
 
+ENV WDS_SOCKET_PORT=0
+
 CMD ["npm", "start"]

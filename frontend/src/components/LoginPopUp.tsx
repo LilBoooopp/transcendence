@@ -160,8 +160,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', onLo
 							onChange={handleChange}
 							minLength={5}
 							maxLength={254}
-							pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
-							title="Please enter a valid email address"
 							className="p-3 border rounded-lg border-slate-300 dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent"
 							required
 						/>
@@ -175,8 +173,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', onLo
 						onChange={handleChange}
 						minLength={3}
 						maxLength={20}
-						pattern="^[a-zA-Z0-9_\-]+$"
-						title="Letters, numbers, underscores and hyphens only"
 						className="p-3 border rounded-lg border-slate-300 dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent"
 						required
 					/>
@@ -189,8 +185,6 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', onLo
 						onChange={handleChange}
 						minLength={8}
 						maxLength={64}
-						pattern="^[a-zA-Z0-9!@#$%^&*()_+\-=[\]{}|;:,.<>?]+$"
-						title="Letters, digits, and special characters !@#$%^&*()_+-=[]{}|;:,.<>? only"
 						className="p-3 border rounded-lg border-slate-300 dark:bg-slate-700 dark:border-slate-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-accent"
 						required
 					/>
