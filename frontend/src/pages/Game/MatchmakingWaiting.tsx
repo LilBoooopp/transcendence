@@ -25,7 +25,6 @@ const MatchmakingWaiting: React.FC = () => {
     const raw = sessionStorage.getItem('mm_flow');
 
     if (!nav?.fromGameMode || !nav.mm_token || !raw) {
-      console.log("DEBUG : ❌ No mm_token or invalid access to matchmaking.");
       navigate('/gamemode');
       return;
     }
@@ -35,14 +34,12 @@ const MatchmakingWaiting: React.FC = () => {
       const tokenMismatch = nav.mm_token !== parsed.mm_token || parsed.tcKey !== tcKey;
 
       if (toOld || tokenMismatch) {
-        console.log("DEBUG : ❌ Flow mm_token expired or invalid.");
         sessionStorage.removeItem('mm_flow');
         navigate('/gamemode', { replace: true });
         return;
       }
       validatedRef.current = true;
       sessionStorage.removeItem('mm_flow');
-      console.log('DEBUG : ✅ Matchmaking flow token validated successfully.');
       setIsAllowed(true);
     } catch (error) {
       sessionStorage.removeItem('mm_flow');
