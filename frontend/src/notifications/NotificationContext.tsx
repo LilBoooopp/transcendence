@@ -23,8 +23,7 @@ const NotificationContext = createContext<NotificationContextValue | null>(null)
 
 // Constants
 
-const DEFAULT_DURATION = 5000;
-const MAX_VISIBLE_TOASTS = 5;
+const DEFAULT_DURATION = 3000;
 const EXIT_ANIMATION_MS = 400;
 
 
@@ -68,7 +67,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const push = useCallback(
     (payload: NotificationPayload) => {
       const id = makeId();
-      const duration = payload.duration ?? DEFAULT_DURATION
+	    const duration = payload.duration ?? DEFAULT_DURATION;
 
       const toast: Toast = {
         ...payload,
@@ -77,14 +76,17 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       };
 
       setToasts((prev) => {
-        const next = [...prev, toast];
-        // evict oldest if over max
-        if (next.length > MAX_VISIBLE_TOASTS) {
-          const oldest = next[0];
-          // dismiss asynchronously so we dont mutate during render
-          setTimeout(() => dismiss(oldest.id), 0);
+        let next = [...prev, toast];
+        const activeToasts = next.filter((t) => !t.exiting);
+        const MAX_VISIBLE_TOASTS = typeof window !== 'undefined' && window.innerWidth < 640 ? 2 : 4;
+        if (activeToasts.length > MAX_VISIBLE_TOASTS) {
+          const oldestActive = activeToasts[0];
+          next = next.map(t => 
+            t.id === oldestActive.id ? { ...t, exiting: true } : t
+          );
+          setTimeout(() => dismiss(oldestActive.id), 0);
         }
-        return (next);
+        return next;
       });
 
       if (duration > 0) {

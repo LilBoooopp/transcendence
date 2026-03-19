@@ -91,17 +91,17 @@ export function useChessGame({
 
   // Game status
 
-  const updateGameStatus = useCallback((game: Chess) => {
+  const updateGameStatus = useCallback((game: Chess, emitToServer = true) => {
     if (gameOverRef.current) return;
     if (game.isCheckmate()) {
       const winner = game.turn() === 'w' ? 'Black' : 'White';
       setGameStatus(`Checkmate - ${winner} wins`);
       setGameOver(true);
-      socketService.sendGameOver(gameId, winner, 'Checkmate');
+      if (emitToServer) socketService.sendGameOver(gameId, winner, 'Checkmate');
     } else if (game.isStalemate()) {
       setGameStatus('Stalemate - Draw');
       setGameOver(true);
-      socketService.sendGameOver(gameId, 'Draw', 'Stalemate');
+      if (emitToServer) socketService.sendGameOver(gameId, 'Draw', 'Stalemate');
     } else if (game.isDraw()) {
       let reason = 'Draw';
       if (game.isThreefoldRepetition?.())
@@ -110,7 +110,7 @@ export function useChessGame({
         reason = 'Insufficient material';
       setGameStatus(reason);
       setGameOver(true);
-      socketService.sendGameOver(gameId, 'Draw', 'Draw');
+      if (emitToServer) socketService.sendGameOver(gameId, 'Draw', 'Draw');
     } else if (game.isCheck()) {
       setGameStatus('Check!');
     } else {
@@ -189,7 +189,7 @@ export function useChessGame({
         }
         syncBoardFromEngine();
         setLastMove({ from: squareToCoord(data.move.from), to: squareToCoord(data.move.to) });
-        updateGameStatus(gameRef.current);
+        updateGameStatus(gameRef.current, false);
 
         // Execute first queued premove
         const queued = premovesRef.current;

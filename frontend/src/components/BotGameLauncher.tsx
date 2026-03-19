@@ -36,7 +36,6 @@ const BotGameLauncher: React.FC = () => {
     const raw = sessionStorage.getItem('mm_flow');
 
     if (!nav?.fromBotMode || !nav.mm_token || !raw) {
-      console.log("DEBUG : ❌ No mm_token or invalid access to matchmaking.");
       navigate('/botmode');
       return;
     }
@@ -46,14 +45,12 @@ const BotGameLauncher: React.FC = () => {
       const tokenMismatch = nav.mm_token !== parsed.mm_token || parsed.tcKey !== "600%2B0";
 
       if (toOld || tokenMismatch) {
-        console.log("DEBUG : ❌ Flow mm_token expired or invalid.");
         sessionStorage.removeItem('mm_flow');
         navigate('/botmode', { replace: true });
         return;
       }
       validatedRef.current = true;
       sessionStorage.removeItem('mm_flow');
-      console.log('DEBUG : ✅ Matchmaking flow token validated successfully.');
       setIsAllowed(true);
     } catch (error) {
       sessionStorage.removeItem('mm_flow');

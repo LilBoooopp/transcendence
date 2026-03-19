@@ -27,8 +27,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', onLo
 
 	const validateForm = (): string | null => {
 	    const { username, password, email } = formData;
-		console.log('Validating form with:', { username, password, email });
-
+		
 		if (!isLoginView && (!email.includes('@') || !email.includes('.') || !emailRegex.test(email))) {
 	        return 'Please enter a valid email address';
 	    }

@@ -106,6 +106,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   private reconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
+  /** to enfoce one socket per user per game */
+  private userGameSockets = new Map<string, Map<string, string>>();
+
   constructor(
     private readonly gameService: GameService,
     private readonly prisma: PrismaService,
@@ -127,8 +130,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const payload = await this.jwtService.verifyAsync(token, { secret: JWT_SECRET });
       client.data.userId = payload.sub;
-      client.data.username = payload.username;
-      console.log(`Client connected: ${client.id} (user: ${client.data.username})`);
+      console.log(`Client connected: ${client.id}`);
     } catch (err) {
       console.log(`Rejected invalid token from ${client.id}: ${err.message}`);
       console.log(`Token received: ${token?.slice(0, 20)}...`);
@@ -151,6 +153,17 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleDisconnect(client: Socket) {
     const userId: string | undefined = client.data?.userId;
     console.log(`Client disconnected: ${client.id}`);
+
+    if (userId) {
+      for (const [gameId, socketMap] of this.userGameSockets) {
+        if (socketMap.get(userId) === client.id) {
+          socketMap.delete(userId);
+        }
+        if (socketMap.size === 0) {
+          this.userGameSockets.delete(gameId);
+        }
+      }
+    }
 
     // remove from matchmaking
     for (const [tcKey, entry] of this.matchmakingQueues.entries()) {
@@ -196,6 +209,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           this.notificationService.gameOver(gameId, result);
 
           await this.persistGameResult(gameId, 'Draw', 'Player abandoned', true).catch(() => { });
+          this.userGameSockets.delete(gameId);
           this.activeGames.delete(gameId);
           console.log(`Bot game ${gameId} marked ABANDONED after reconnect timeout`);
         }, BOT_RECONNECT_SECONDS * 1000);
@@ -207,6 +221,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!wasPlayer || !gameRoom.gameStarted) {
         if (gameRoom.players.size === 0) {
           this.clearGameTimer(gameId);
+          this.userGameSockets.delete(gameId);
           this.activeGames.delete(gameId);
         }
         continue;
@@ -229,6 +244,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           'Game abandoned - opponent left before game began',
         );
 
+        this.userGameSockets.delete(gameId);
         this.activeGames.delete(gameId);
 
         this.prisma.game
@@ -263,6 +279,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const resultStr = `${isWhite ? 'White' : 'Black'} disconnected - ${winner} wins`;
 
         this.clearGameTimer(gameId);
+        this.userGameSockets.delete(gameId);
         this.activeGames.delete(gameId);
 
         this.server.to(`game:${gameId}`).emit('game:over', { winner, result: resultStr });
@@ -421,6 +438,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const roomName = `game:${data.gameId}`;
     const userId = client.data.userId;
     client.join(roomName);
+
+    if (!this.userGameSockets.has(data.gameId)) {
+      this.userGameSockets.set(data.gameId, new Map());
+    }
+    const gameSocketMap = this.userGameSockets.get(data.gameId)!;
+    const prevSocketId = gameSocketMap.get(userId);
+    if (prevSocketId && prevSocketId !== client.id) {
+      const prevSocket = this.server.sockets.sockets.get(prevSocketId);
+      if (prevSocket) {
+        prevSocket.emit('game:replace', {
+          reason: 'This game was opened in another tab or device.',
+        });
+        prevSocket.leave(roomName);
+        prevSocket.disconnect(true);
+      }
+    }
+    gameSocketMap.set(userId, client.id);
 
     if (!this.activeGames.has(data.gameId)) {
       const dbGame = await this.prisma.game.findUnique({
@@ -610,6 +644,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const roomName = `game:${data.gameId}`;
     client.join(roomName);
 
+    if (!this.userGameSockets.has(data.gameId)) {
+      this.userGameSockets.set(data.gameId, new Map());
+    }
+    const gameSocketMap = this.userGameSockets.get(data.gameId)!;
+    const prevSocketId = gameSocketMap.get(userId);
+    if (prevSocketId && prevSocketId !== client.id) {
+      const prevSocket = this.server.sockets.sockets.get(prevSocketId);
+      if (prevSocket) {
+        prevSocket.emit('game:replaced', {
+          reason: 'This game was opened in another tab or device.',
+        });
+        prevSocket.leave(roomName);
+        prevSocket.disconnect(true);
+      }
+    }
+    gameSocketMap.set(userId, client.id);
+
     const { initialMs, incrementMs } = parseTc(data.timeControlKey);
 
 
@@ -699,6 +750,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId: string | undefined = client.data?.userId;
     client.leave(`game:${data.gameId}`);
 
+    if (userId) {
+      const socketMap = this.userGameSockets.get(data.gameId);
+      if (socketMap?.get(userId) === client.id) {
+        socketMap.delete(userId);
+        if (socketMap.size === 0) this.userGameSockets.delete(data.gameId);
+      }
+    }
+
     const gameRoom = this.activeGames.get(data.gameId);
     if (!gameRoom) return ({ success: true });
 
@@ -719,6 +778,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (gameRoom.players.size === 0) {
         this.clearGameTimer(data.gameId);
         if (gameRoom.isBot) this.stockfishService.stopEngine(data.gameId);
+        this.userGameSockets.delete(data.gameId);
         this.activeGames.delete(data.gameId);
       } else {
         this.server.to(`game:${data.gameId}`).emit('game:opponent-left', {
@@ -750,6 +810,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         this.clearGameTimer(data.gameId);
         this.stockfishService.stopEngine(data.gameId);
+        this.userGameSockets.delete(data.gameId);
         this.activeGames.delete(data.gameId);
 
         this.server.to(`game:${data.gameId}`).emit('game:over', { winner, result: resultStr });
@@ -760,6 +821,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (gameRoom.moveCount === 0) {
         const resultStr = 'Game abandoned';
         this.clearGameTimer(data.gameId);
+        this.userGameSockets.delete(data.gameId);
         this.activeGames.delete(data.gameId);
         this.server.to(`game:${data.gameId}`).emit('game:over', { winner: 'Draw', result: resultStr });
         this.persistGameResult(data.gameId, 'Draw', resultStr, true).catch(() => { });
@@ -788,6 +850,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         console.log(resultStr);
 
         this.clearGameTimer(data.gameId);
+        this.userGameSockets.delete(data.gameId);
         this.activeGames.delete(data.gameId);
 
         this.server.to(`game:${data.gameId}`).emit('game:over', { winner, result: resultStr });
@@ -897,6 +960,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.notificationService.gameOver(data.gameId, data.result, data.winner);
 
     await this.persistGameResult(data.gameId, data.winner, data.result);
+    this.userGameSockets.delete(data.gameId);
     this.activeGames.delete(data.gameId);
 
     return { success: true };
@@ -926,6 +990,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.notificationService.gameOver(data.gameId, resultStr, winner);
 
     await this.persistGameResult(data.gameId, winner, resultStr);
+    this.userGameSockets.delete(data.gameId);
     this.activeGames.delete(data.gameId);
 
     return ({ success: true });
@@ -952,7 +1017,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         ? gameRoomDraw.blackUserId
         : gameRoomDraw.whiteUserId;
       if (opponentUserId) {
-        this.notificationService.drawOffered(opponentUserId, client.data.username);
+        this.notificationService.drawOffered(opponentUserId);
       }
     }
 
@@ -981,6 +1046,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.notificationService.gameOver(data.gameId, resultStr);
 
       await this.persistGameResult(data.gameId, 'Draw', resultStr);
+      this.userGameSockets.delete(data.gameId);
       this.activeGames.delete(data.gameId);
     } else {
       client.to(`game:${data.gameId}`).emit('game:draw-declined', {
@@ -1113,6 +1179,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
 
       this.persistGameResult(gameId, winner, result);
+      this.userGameSockets.delete(gameId);
       this.activeGames.delete(gameId);
     }, 1000);
   }
