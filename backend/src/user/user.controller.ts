@@ -176,8 +176,14 @@ export class UserController {
     @GetByUsernameDocs()
     async getUserByUsername(@Param('username') username: string) {
         const user = await this.userService.findByUsername(username);
+        const userElo = await this.userService.getUserElo(user?.id || '');
+        const userStats = await this.userService.getUserHistory(user?.id || '');
         if (!user) throw new NotFoundException('User not found');
-        return user;
+        return {
+            ...user,
+            userElo,
+            userStats,
+        }
     }
 
     @UseGuards(AuthGuard)
