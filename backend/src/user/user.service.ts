@@ -160,6 +160,25 @@ export class UserService {
             avatarUrl?: string;
         } = {};
 
+		if (data.username || data.email) {
+        const where: any = { OR: [] };
+        if (data.username) where.OR.push({ username: data.username });
+        if (data.email) where.OR.push({ email: data.email });
+
+        const conflict = await this.prisma.user.findFirst({
+          where,
+          select: { id: true, username: true, email: true },
+        });
+        if (conflict && conflict.id !== id) {
+          if (data.username && conflict.username === data.username) {
+            throw new ConflictException('Username already taken');
+          }
+          if (data.email && conflict.email === data.email) {
+            throw new ConflictException('Email already taken');
+          }
+        }
+      }
+
         if (newUsername !== undefined && newUsername !== null && newUsername !== '') {
             data.username = newUsername;
         }
