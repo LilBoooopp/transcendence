@@ -15,7 +15,7 @@ import { MoveHistory } from './MoveHistory';
 import { GameControls } from './GameControls';
 import { isLoggedIn } from '../../services/auth.service';
 
-const BOARD_SIZE = 'min(calc(100vw - 2rem), 80vh, 600px)';
+const BOARD_SIZE = 'min(calc(100vw - 2rem), 80vh, 780px)';
 
 const ReconnectOverlay: React.FC<{ secondsLeft: number }> = ({ secondsLeft }) => {
 	const ringColor =
@@ -183,7 +183,13 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 				</div>
 
 				{/* RIGHT COLUMN: Game Panel (Status, History, Controls) */}
-				<div className="flex flex-col flex-shrink-0 gap-4 lg:!w-[240px]" style={{ width: BOARD_SIZE }}>
+				<div 
+					className="flex flex-col flex-shrink-0 gap-4 lg:!w-[240px] lg:h-[var(--desktop-height)]" 
+					style={{ 
+						width: BOARD_SIZE, 
+						'--desktop-height': `calc(${BOARD_SIZE} + 152px)` 
+					} as React.CSSProperties}
+				>
 
 					{/* Status Badge */}
 					<div className="flex items-center justify-center flex-shrink-0 mt-2 lg:mt-0 w-full">
@@ -191,7 +197,7 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 					</div>
 
 					{/* Move History Container */}
-					<div className="flex flex-col flex-1 min-h-[160px] lg:min-h-0 overflow-hidden rounded-lg bg-primary">
+					<div className="flex flex-col flex-1 min-h-[160px] max-h-[300px] lg:max-h-none lg:min-h-0 overflow-hidden rounded-lg bg-primary">
 						<div className="px-3 py-2 bg-accent/10 flex items-center justify-between flex-shrink-0 border-b border-accent/20">
 							<span className="text-xs font-heading text-text-default font-bold uppercase tracking-widest">History</span>
 							<span className="text-xs font-body text-text-default">{Math.ceil(moveHistory.length / 2)} moves</span>

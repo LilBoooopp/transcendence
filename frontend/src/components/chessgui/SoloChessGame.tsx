@@ -9,7 +9,7 @@ import { useSoloChessGame, SoloChessGameProps } from './hooks/useSoloChessGame';
 import Button from '../Button';
 import { Card } from '../ui/Card';
 
-const BOARD_SIZE = 'min(calc(100vw - 2rem), 80vh, 600px)';
+const BOARD_SIZE = 'min(calc(100vw - 2rem), 80vh, 780px)';
 
 /**
  * A fully offline, two-color-in-one chess board.
@@ -112,14 +112,19 @@ return (
           </div>
         </div>
 
-        <div style={{ maxWidth: BOARD_SIZE, maxHeight: BOARD_SIZE }} className="w-full lg:w-[220px]">
-          <Card
+				<div 
+          className="w-full lg:w-[220px] lg:h-[var(--desktop-height)]"
+          style={{ 
+            maxWidth: BOARD_SIZE, 
+            '--desktop-height': `calc(${BOARD_SIZE} + 88px)` 
+          } as React.CSSProperties}
+        >
+				<Card
             variant="surface"
-            className="flex flex-col gap-3 w-full lg:w-[220px] p-4 lg:self-stretch"
+            className="flex flex-col gap-3 w-full h-full p-4"
           >
-            <h3 className="text-sm font-heading font-bold text-text-default">Move History</h3>
-            
-            <div className="flex-1 overflow-y-auto min-h-[120px]">
+            <h3 className="text-sm font-heading font-bold text-text-default shrink-0">Move History</h3>
+            <div className="flex-1 overflow-y-auto min-h-[160px] max-h-[300px] lg:max-h-none lg:min-h-0">
               <MoveHistory history={moveHistory} />
             </div>
           </Card>
