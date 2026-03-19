@@ -14,6 +14,7 @@ An online chess platform built as the final project of the 42 Common Core. The p
 - Spectator mode for live games
 - Player statistics and Elo rating system
 - Custom chess engine (TypeScript, no external chess libraries)
+- Friends system (Possibility to see friends activity)
 
 ## Instructions
 
@@ -82,7 +83,7 @@ We divided the project into specialized tracks based on our individual strengths
 
  * **Frontend & UI/UX:** Bastian took ownership of the React frontend, establishing a unified corporate design, building the reusable component library with Tailwind CSS, and ensuring the application was fully responsive on mobile devices.
 
- * **Backend REST API & Infrastructure:** Sylvie spearheaded the core backend architecture using NestJS. She designed the API routes, implemented the secure JWT authentication flow, managed the database schema (Prisma/PostgreSQL), and handled Docker containerization.
+ * **Backend REST API & Infrastructure:** Sylvie lead the core backend architecture using NestJS. She designed the API routes, implemented the secure JWT authentication flow, managed the database schema (Prisma/PostgreSQL), and handled Docker containerization.
 
  * **Real-Time Gateway & Game Engine:** Charlie focused on the live, stateful elements of the application. This included building the Socket.IO gateway, developing the matchmaking queues, implementing the custom TypeScript chess engine, and integrating the Stockfish AI subprocess.
 
@@ -225,7 +226,7 @@ erDiagram
 
 ## Modules
 
-**Total: 20 points** (7 major x 2pts + 6 minor * 1pt - see breakdown below)
+**Total: 20 points** (7 major * 2pts + 6 minor * 1pt - see breakdown below)
 
 ### Web (9 points)
 
@@ -241,12 +242,12 @@ erDiagram
 ### Accessibility and Internationalization (1 point)
 
 | Module | Type | Points | Implementation | Member(s) |
-|--------|------|--------|----------------|------------|
+|--------|------|--------|----------------|-----------|
 | Support for additional browsers | Minor | 1 | Compatibility with Firefox and Safari | everyone |
 
 ### User Management (3 points)
 
-| Module | Type | Points | Implementation | Member(s) |cl
+| Module | Type | Points | Implementation | Member(s) |
 |--------|------|--------|----------------|-----------|
 | Standard user management | Major | 2 | Display and update informations, upload avatar, friends management  | everyone |
 | Game statistics | Minor | 1 | Saves and displays all information about game results, elo changes, match histories and win streaks | everyone |
@@ -301,9 +302,9 @@ erDiagram
 - Full-Stack Integration: Worked across the stack to bridge the REST API and real-time components, ensuring seamless communication between the frontend and backend.
 - Authentication & Security: Collaborated with Sylvie to build the secure user authentication flow, including user registration, login, and JWT-based session management.
 - Real-Time Communication: Paired with Charlie to implement the WS infrastructure, contributing to the Socket.IO gateway, game room management, and event broadcasting for matchmaking and spectator modes
-- Backend For Frontend (BFF): Refactored router and integrated loaders to centralize API calls and facilitate error handling. 
+- Using Loaders on the React Router: Refactored router and integrated loaders to centralize API calls and facilitate error handling. 
 **Challenges:**
-- Last minute full refactor of frontend API implementations. Updating router [PLACEHOLDER] 
+- Last minute full refactor of frontend API implementations. Changed `BrowserRouter` + `Route` to `RouterProvider` + `createBrowserRouter()` in order to use Router Loaders and avoid multiple calls on API endpoint or causing rate limit.
 
 ## Resources
 
