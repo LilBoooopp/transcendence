@@ -93,6 +93,7 @@ const ProfilePage = () => {
 		}
 
 		const updatedUser = await res.json();
+		//refresh new avatar
 		setProfileData((prev) => ({
 			...prev,
 			avatarUrl: updatedUser.avatarUrl ?? prev.avatarUrl,

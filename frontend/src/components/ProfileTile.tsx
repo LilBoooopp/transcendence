@@ -189,7 +189,7 @@ export default function ProfileTile({
 					<h3 className="text-2xl font-heading font-bold text-text-default mb-2 truncate">
 						Profile Details
 					</h3>       
-					<EditableField label="Username" value={username} onSave={(newVal) => onUpdateField('username', newVal)} />
+					<EditableField label="Username" value={username} onSave={(newVal) => onUpdateField('username', newVal)}  />
 					<EditableField label="Email" value={email} onSave={(newVal) => onUpdateField('email', newVal)} />
 					<EditableField label="First Name" value={firstName} onSave={(newVal) => onUpdateField('firstName', newVal)} />
 					<EditableField label="Last Name" value={lastName} onSave={(newVal) => onUpdateField('lastName', newVal)} />

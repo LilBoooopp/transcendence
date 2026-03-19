@@ -2,14 +2,16 @@
 
 ## Base URL
 
-```
-https://localhost:4443/api
-```
-
 Swagger UI:
 
 ```
 https://localhost:4443/api/docs
+```
+
+Swagger json:
+
+```
+https://localhost:4443/api/docs-json
 ```
 
 ---
