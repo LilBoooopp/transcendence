@@ -58,3 +58,16 @@ export async function userLoader() {
   
   return { userData };
 }
+
+export async function friendLoader({ params }: any) {
+  const { username } = params;
+  const friendRes = await fetch(`/api/users/username/${username}/`, { headers: getApiHeaders() });
+
+  if (friendRes.status === 404) throw new Error('Friend not found');
+  if (friendRes.status === 401) throw new Error('Unauthorized');
+  if (friendRes.status === 429) throw new Error('Rate limited');
+  if (!friendRes.ok) throw new Error('Failed');
+
+  const friendData = await friendRes.json()
+  return { friendData };
+}
