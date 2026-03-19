@@ -120,8 +120,11 @@ export function Toast({ toast, onDismiss }: ToastProps) {
     <div
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className={`group relative overflow-hidden w-80 sm:w-96 border-1-4 ${config.border} bg-background-dark/95 backdrop-blur-md rounded-lg shadow-lg shadow-black/20 transition-all duration-400 ${toast.exiting ? 'opacity-0 translate-x-full scale-95' : 'opacity-100 translate-x-0 scale-100'}
-      `}
+      className={`group relative overflow-hidden w-80 sm:w-96 mb-3 ${config.border} bg-background-dark/95 backdrop-blur-md rounded-lg shadow-lg shadow-black/20 transition-all duration-400 ease-in-out ${
+				toast.exiting
+				? 'opacity-0 -translate-x-full scale-95 max-h-0 !p-0 !border-0 !m-0'
+				: 'opacity-100 translate-x-0 scale-100 max-h-40'
+			}`}
       role="alert"
       aria-live="assertive"
     >
