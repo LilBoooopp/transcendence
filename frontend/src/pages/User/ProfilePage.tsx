@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLoaderData } from 'react-router-dom';
 import ProfileTile from '../../components/ProfileTile';
+import { useNotification } from "../../notifications";
 
 type ProfileData = {
 	username: string;
@@ -22,6 +23,8 @@ type UpdateUserBody = {
 const ProfilePage = () => {
 	const navigate = useNavigate();
 	const { userData } = useLoaderData() as any;
+	const { push } = useNotification();
+
 
     const [profileData, setProfileData] = useState<ProfileData>({
         username: userData?.username ?? '',
@@ -33,44 +36,50 @@ const ProfilePage = () => {
     });
 
 	const handleUpdateProfileField = async (field: string, newValue: string) => {
-		const token = localStorage.getItem('token');
-		const previous = profileData;
+	    const token = localStorage.getItem('token');
+	    const previous = profileData;
 
-		setProfileData((prev) => ({
-			...prev,
-			[field]: newValue,
-		}));
+	    setProfileData((prev) => ({
+	        ...prev,
+	        [field]: newValue,
+	    }));
 
-		const body: UpdateUserBody = {};
-		if (field === 'username') body.username = newValue;
-		if (field === 'email') body.email = newValue;
-		if (field === 'firstName') body.firstName = newValue;
-		if (field === 'lastName') body.lastName = newValue;
-		if (field === 'bio') body.bio = newValue;
+	    const body: UpdateUserBody = {};
+	    if (field === 'username') body.username = newValue;
+	    if (field === 'email') body.email = newValue;
+	    if (field === 'firstName') body.firstName = newValue;
+	    if (field === 'lastName') body.lastName = newValue;
+	    if (field === 'bio') body.bio = newValue;
 
-		if (Object.keys(body).length === 0) {
-			console.log(`Field "${field}" not yet handled by backend.`);
-			return;
-		}
+	    if (Object.keys(body).length === 0) {
+	        return;
+	    }
 
-		try {
-			if (!token) throw new Error('No token');
+	    try {
+	        if (!token) throw new Error('No token');
 
-			const res = await fetch('/api/users', {
-				method: 'PATCH',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${token}`,
-				},
-				body: JSON.stringify(body),
-			});
+	        const res = await fetch('/api/users', {
+	            method: 'PATCH',
+	            headers: {
+	                'Content-Type': 'application/json',
+	                Authorization: `Bearer ${token}`,
+	            },
+	            body: JSON.stringify(body),
+	        });
 
-			if (!res.ok) throw new Error('PATCH failed');
-			console.log(`Updated ${field} to: ${newValue} in database!`);
-		} catch (error) {
-			setProfileData(previous);
-			console.error('Error on PATCH /api/users', error);
-		}
+	        if (res.status === 401) {
+	            localStorage.removeItem('token');
+	            navigate('/login');
+	            return;
+	        }
+
+	        if (!res.ok) throw new Error('PATCH failed');
+
+	        push({ type: 'success', title: 'Saved', message: `${field} updated successfully.` });
+	    } catch (error) {
+	        setProfileData(previous);
+	        push({ type: 'error', title: 'Update failed', message: `Could not update ${field}.` });
+	    }
 	};
 
 	const handleAvatarUpload = async (file: File) => {
