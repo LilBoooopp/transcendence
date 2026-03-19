@@ -1,7 +1,57 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import FriendProfileTile from '../../components/FriendProfileTile';
 import Button from '../../components/Button';
+import * as Icons from 'lucide-react';
+import { GameModeStatsCard } from '../../components/GameModeStatsCard';
+import GameHistoryList, { GameHistoryItem } from '../../components/GameHistoryList';
+
+interface ChartDataPoint {
+    date: string;
+    rating: number;
+}
+
+interface ChartData {
+    bullet: ChartDataPoint[];
+    blitz: ChartDataPoint[];
+    rapid: ChartDataPoint[];
+}
+
+const StatsView = ({ chartData }: { chartData: ChartData }) => {
+    return (
+        <div className="flex flex-col gap-6 w-full">
+            {/* Bullet Card */}
+            <GameModeStatsCard
+                title="Bullet"
+                icon={<Icons.Zap size={36} />}
+                currentRating={chartData.bullet?.[chartData.bullet.length - 1]?.rating || 1200}
+                ratingDelta={chartData.bullet?.length > 1 ? chartData.bullet[chartData.bullet.length - 1].rating - chartData.bullet[0].rating : 0}
+                chartData={chartData.bullet || []}
+                chartColor="#AEC3B0"
+            />
+
+            {/* Blitz Card */}
+            <GameModeStatsCard
+                title="Blitz"
+                icon={<Icons.Flame size={36} />}
+                currentRating={chartData.blitz?.[chartData.blitz.length - 1]?.rating || 1200}
+                ratingDelta={chartData.blitz?.length > 1 ? chartData.blitz[chartData.blitz.length - 1].rating - chartData.blitz[0].rating : 0}
+                chartData={chartData.blitz || []}
+                chartColor="#AEC3B0"
+            />
+
+            {/* Rapid Card */}
+            <GameModeStatsCard
+                title="Rapid"
+                icon={<Icons.Timer size={36} />}
+                currentRating={chartData.rapid?.[chartData.rapid.length - 1]?.rating || 1200}
+                ratingDelta={chartData.rapid?.length > 1 ? chartData.rapid[chartData.rapid.length - 1].rating - chartData.rapid[0].rating : 0}
+                chartData={chartData.rapid || []}
+                chartColor="#AEC3B0"
+            />
+        </div>
+    );
+};
 
 export default function FriendProfilePage() {
     const { username } = useParams<{ username: string }>();
@@ -10,6 +60,48 @@ export default function FriendProfilePage() {
     
     // Retrieve the friend data passed from the FriendsTile routing
     const profile = location.state?.friendData;
+
+    const [chartData, setChartData] = useState<ChartData | null>(null);
+    const [history, setHistory] = useState<GameHistoryItem[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchFriendData = async () => {
+            if (!username) return;
+            try {
+                const token = localStorage.getItem('token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                };
+
+                const [eloRes, historyRes] = await Promise.all([
+                    fetch(`/api/users/${username}/elo-history`, { headers }),
+                    fetch(`/api/users/${username}/history`, { headers })
+                ]);
+
+                if (eloRes.ok) {
+                    setChartData(await eloRes.json());
+                } else {
+                    setChartData({ bullet: [], blitz: [], rapid: [] });
+                }
+
+                if (historyRes.ok) {
+                    setHistory(await historyRes.json());
+                } else {
+                    setHistory([]);
+                }
+            } catch (error) {
+                console.error("Failed to fetch friend data", error);
+                setChartData({ bullet: [], blitz: [], rapid: [] });
+                setHistory([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchFriendData();
+    }, [username]);
 
     if (!profile) {
         return (
@@ -29,7 +121,7 @@ export default function FriendProfilePage() {
         <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto p-4 md:p-8">
             {/* Header */}
             <div className="flex justify-center md:justify-start">
-                 <h1 className="text-3xl font-heading font-bold text-text-default">Friend Stats</h1>
+                 <h1 className="text-3xl font-heading font-bold text-text-default">{profile.username}'s Profile</h1>
             </div>
 
             <FriendProfileTile 
@@ -40,6 +132,16 @@ export default function FriendProfilePage() {
                 currentStreak={profile.currentStreak}
                 bestStreak={profile.bestStreak}
             />
+
+            {/* Friend Stats & History View */}
+            {!isLoading && chartData && (
+                <div className="flex flex-col gap-8 mt-4 w-full">
+                    <div className="flex justify-center">
+                        <StatsView chartData={chartData} />
+                    </div>
+                    <GameHistoryList history={history} />
+                </div>
+            )}
 
             {/* Back Button positioned below the tile */}
             <div className="flex justify-center md:justify-start mt-2">
