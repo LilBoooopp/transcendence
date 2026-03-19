@@ -76,7 +76,6 @@ export class NotificationService {
       message: opponent
         ? `You've been matched against ${opponent}!`
         : 'A new game has been created',
-      action: { label: 'Join Game', route: `/game/${gameId}` },
     });
   }
 
