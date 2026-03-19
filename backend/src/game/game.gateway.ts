@@ -106,6 +106,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   private reconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
+  /** to enfoce one socket per user per game */
+  private userGameSockets = new Map<string, Map<string, string>>();
+
   constructor(
     private readonly gameService: GameService,
     private readonly prisma: PrismaService,
@@ -422,6 +425,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = client.data.userId;
     client.join(roomName);
 
+    if (!this.userGameSockets.has(data.gameId)) {
+      this.userGameSockets.set(data.gameId, new Map());
+    }
+    const gameSocketMap = this.userGameSockets.get(data.gameId)!;
+    const prevSocketId = gameSocketMap.get(userId);
+    if (prevSocketId && prevSocketId !== client.id) {
+      const prevSocket = this.server.sockets.sockets.get(prevSocketId);
+      if (prevSocket) {
+        prevSocket.emit('game:replace', {
+          reason: 'This game was opened in another tab or device.',
+        });
+        prevSocket.leave(roomName);
+        prevSocket.disconnect(true);
+      }
+    }
+    gameSocketMap.set(userId, client.id);
+
     if (!this.activeGames.has(data.gameId)) {
       const dbGame = await this.prisma.game.findUnique({
         where: { id: data.gameId },
@@ -609,6 +629,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = client.data.userId;
     const roomName = `game:${data.gameId}`;
     client.join(roomName);
+
+    if (!this.userGameSockets.has(data.gameId)) {
+      this.userGameSockets.set(data.gameId, new Map());
+    }
+    const gameSocketMap = this.userGameSockets.get(data.gameId)!;
+    const prevSocketId = gameSocketMap.get(userId);
+    if (prevSocketId && prevSocketId !== client.id) {
+      const prevSocket = this.server.sockets.sockets.get(prevSocketId);
+      if (prevSocket) {
+        prevSocket.emit('game:replaced', {
+          reason: 'This game was opened in another tab or device.',
+        });
+        prevSocket.leave(roomName);
+        prevSocket.disconnect(true);
+      }
+    }
+    gameSocketMap.set(userId, client.id);
 
     const { initialMs, incrementMs } = parseTc(data.timeControlKey);
 
