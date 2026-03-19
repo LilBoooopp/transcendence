@@ -19,7 +19,7 @@ import SoloLauncher from './pages/Game/SoloLauncher';
 import SoloGamePage from './pages/Game/SoloGamePage';
 //Import loaders from services
 import { ProtectedLayout } from './components/ProtectedRoute';
-import { dashboardLoader, userLoader } from './services/loaders.service';
+import { dashboardLoader, userLoader, friendLoader } from './services/loaders.service';
 import { ErrorPage } from './pages/Error/ErrorPage';
 
 function NotificationListener({ children }: { children: React.ReactNode }) {
@@ -66,7 +66,7 @@ const router = createBrowserRouter([
 
           { path: "/dashboard", element: <WireframeDashboard />, loader: dashboardLoader, errorElement: <ErrorPage /> },
           { path: "/user", element: <ProfilePage />, loader: userLoader, errorElement: <ErrorPage /> },
-          { path: "/friend/:username", element: <FriendProfilePage /> },
+          { path: "/friend/:username", element: <FriendProfilePage />, loader: friendLoader, errorElement: <ErrorPage /> },
 
           { path: "/play", element: <MatchmakingWaiting /> },
           { path: "/bot-launch", element: <BotGameLauncher /> },

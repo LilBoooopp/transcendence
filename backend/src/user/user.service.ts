@@ -114,15 +114,6 @@ export class UserService {
                 bio: true,
                 isOnline: true,
                 avatarUrl: true,
-                statistics: {
-                    select: {
-                        bulletElo: true,
-                        blitzElo: true,
-                        rapidElo: true,
-                        currentStreak: true,
-                        bestStreak: true,
-                    },
-                },
             },
         });
     }
