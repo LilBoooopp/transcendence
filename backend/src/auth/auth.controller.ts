@@ -19,7 +19,7 @@ import {
 export class AuthController {
 	constructor(private authService: AuthService) {}
 
-	@Throttle({ default: { limit: 10, ttl: 60_000 } })
+	@Throttle({ default: { limit: 100, ttl: 60_000 } })
 	@HttpCode(HttpStatus.OK)
 	@Post('login')
 	@LoginDocs()
@@ -27,7 +27,7 @@ export class AuthController {
 		return this.authService.authenticate(input);
 	}
 
-	@Throttle({ default: { limit: 5, ttl: 60_000 } })
+	@Throttle({ default: { limit: 100, ttl: 60_000 } })
 	@Post('register')
 	@RegisterDocs()
 	@HttpCode(HttpStatus.CREATED)
@@ -36,7 +36,7 @@ export class AuthController {
 		return user;
 	}
 
-	@Throttle({ default: { limit: 100, ttl: 60_000 } })
+	@Throttle({ default: { limit: 120, ttl: 60_000 } })
 	@UseGuards(AuthGuard)
 	@Get('me')
 	@MeDocs()
@@ -46,7 +46,7 @@ export class AuthController {
 		return result;
 	}
 
-	@Throttle({ default: { limit: 5, ttl: 60_000 } })
+	@Throttle({ default: { limit: 100, ttl: 60_000 } })
 	@HttpCode(HttpStatus.OK)
 	@UseGuards(AuthGuard)
 	@Post('logout')
@@ -55,7 +55,7 @@ export class AuthController {
 		return this.authService.logout(req.user.userId);
 	}
 
-	@Throttle({ default: { limit: 30, ttl: 60_000 } })
+	@Throttle({ default: { limit: 120, ttl: 60_000 } })
 	@UseGuards(AuthGuard)
 	@Get('game')
 	@GameDocs()
