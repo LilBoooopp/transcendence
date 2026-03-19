@@ -22,7 +22,9 @@ async function bootstrap() {
 
   app.set('trust proxy', 1);
 
-  app.useStaticAssets(join(__dirname, '..', 'src', 'uploads'), { prefix: '/uploads/' });
+  app.useStaticAssets(join(process.cwd(), 'src', 'uploads'), {
+  prefix: '/uploads/',
+});
 
   app.enableCors({
 	origin: ['https://localhost:4443', 'http://localhost:3000'],

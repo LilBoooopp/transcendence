@@ -91,7 +91,7 @@ export default function FriendsTile() {
         fetch('/api/friends', {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify({ toUsername: searchName }),
+            body: JSON.stringify({ toUsername: searchName.toLowerCase() }),
         })
             .then(res => {
                 if (!res.ok) {
@@ -143,6 +143,7 @@ export default function FriendsTile() {
     };
 
     const handleSpectate = (gameId?: string) => {
+        console.log(`friend.gameId: ${gameId}`);
         if (!gameId) return;
         navigate(`/game/${gameId}`);
     };
@@ -191,7 +192,7 @@ export default function FriendsTile() {
                         <input
                             type="text"
                             placeholder="Add friend by username..."
-                            value={searchName}
+                            value={searchName.toLowerCase()}
                             onChange={(e) => setSearchName(e.target.value)}
                             className="w-full bg-secondary text-text-default text-sm rounded-lg pl-9 pr-3 py-2 border border-transparent focus:border-accent focus:outline-none transition-colors"
                         />

@@ -26,6 +26,15 @@ interface DashboardData {
   };
   history: GameHistoryItem[];
   leaderboard: LeaderboardPlayer[];
+  userData: {
+    username: string;
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    bio: string;
+    avatarUrl: string;
+  };
 }
 
 interface ChartDataPoint {
@@ -79,7 +88,7 @@ const StatsView = ({ chartData }: StatsViewProps) => {
 
 // --- MAIN DASHBOARD COMPONENT ---
 const WireframeDashboard = () => {
-    const { stats, chartData, history, leaderboard } = useLoaderData() as DashboardData;
+    const { stats, chartData, history, leaderboard, userData } = useLoaderData() as DashboardData;
     const [view, setView] = useState<'menu' | 'time-selection'>('menu');
 
     return (
@@ -89,6 +98,7 @@ const WireframeDashboard = () => {
                 <div className="order-1 sm:order-1 sm:col-span-5 lg:col-span-4 flex">
                     <UserTile
                         username={stats.username}
+                        avatarUrl={userData.avatarUrl}
                         MemberSince={stats.memberSince}
                         TotalGames={stats.totalGames}
                         AvgScore={stats.avgScore}

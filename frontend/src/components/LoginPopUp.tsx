@@ -99,8 +99,8 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', onLo
 		try {
 			const url = isLoginView ? '/api/auth/login' : '/api/auth/register';
 			const body = isLoginView
-				? { username: formData.username, password: formData.password }
-				: { username: formData.username, password: formData.password, email: formData.email };
+				? { username: formData.username.toLowerCase(), password: formData.password }
+				: { username: formData.username.toLowerCase(), password: formData.password, email: formData.email.toLowerCase() };
 
 			const response = await fetch(url, {
 				method: 'POST',
@@ -157,7 +157,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', onLo
 							type="email"
 							name="email"
 							placeholder="Email Address"
-							value={formData.email}
+							value={formData.email.toLowerCase()}
 							onChange={handleChange}
 							minLength={5}
 							maxLength={254}
@@ -172,7 +172,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login', onLo
 						type="text"
 						name="username"
 						placeholder="Username"
-						value={formData.username}
+						value={formData.username.toLowerCase()}
 						onChange={handleChange}
 						minLength={3}
 						maxLength={20}

@@ -9,13 +9,6 @@ cd transcendence
 cp .env.example .env
 ```
 
-if ssh is not allowed:
-```bash
-git config -f .gitmodules submodule.frontend/src/components/chess.url https://github.com/LilBoooopp/chess.ts.git
-git submodule sync --recursive
-git submodule update --init --recursive
-```
-
 If you already cloned without that flag:
 ```bash
 git submodule update --init --recursive
@@ -31,10 +24,9 @@ git commit -m "Update chess submodule"
 git push
 ```
 
-### 2. Edit .env (Required)
+### 2. Edit .env.example (Required)
 Open `.env` and change:
 - `POSTGRES_PASSWORD` to a secure password
-- `JWT_SECRET` to a random string (at least 32 characters)
 
 ### 3. Start Everything
 ```bash

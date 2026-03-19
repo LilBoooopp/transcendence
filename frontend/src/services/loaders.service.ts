@@ -6,21 +6,23 @@ const getApiHeaders = () => ({
 });
 
 export async function dashboardLoader() {
-  const [statsRes, eloRes, historyRes, usersRes] = await Promise.all([
+  const [statsRes, eloRes, historyRes, usersRes, me] = await Promise.all([
     fetch('/api/users/stats', { headers: getApiHeaders() }),
     fetch('/api/users/elo-history', { headers: getApiHeaders() }),
     fetch('/api/users/history', { headers: getApiHeaders() }),
     fetch('/api/users', { headers: getApiHeaders() }),
+    fetch('/api/users/me', { headers: getApiHeaders() }),
   ]);
 
-  if ([statsRes, eloRes, historyRes, usersRes].some(r => r.status === 429)) throw new Error('Rate limited');
-  if ([statsRes, eloRes, historyRes, usersRes].some(r => !r.ok)) throw new Error('Failed');
+  if ([statsRes, eloRes, historyRes, usersRes, me].some(r => r.status === 429)) throw new Error('Rate limited');
+  if ([statsRes, eloRes, historyRes, usersRes, me].some(r => !r.ok)) throw new Error('Failed');
 
-  const [stats, chartData, history, usersRaw] = await Promise.all([
+  const [stats, chartData, history, usersRaw, userData] = await Promise.all([
     statsRes.json(),
     eloRes.json(),
     historyRes.json(),
     usersRes.json(),
+    me.json(),
   ]);
 
   const leaderboard = usersRaw.map((user: any, index: number) => {
@@ -38,7 +40,7 @@ export async function dashboardLoader() {
     };
   }).sort((a: any, b: any) => (b.elo || 0) - (a.elo || 0));
 
-  return { stats, chartData, history, leaderboard };
+  return { stats, chartData, history, leaderboard, userData };
 }
 
 export async function userLoader() {
