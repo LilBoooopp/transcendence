@@ -60,7 +60,6 @@ export default function FriendProfilePage() {
     
     const profile = location.state?.friendData;
     const { friendData } = useLoaderData() as { friendData: any };
-		console.log(friendData);
     const chartData: ChartData = friendData?.userElo || { bullet: [], blitz: [], rapid: [] };
     const historyData: GameHistoryItem[] = friendData?.userStats || [];
     if (!profile && !friendData) {
