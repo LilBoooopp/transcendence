@@ -73,7 +73,7 @@ const ProfilePage = () => {
 	    if (field === 'email') body.email = newValue;
 	    if (field === 'firstName') body.firstName = newValue;
 	    if (field === 'lastName') body.lastName = newValue;
-	    if (field === 'bio') body.bio = newValue;
+	    if (field === 'bio') body.bio = newValue ? newValue : ' ';
 
 	    if (Object.keys(body).length === 0) {
 	        return;
