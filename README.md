@@ -14,13 +14,14 @@ An online chess platform built as the final project of the 42 Common Core. The p
 - Spectator mode for live games
 - Player statistics and Elo rating system
 - Custom chess engine (TypeScript, no external chess libraries)
+- Friends system (Possibility to see friends activity)
 
 ## Instructions
 
 ### Prerequisites
 
 - Docker and Docker Compose (v2+)
-- Git (with submodule support)
+- Git
 - A `.env` file configured from `.env.example`
 
 ### Environment Variables
@@ -30,19 +31,24 @@ See `.env.example` for a full list of required variables, including:
 
 ### Setup
 
-1. Clone the repository with submodules:
-    ```bash
-    git clone --recurse-submodules
-    cd transcendence
-    ```
+1. Clone the repository:
+```bash
+  git clone https://github.com/LilBoooopp/transcendence.git
+  cd transcendence
+```
 
 2. Build and start all services:
-    ```bash
-    make
-    ```
+```bash
+  make
+```
+  This will automatically initialise git submodules, generate SSL certificates, create the `.env` file (with a random JWT secret), and start all Docker containers.
 
 3. The application will be available at `https://localhost:4443` (Nginx reverse proxy with HTTPS).
 
+### Documentation
+
+- **API Documentation:** The REST API is documented with Swagger. Once the application is running, visit [`https://localhost:4443/api/docs`](https://localhost:4443/api/docs) to explore all endpoints interactively.
+- **Browser Compatibility:** See [BROWSER_COMPATIBILITY.md](BROWSER_COMPATIBILITY.md) for detailed testing notes on Chrome, Firefox, and Safari.
 
 ### Development
 
@@ -82,7 +88,7 @@ We divided the project into specialized tracks based on our individual strengths
 
  * **Frontend & UI/UX:** Bastian took ownership of the React frontend, establishing a unified corporate design, building the reusable component library with Tailwind CSS, and ensuring the application was fully responsive on mobile devices.
 
- * **Backend REST API & Infrastructure:** Sylvie spearheaded the core backend architecture using NestJS. She designed the API routes, implemented the secure JWT authentication flow, managed the database schema (Prisma/PostgreSQL), and handled Docker containerization.
+ * **Backend REST API & Infrastructure:** Sylvie lead the core backend architecture using NestJS. She designed the API routes, implemented the secure JWT authentication flow, managed the database schema (Prisma/PostgreSQL), and handled Docker containerization.
 
  * **Real-Time Gateway & Game Engine:** Charlie focused on the live, stateful elements of the application. This included building the Socket.IO gateway, developing the matchmaking queues, implementing the custom TypeScript chess engine, and integrating the Stockfish AI subprocess.
 
@@ -131,8 +137,6 @@ erDiagram
   User ||--o{ Game : "plays as black"
   User ||--o{ Friend : "sends request"
   User ||--o{ Friend : "receives request"
-  User ||--o{ GameInvitation : "invites"
-  User ||--o{ GameInvitation : "invited to"
   User ||--|| UserStatistics : "has"
   User ||--o{ EloHistory : "tracks"
 
@@ -161,14 +165,6 @@ erDiagram
   }
 
   Friend {
-    uuid id PK
-    uuid fromUserId FK
-    uuid toUserId FK
-    enum status
-    datetime createdAt
-  }
-
-  GameInvitation {
     uuid id PK
     uuid fromUserId FK
     uuid toUserId FK
@@ -222,31 +218,32 @@ erDiagram
 | Notification System | Real-time toast notifications for game events and system alerts | bschmid, cbopp |
 | Responsive UI & Design | Custom component library built with Tailwind CSS, optimized for all devices | bschmid |
 | Public REST API | Secured endpoints for user data and game history with rate limiting | beboccas, sforster |
+| Matchmaking route security | Ensured players in matchmaking or in active games can't join matchmaking, and can't create a game manually | beboccas |
 
 ## Modules
 
-**Total: 20 points** (7 major x 2pts + 6 minor * 1pt - see breakdown below)
+**Total: 20 points** (7 major * 2pts + 6 minor * 1pt - see breakdown below)
 
 ### Web (9 points)
 
-| Module | Type | Points | Implementation | Memeber(s) |
+| Module | Type | Points | Implementation | Member(s) |
 |--------|------|--------|----------------|------------|
 | Frontend + Backend frameworks (React/NestJS) | Major | 2 | React/TypeScript SPA served via Vite; NestJS REST WS gateway | everyone |
 | Real-time WebSocket features | Major | 2 | Socket.IO gateway with rooms, matchmaking, spectator events | beboccas, cbopp |
 | ORM (Prisma) | Minor | 1 | Prisma schema + migrations; type-safe DB access throughout backend | everyone |
 | Custom-made design, reusable components | Minor | 1 | Shared component library (GamePage, MatchmakingWaiting, etc.) with Tailwind | bschmid |
 | Notification system | Minor | 1 | Implemented Toast-type notifications to inform user of various events. | bschmid, cbopp |
-| Public API | Major | 2 | RESTful Application Programming Interface (API) for authentication, users and friends management | beboccas, sforster |
+| Public API | Major | 2 | RESTful Application Programming Interface (API) for authentication, users and friends management (see `/api/docs`) | beboccas, sforster |
 
 ### Accessibility and Internationalization (1 point)
 
 | Module | Type | Points | Implementation | Member(s) |
-|--------|------|--------|----------------|------------|
+|--------|------|--------|----------------|-----------|
 | Support for additional browsers | Minor | 1 | Compatibility with Firefox and Safari | everyone |
 
 ### User Management (3 points)
 
-| Module | Type | Points | Implementation | Member(s) |cl
+| Module | Type | Points | Implementation | Member(s) |
 |--------|------|--------|----------------|-----------|
 | Standard user management | Major | 2 | Display and update informations, upload avatar, friends management  | everyone |
 | Game statistics | Minor | 1 | Saves and displays all information about game results, elo changes, match histories and win streaks | everyone |
@@ -301,9 +298,9 @@ erDiagram
 - Full-Stack Integration: Worked across the stack to bridge the REST API and real-time components, ensuring seamless communication between the frontend and backend.
 - Authentication & Security: Collaborated with Sylvie to build the secure user authentication flow, including user registration, login, and JWT-based session management.
 - Real-Time Communication: Paired with Charlie to implement the WS infrastructure, contributing to the Socket.IO gateway, game room management, and event broadcasting for matchmaking and spectator modes
-- Backend For Frontend (BFF): Refactored router and integrated loaders to centralize API calls and facilitate error handling. 
+- Using Loaders on the React Router: Refactored router and integrated loaders to centralize API calls and facilitate error handling. 
 **Challenges:**
-- Last minute full refactor of frontend API implementations. Updating router [PLACEHOLDER] 
+- Last minute full refactor of frontend API implementations. Changed `BrowserRouter` + `Route` to `RouterProvider` + `createBrowserRouter()` in order to use Router Loaders and avoid multiple calls on API endpoint or causing rate limit.
 
 ## Resources
 
