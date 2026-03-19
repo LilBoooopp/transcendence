@@ -4,7 +4,7 @@ import * as Icons from 'lucide-react';
 import { GameModeStatsCard } from '../../components/GameModeStatsCard';
 import GameHistoryList, { GameHistoryItem } from '../../components/GameHistoryList';
 import UserTile from '../../components/UserTile';
-import FriendsTile from '../../components/FriendsTile';
+import FriendsTile, { Friend, FriendRequest } from '../../components/FriendsTile';
 import LeaderboardTile, { LeaderboardPlayer } from '../../components/LeaderboardTile';
 
 interface DashboardData {
@@ -35,6 +35,8 @@ interface DashboardData {
     bio: string;
     avatarUrl: string;
   };
+	friends: Friend[];
+	friendRequests: FriendRequest[];
 }
 
 interface ChartDataPoint {
@@ -88,7 +90,7 @@ const StatsView = ({ chartData }: StatsViewProps) => {
 
 // --- MAIN DASHBOARD COMPONENT ---
 const WireframeDashboard = () => {
-    const { stats, chartData, history, leaderboard, userData } = useLoaderData() as DashboardData;
+    const { stats, chartData, history, leaderboard, userData, friends, friendRequests } = useLoaderData() as DashboardData;
     const [view, setView] = useState<'menu' | 'time-selection'>('menu');
 
     return (
@@ -116,7 +118,10 @@ const WireframeDashboard = () => {
 
                 {/* Friends Tile */}
                 <div className="order-3 sm:order-2 sm:col-span-7 lg:col-span-8 flex">
-                    <FriendsTile />
+                    <FriendsTile
+											initialFriends={friends}
+											initialFriendRequests={friendRequests}
+										/>
                 </div>
                 {/* LEADERBOARD TILE */}
                 <div className="order-4 sm:order-4 sm:col-span-12 flex">

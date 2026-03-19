@@ -119,6 +119,8 @@ export class UserService {
                         bulletElo: true,
                         blitzElo: true,
                         rapidElo: true,
+												currentStreak: true,
+												bestStreak: true,
                     },
                 },
             },
@@ -301,6 +303,8 @@ export class UserService {
             bulletRating: user.statistics?.bulletElo,
             blitzRating: user.statistics?.blitzElo,
             rapidRating: user.statistics?.rapidElo,
+						currentStreak: user.statistics?.currentStreak ?? 0,
+					  bestStreak: user.statistics?.bestStreak ?? 0,
         };
     }
 

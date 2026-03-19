@@ -4,8 +4,14 @@ import Button from './Button';
 import { Check, X, Eye, Search } from 'lucide-react';
 import StreakPill from './StreakPill';
 import { useNavigate } from 'react-router-dom';
+import { socketService } from '../services/socket.service';
 
-interface Friend {
+interface FriendsTileProps {
+	initialFriends: Friend[];
+	initialFriendRequests: FriendRequest[];
+}
+
+export interface Friend {
     id: string;
     username: string;
     avatarUrl?: string;
@@ -17,7 +23,7 @@ interface Friend {
     bio?: string;
 }
 
-interface FriendRequest {
+export interface FriendRequest {
     id: string;
     username: string;
     avatarUrl?: string;
@@ -30,58 +36,34 @@ const getAuthHeaders = () => ({
     Authorization: `Bearer ${localStorage.getItem('token')}`,
 });
 
-export default function FriendsTile() {
+export default function FriendsTile({ initialFriends, initialFriendRequests }: FriendsTileProps) {
     const navigate = useNavigate();
 
-    const [friends, setFriends] = useState<Friend[]>([]);
-    const [requests, setRequests] = useState<FriendRequest[]>([]);
+    // const [friends, setFriends] = useState<Friend[]>([]);
+    // const [requests, setRequests] = useState<FriendRequest[]>([]);
+		const [friends, setFriends] = useState<Friend[]>(initialFriends || []);
+		const [requests, setRequests] = useState<FriendRequest[]>(initialFriendRequests || []);
+	
     const [searchName, setSearchName] = useState('');
     const [requestStatus, setRequestStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [friendsError, setFriendsError] = useState<FetchError>(null);
     const [requestsError, setRequestsError] = useState<FetchError>(null);
 
-    useEffect(() => {
-        fetch('/api/friends', { method: 'GET', headers: getAuthHeaders() })
-            .then(res => {
-                if (res.status === 429) throw new Error('rate-limited');
-                if (res.status === 401 || res.status === 403) throw new Error('unauthorized');
-                if (!res.ok) throw new Error('error');
-                return res.json();
-            })
-            .then(data => {
-                if (Array.isArray(data)) {
-                    setFriends(data);
-                } else {
-                    console.error('Backend did not return an array for friends:', data);
-                    setFriends([]);
-                }
-            })
-            .catch(err => {
-                setFriendsError(err.message as FetchError);
-                setFriends([]);
-            });
-    }, []);
+		useEffect(() => {
+			setFriends(initialFriends || []);
+			setRequests(initialFriendRequests || []);
+		}, [initialFriends, initialFriendRequests]);
 
-    useEffect(() => {
-        fetch('/api/friends/request', { method: 'GET', headers: getAuthHeaders() })
-            .then(res => {
-                if (res.status === 429) throw new Error('rate-limited');
-                if (res.status === 401 || res.status === 403) throw new Error('unauthorized');
-                if (!res.ok) throw new Error('error');
-                return res.json();
-            })
-            .then(data => {
-                if (Array.isArray(data)) {
-                    setRequests(data);
-                } else {
-                    console.error('Backend did not return an array for requests:', data);
-                    setRequests([]);
-                }
-            })
-            .catch(err => {
-                setRequestsError(err.message as FetchError);
-                setRequests([]);
-            });
+		useEffect(() => {
+        const handleNewRequest = (newRequest: FriendRequest) => {
+            setRequests((prevRequests) => [...prevRequests, newRequest]);
+        };
+
+        socketService.on('new_friend_request', handleNewRequest);
+
+        return () => {
+          socketService.off('new_friend_request', handleNewRequest);
+        };
     }, []);
 
     const handleSendRequest = (e: React.FormEvent) => {
