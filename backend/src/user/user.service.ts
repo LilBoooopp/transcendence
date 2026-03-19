@@ -114,6 +114,7 @@ export class UserService {
                 bio: true,
                 isOnline: true,
                 avatarUrl: true,
+                statistics: true,
             },
         });
     }
