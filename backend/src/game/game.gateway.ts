@@ -130,8 +130,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const payload = await this.jwtService.verifyAsync(token, { secret: JWT_SECRET });
       client.data.userId = payload.sub;
-      client.data.username = payload.username;
-      console.log(`Client connected: ${client.id} (user: ${client.data.username})`);
+      console.log(`Client connected: ${client.id}`);
     } catch (err) {
       console.log(`Rejected invalid token from ${client.id}: ${err.message}`);
       console.log(`Token received: ${token?.slice(0, 20)}...`);
@@ -1018,7 +1017,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         ? gameRoomDraw.blackUserId
         : gameRoomDraw.whiteUserId;
       if (opponentUserId) {
-        this.notificationService.drawOffered(opponentUserId, client.data.username);
+        this.notificationService.drawOffered(opponentUserId);
       }
     }
 
