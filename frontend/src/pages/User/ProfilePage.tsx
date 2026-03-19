@@ -37,6 +37,30 @@ const ProfilePage = () => {
 
 	const handleUpdateProfileField = async (field: string, newValue: string) => {
 	    const token = localStorage.getItem('token');
+		const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+
+	    if (field === 'username') {
+	        newValue = newValue.toLowerCase().trim();
+			if (usernameRegex.test(newValue) === false) {
+				push({ type: 'error', title: 'Invalid username', message: 'Username can only contain letters, numbers, and underscores.' });
+				return;
+			}
+	    }
+		if (field === 'email') {
+			newValue = newValue.trim();
+			const emailRegex = /^((?:[A-Za-z0-9!#$%&'*+\-\/=?^_`{|}~]|(?<=^|\.)"|"(?=$|\.|@)|(?<=".*)[ .](?=.*")|(?<!\.)\.){1,64})(@)((?:[A-Za-z0-9.\-])*(?:[A-Za-z0-9])\.(?:[A-Za-z0-9]){2,})$/gm;
+			if (!emailRegex.test(newValue)) {
+				push({ type: 'error', title: 'Invalid email', message: 'Please enter a valid email address.' });
+				return;
+			}
+		}
+		if (field === 'firstName' || field === 'lastName') {
+			newValue = newValue.trim();
+			if (usernameRegex.test(newValue) === false) {
+				push({ type: 'error', title: 'Invalid name', message: 'Names can only contain letters, numbers, and underscores.' });
+				return;
+			}
+		}
 	    const previous = profileData;
 
 	    setProfileData((prev) => ({
