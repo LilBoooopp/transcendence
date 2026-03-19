@@ -180,7 +180,9 @@ const ProfilePage = () => {
 			localStorage.removeItem('token');
 			navigate('/');
 			console.log('Account deleted');
+			push({ type: 'success', title: 'Account Deleted', message: 'Your account has been deleted successfully.' });
 		} catch (error) {
+			push({ type: 'error', title: 'Deletion Failed', message: 'There was an error deleting your account. Please try again later.' });
 			console.error('Error deleting account:', error);
 		}
 	};
