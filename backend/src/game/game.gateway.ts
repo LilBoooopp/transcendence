@@ -761,7 +761,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const resultStr = 'Game abandoned';
         this.clearGameTimer(data.gameId);
         this.activeGames.delete(data.gameId);
-        this.server.to(`game:${data.gameId}`).emit('game:over', { winner: 'Draw', resultStr });
+        this.server.to(`game:${data.gameId}`).emit('game:over', { winner: 'Draw', result: resultStr });
         this.persistGameResult(data.gameId, 'Draw', resultStr, true).catch(() => { });
         return ({ success: true });
       }
