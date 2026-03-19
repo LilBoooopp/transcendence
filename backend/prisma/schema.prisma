@@ -9,12 +9,12 @@ datasource db {
 
 // User model - handles authentication and profiles
 model User {
-  id        String  @id @default(uuid())
-  email     String  @unique
-  username  String  @unique
-  password  String
+  id          String  @id @default(uuid())
+  email       String  @unique
+  username    String  @unique
+  password    String
   fingerprint String?
-  avatarUrl String?
+  avatarUrl   String?
 
   firstName String?
   lastName  String?
@@ -26,16 +26,14 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  gamesAsWhite Game[]                  @relation("WhitePlayer")
-  gamesAsBlack Game[]                  @relation("BlackPlayer")
+  gamesAsWhite Game[] @relation("WhitePlayer")
+  gamesAsBlack Game[] @relation("BlackPlayer")
 
-  friendRequestsFrom Friend[]           @relation("FriendsFrom")
-  friendRequestsTo   Friend[]           @relation("FriendsTo")
-  gameInvitationsFrom GameInvitation[] @relation("GameInvitationsFrom")
-  gameInvitationsTo   GameInvitation[] @relation("GameInvitationsTo")
+  friendRequestsFrom Friend[] @relation("FriendsFrom")
+  friendRequestsTo   Friend[] @relation("FriendsTo")
 
-  statistics   UserStatistics?
-  eloHistory   EloHistory[]
+  statistics UserStatistics?
+  eloHistory EloHistory[]
 
   @@index([email])
   @@index([username])
@@ -43,16 +41,16 @@ model User {
 
 //friends
 model Friend {
-  id          String   @id @default(uuid())
-  fromUserId  String
-  toUserId    String
-  fromUser    User     @relation("FriendsFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
-  toUser      User     @relation("FriendsTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  id         String @id @default(uuid())
+  fromUserId String
+  toUserId   String
+  fromUser   User   @relation("FriendsFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User   @relation("FriendsTo", fields: [toUserId], references: [id], onDelete: Cascade)
 
   status      FriendStatus @default(PENDING)
-  createdAt   DateTime @default(now())
+  createdAt   DateTime     @default(now())
   respondedAt DateTime?
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime     @updatedAt
 
   @@unique([fromUserId, toUserId])
   @@index([toUserId])
@@ -63,28 +61,6 @@ enum FriendStatus {
   PENDING
   ACCEPTED
   REJECTED
-}
-
-model GameInvitation {
-  id          String   @id @default(uuid())
-  fromUserId  String
-  toUserId    String
-  fromUser    User     @relation("GameInvitationsFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
-  toUser      User     @relation("GameInvitationsTo", fields: [toUserId], references: [id], onDelete: Cascade)
-
-  status      GameInvitationStatus @default(GAME_INVITED)
-  createdAt   DateTime @default(now())
-  respondedAt DateTime?
-  updatedAt   DateTime @updatedAt
-
-  @@index([toUserId])
-  @@index([status])
-}
-
-enum GameInvitationStatus {
-  GAME_INVITED
-  GAME_ACCEPTED
-  GAME_REJECTED
 }
 
 // user statistics

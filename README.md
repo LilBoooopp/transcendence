@@ -137,8 +137,6 @@ erDiagram
   User ||--o{ Game : "plays as black"
   User ||--o{ Friend : "sends request"
   User ||--o{ Friend : "receives request"
-  User ||--o{ GameInvitation : "invites"
-  User ||--o{ GameInvitation : "invited to"
   User ||--|| UserStatistics : "has"
   User ||--o{ EloHistory : "tracks"
 
@@ -167,14 +165,6 @@ erDiagram
   }
 
   Friend {
-    uuid id PK
-    uuid fromUserId FK
-    uuid toUserId FK
-    enum status
-    datetime createdAt
-  }
-
-  GameInvitation {
     uuid id PK
     uuid fromUserId FK
     uuid toUserId FK
@@ -228,6 +218,7 @@ erDiagram
 | Notification System | Real-time toast notifications for game events and system alerts | bschmid, cbopp |
 | Responsive UI & Design | Custom component library built with Tailwind CSS, optimized for all devices | bschmid |
 | Public REST API | Secured endpoints for user data and game history with rate limiting | beboccas, sforster |
+| Matchmaking route security | Ensured players in matchmaking or in active games can't join matchmaking, and can't create a game manually | beboccas |
 
 ## Modules
 
