@@ -1,4 +1,3 @@
-// backend/scripts/seed.ts
 // Run with: npx prisma db seed
 
 import { PrismaClient, GameResult, GameType } from '@prisma/client';
@@ -7,44 +6,44 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 // ─── Config ──────────────────────────────────────────────────────────────────
-const NUM_DAYS       = 30;
+const NUM_DAYS = 30;
 const GAMES_PER_USER = 80; // approximate (each game covers 2 users)
 
 const TIME_CONTROLS: { tc: string; type: GameType }[] = [
-  { tc: '1+0',   type: 'BULLET' },
-  { tc: '2+1',   type: 'BULLET' },
-  { tc: '5+0',   type: 'BLITZ'  },
-  { tc: '5+3',   type: 'BLITZ'  },
-  { tc: '10+0',  type: 'RAPID'  },
-  { tc: '15+10', type: 'RAPID'  },
+  { tc: '1+0', type: 'BULLET' },
+  { tc: '2+1', type: 'BULLET' },
+  { tc: '5+0', type: 'BLITZ' },
+  { tc: '5+3', type: 'BLITZ' },
+  { tc: '10+0', type: 'RAPID' },
+  { tc: '15+10', type: 'RAPID' },
 ];
 
 const SEED_USERS = [
-  { username: 'kasparov_bot',   email: 'kasparov@chess.test'   },
-  { username: 'morphy_ghost',   email: 'morphy@chess.test'     },
-  { username: 'tal_magic',      email: 'tal@chess.test'        },
-  { username: 'karpov_style',   email: 'karpov@chess.test'     },
-  { username: 'fischer_clock',  email: 'fischer@chess.test'    },
-  { username: 'anand_speed',    email: 'anand@chess.test'      },
-  { username: 'carlsen_god',    email: 'carlsen@chess.test'    },
-  { username: 'polgar_attack',  email: 'polgar@chess.test'     },
-  { username: 'nimzo_idea',     email: 'nimzo@chess.test'      },
-  { username: 'petrov_def',     email: 'petrov@chess.test'     },
-  { username: 'ruy_lopez',      email: 'ruy@chess.test'        },
-  { username: 'sicilian_king',  email: 'sicilian@chess.test'   },
-  { username: 'dragon_var',     email: 'dragon@chess.test'     },
-  { username: 'queens_gambit',  email: 'queens@chess.test'     },
-  { username: 'kings_indian',   email: 'kingsindian@chess.test'},
-  { username: 'french_def',     email: 'french@chess.test'     },
-  { username: 'caro_kann',      email: 'caro@chess.test'       },
-  { username: 'grunfeld_Eric',  email: 'grunfeld@chess.test'   },
-  { username: 'benoni_trap',    email: 'benoni@chess.test'     },
-  { username: 'dutch_attack',   email: 'dutch@chess.test'      },
-  { username: 'london_system',  email: 'london@chess.test'     },
-  { username: 'catalan_open',   email: 'catalan@chess.test'    },
-  { username: 'pirc_defense',   email: 'pirc@chess.test'       },
-  { username: 'alekhine_gun',   email: 'alekhine@chess.test'   },
-  { username: 'benko_gambit',   email: 'benko@chess.test'      },
+  { username: 'kasparov_bot', email: 'kasparov@chess.test' },
+  { username: 'morphy_ghost', email: 'morphy@chess.test' },
+  { username: 'tal_magic', email: 'tal@chess.test' },
+  { username: 'karpov_style', email: 'karpov@chess.test' },
+  { username: 'fischer_clock', email: 'fischer@chess.test' },
+  { username: 'anand_speed', email: 'anand@chess.test' },
+  { username: 'carlsen_god', email: 'carlsen@chess.test' },
+  { username: 'polgar_attack', email: 'polgar@chess.test' },
+  { username: 'nimzo_idea', email: 'nimzo@chess.test' },
+  { username: 'petrov_def', email: 'petrov@chess.test' },
+  { username: 'ruy_lopez', email: 'ruy@chess.test' },
+  { username: 'sicilian_king', email: 'sicilian@chess.test' },
+  { username: 'dragon_var', email: 'dragon@chess.test' },
+  { username: 'queens_gambit', email: 'queens@chess.test' },
+  { username: 'kings_indian', email: 'kingsindian@chess.test' },
+  { username: 'french_def', email: 'french@chess.test' },
+  { username: 'caro_kann', email: 'caro@chess.test' },
+  { username: 'grunfeld_Eric', email: 'grunfeld@chess.test' },
+  { username: 'benoni_trap', email: 'benoni@chess.test' },
+  { username: 'dutch_attack', email: 'dutch@chess.test' },
+  { username: 'london_system', email: 'london@chess.test' },
+  { username: 'catalan_open', email: 'catalan@chess.test' },
+  { username: 'pirc_defense', email: 'pirc@chess.test' },
+  { username: 'alekhine_gun', email: 'alekhine@chess.test' },
+  { username: 'benko_gambit', email: 'benko@chess.test' },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -74,7 +73,7 @@ function eloDelta(
 ): number {
   const K = gamesPlayed < 30 ? 32 : 16;
   const expected = 1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
-  const actual   = outcome === 'win' ? 1 : outcome === 'draw' ? 0.5 : 0;
+  const actual = outcome === 'win' ? 1 : outcome === 'draw' ? 0.5 : 0;
   return Math.round(K * (actual - expected));
 }
 
@@ -83,7 +82,7 @@ function getEloForType(
   type: GameType,
 ): number {
   if (type === 'BULLET') return elos.bullet;
-  if (type === 'BLITZ')  return elos.blitz;
+  if (type === 'BLITZ') return elos.blitz;
   return elos.rapid;
 }
 
@@ -93,8 +92,8 @@ function setEloForType(
   value: number,
 ) {
   if (type === 'BULLET') elos.bullet = value;
-  else if (type === 'BLITZ')  elos.blitz  = value;
-  else                        elos.rapid  = value;
+  else if (type === 'BLITZ') elos.blitz = value;
+  else elos.rapid = value;
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -117,11 +116,11 @@ async function main() {
 
     const user = await prisma.user.create({
       data: {
-        email:    u.email,
+        email: u.email,
         username: u.username,
         password: hashedPassword,
-        avatarUrl:'defaultAvatar.png',
-        bio:      'Seed user — here for testing 🤖',
+        avatarUrl: 'defaultAvatar.png',
+        bio: 'Seed user — here for testing 🤖',
         isOnline: false,
         statistics: { create: {} }, // default 1200 across all modes
       },
@@ -135,14 +134,14 @@ async function main() {
 
   // ── 2. Track in-memory Elo so we can compute correct deltas ──────────────
   const currentElo: Record<string, { bullet: number; blitz: number; rapid: number }> = {};
-  const gameCount:  Record<string, number> = {};
+  const gameCount: Record<string, number> = {};
 
   for (const id of userIds) {
     const stats = await prisma.userStatistics.findUnique({ where: { userId: id } });
     currentElo[id] = {
       bullet: stats?.bulletElo ?? 1200,
-      blitz:  stats?.blitzElo  ?? 1200,
-      rapid:  stats?.rapidElo  ?? 1200,
+      blitz: stats?.blitzElo ?? 1200,
+      rapid: stats?.rapidElo ?? 1200,
     };
     gameCount[id] = stats?.totalGames ?? 0;
   }
@@ -162,55 +161,55 @@ async function main() {
 
     // Pick two different users who still need games
     const shuffled = [...userIds].sort(() => Math.random() - 0.5);
-    const whiteId  = shuffled[0];
-    const blackId  = shuffled[1];
+    const whiteId = shuffled[0];
+    const blackId = shuffled[1];
 
     const { tc, type } = pick(TIME_CONTROLS);
 
     // Determine result
-    const roll    = Math.random();
-    let result:   GameResult;
-    let winner:   string | null;
+    const roll = Math.random();
+    let result: GameResult;
+    let winner: string | null;
     let whiteOut: 'win' | 'draw' | 'loss';
     let blackOut: 'win' | 'draw' | 'loss';
 
     if (roll < 0.45) {
-      result   = 'WHITE_WIN';
-      winner   = 'white';
+      result = 'WHITE_WIN';
+      winner = 'white';
       whiteOut = 'win';
       blackOut = 'loss';
     } else if (roll < 0.80) {
-      result   = 'BLACK_WIN';
-      winner   = 'black';
+      result = 'BLACK_WIN';
+      winner = 'black';
       whiteOut = 'loss';
       blackOut = 'win';
     } else if (roll < 0.92) {
-      result   = 'DRAW';
-      winner   = null;
+      result = 'DRAW';
+      winner = null;
       whiteOut = 'draw';
       blackOut = 'draw';
     } else if (roll < 0.96) {
-      result   = 'TIMEOUT';
-      winner   = Math.random() < 0.5 ? 'white' : 'black';
+      result = 'TIMEOUT';
+      winner = Math.random() < 0.5 ? 'white' : 'black';
       whiteOut = winner === 'white' ? 'win' : 'loss';
       blackOut = winner === 'black' ? 'win' : 'loss';
     } else {
-      result   = 'RESIGNATION';
-      winner   = Math.random() < 0.5 ? 'white' : 'black';
+      result = 'RESIGNATION';
+      winner = Math.random() < 0.5 ? 'white' : 'black';
       whiteOut = winner === 'white' ? 'win' : 'loss';
       blackOut = winner === 'black' ? 'win' : 'loss';
     }
 
-    const gameDate  = randomDateOnDay(daysAgo);
-    const duration  = randomBetween(60, 900); // seconds
-    const endedAt   = new Date(gameDate.getTime() + duration * 1000);
+    const gameDate = randomDateOnDay(daysAgo);
+    const duration = randomBetween(60, 900); // seconds
+    const endedAt = new Date(gameDate.getTime() + duration * 1000);
     const moveCount = randomBetween(15, 60);
 
     // Elo calculation
-    const wElo  = getEloForType(currentElo[whiteId], type);
-    const bElo  = getEloForType(currentElo[blackId], type);
+    const wElo = getEloForType(currentElo[whiteId], type);
+    const bElo = getEloForType(currentElo[blackId], type);
     const wDelta = eloDelta(wElo, bElo, whiteOut, gameCount[whiteId]);
-    const bDelta = eloDelta(bElo, wElo, blackOut,  gameCount[blackId]);
+    const bDelta = eloDelta(bElo, wElo, blackOut, gameCount[blackId]);
     const newWElo = Math.max(100, wElo + wDelta);
     const newBElo = Math.max(100, bElo + bDelta);
 
@@ -219,43 +218,43 @@ async function main() {
       data: {
         whitePlayerId: whiteId,
         blackPlayerId: blackId,
-        status:        'COMPLETED',
+        status: 'COMPLETED',
         result,
         winner,
-        timeControl:   tc,
-        isRanked:      true,
-        isAiGame:      false,
-        totalMoves:    moveCount,
-        pgn:           '', // not needed for visual testing
-        startedAt:     gameDate,
+        timeControl: tc,
+        isRanked: true,
+        isAiGame: false,
+        totalMoves: moveCount,
+        pgn: '', // not needed for visual testing
+        startedAt: gameDate,
         endedAt,
-        createdAt:     gameDate,
+        createdAt: gameDate,
       },
     });
 
     await prisma.eloHistory.createMany({
       data: [
         {
-          userId:      whiteId,
-          gameId:      game.id,
-          gameType:    type,
-          eloBefore:   wElo,
-          eloAfter:    newWElo,
-          eloChange:   wDelta,
+          userId: whiteId,
+          gameId: game.id,
+          gameType: type,
+          eloBefore: wElo,
+          eloAfter: newWElo,
+          eloChange: wDelta,
           opponentElo: bElo,
-          result:      whiteOut,
-          createdAt:   gameDate,
+          result: whiteOut,
+          createdAt: gameDate,
         },
         {
-          userId:      blackId,
-          gameId:      game.id,
-          gameType:    type,
-          eloBefore:   bElo,
-          eloAfter:    newBElo,
-          eloChange:   bDelta,
+          userId: blackId,
+          gameId: game.id,
+          gameType: type,
+          eloBefore: bElo,
+          eloAfter: newBElo,
+          eloChange: bDelta,
           opponentElo: wElo,
-          result:      blackOut,
-          createdAt:   gameDate,
+          result: blackOut,
+          createdAt: gameDate,
         },
       ],
     });
@@ -289,7 +288,7 @@ async function main() {
 
     for (const g of games) {
       const isWhite = g.whitePlayerId === userId;
-      const w       = g.winner;
+      const w = g.winner;
       if (w === null || g.result === 'DRAW' || g.result === 'STALEMATE') draws++;
       else if ((isWhite && w === 'white') || (!isWhite && w === 'black')) wins++;
       else losses++;
@@ -317,15 +316,15 @@ async function main() {
     await prisma.userStatistics.update({
       where: { userId },
       data: {
-        bulletElo:    currentElo[userId].bullet,
-        blitzElo:     currentElo[userId].blitz,
-        rapidElo:     currentElo[userId].rapid,
-        totalGames:   total,
+        bulletElo: currentElo[userId].bullet,
+        blitzElo: currentElo[userId].blitz,
+        rapidElo: currentElo[userId].rapid,
+        totalGames: total,
         wins,
         losses,
         draws,
         currentStreak: streak,
-        bestStreak:    streak, // simplified — good enough for visual testing
+        bestStreak: streak, // simplified — good enough for visual testing
         totalPlayTime,
       },
     });

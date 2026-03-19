@@ -20,7 +20,7 @@ An online chess platform built as the final project of the 42 Common Core. The p
 ### Prerequisites
 
 - Docker and Docker Compose (v2+)
-- Git (with submodule support)
+- Git
 - A `.env` file configured from `.env.example`
 
 ### Environment Variables
@@ -30,19 +30,24 @@ See `.env.example` for a full list of required variables, including:
 
 ### Setup
 
-1. Clone the repository with submodules:
-    ```bash
-    git clone --recurse-submodules
-    cd transcendence
-    ```
+1. Clone the repository:
+```bash
+  git clone https://github.com/LilBoooopp/transcendence.git
+  cd transcendence
+```
 
 2. Build and start all services:
-    ```bash
-    make
-    ```
+```bash
+  make
+```
+  This will automatically initialise git submodules, generate SSL certificates, create the `.env` file (with a random JWT secret), and start all Docker containers.
 
 3. The application will be available at `https://localhost:4443` (Nginx reverse proxy with HTTPS).
 
+### Documentation
+
+- **API Documentation:** The REST API is documented with Swagger. Once the application is running, visit [`https://localhost:4443/api/docs`](https://localhost:4443/api/docs) to explore all endpoints interactively.
+- **Browser Compatibility:** See [BROWSER_COMPATIBILITY.md](BROWSER_COMPATIBILITY.md) for detailed testing notes on Chrome, Firefox, and Safari.
 
 ### Development
 
@@ -229,14 +234,14 @@ erDiagram
 
 ### Web (9 points)
 
-| Module | Type | Points | Implementation | Memeber(s) |
+| Module | Type | Points | Implementation | Member(s) |
 |--------|------|--------|----------------|------------|
 | Frontend + Backend frameworks (React/NestJS) | Major | 2 | React/TypeScript SPA served via Vite; NestJS REST WS gateway | everyone |
 | Real-time WebSocket features | Major | 2 | Socket.IO gateway with rooms, matchmaking, spectator events | beboccas, cbopp |
 | ORM (Prisma) | Minor | 1 | Prisma schema + migrations; type-safe DB access throughout backend | everyone |
 | Custom-made design, reusable components | Minor | 1 | Shared component library (GamePage, MatchmakingWaiting, etc.) with Tailwind | bschmid |
 | Notification system | Minor | 1 | Implemented Toast-type notifications to inform user of various events. | bschmid, cbopp |
-| Public API | Major | 2 | RESTful Application Programming Interface (API) for authentication, users and friends management | beboccas, sforster |
+| Public API | Major | 2 | RESTful Application Programming Interface (API) for authentication, users and friends management (see `/api/docs`) | beboccas, sforster |
 
 ### Accessibility and Internationalization (1 point)
 
@@ -246,7 +251,7 @@ erDiagram
 
 ### User Management (3 points)
 
-| Module | Type | Points | Implementation | Member(s) |cl
+| Module | Type | Points | Implementation | Member(s) |
 |--------|------|--------|----------------|-----------|
 | Standard user management | Major | 2 | Display and update informations, upload avatar, friends management  | everyone |
 | Game statistics | Minor | 1 | Saves and displays all information about game results, elo changes, match histories and win streaks | everyone |

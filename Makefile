@@ -12,6 +12,7 @@ COMPOSE_CMD = docker compose
 
 all: $(CERT) $(ENV_FILE)
 	@printf "Launch configuration ${name}...\n"
+	@git submodule update --init --recursive
 	@$(COMPOSE_CMD) up --build
 #	@printf "Server listening on ...https://localhost:4443 and frontend landing page https://localhost:4443/wireframe/landing\n"
 
