@@ -26,6 +26,8 @@ async function bootstrap() {
   prefix: '/uploads/',
 });
 
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
+
   app.enableCors({
 	origin: ['https://localhost:4443', 'http://localhost:3000'],
 

@@ -52,6 +52,7 @@ const GamePage: React.FC = () => {
 		let unsubGameOver: (() => void) | undefined;
 		let unsubPlayers: (() => void) | undefined;
 		let unsubError: (() => void) | undefined;
+		let unsubOpponentLeft: (() => void) | undefined;
 
 		const doJoin = () => {
 			unsubRole?.();
@@ -59,6 +60,7 @@ const GamePage: React.FC = () => {
 			unsubTimer?.();
 			unsubGameOver?.();
 			unsubError?.();
+			unsubOpponentLeft?.();
 
 			unsubError = socketService.on('game:error', (data: { gameId: string; message: string }) => {
 				push({
@@ -69,9 +71,13 @@ const GamePage: React.FC = () => {
 				navigate('/', { replace: true });
 			});
 
+			unsubOpponentLeft = socketService.on('game:opponent-left', (data: { gameId: string; message: string }) => {
+				push({ type: 'warning', title: 'Opponent left', message: data.message });
+				navigate('/gamemode', { replace: true });
+			});
+
 			unsubRole = socketService.on('game:role-assigned', (data: { gameId: string; role: 'white' | 'black' | 'spectator'; opponentUsername?: string }) => {
 				setRole(data.role);
-				// Always set an opponent name; use a placeholder if backend doesn't provide one yet
 				setOpponentName(data.opponentUsername ?? 'Opponent');
 				setWaiting(false);
 			});
@@ -106,6 +112,9 @@ const GamePage: React.FC = () => {
 		const unsubConnect = socketService.on('connect', doJoin);
 
 		return () => {
+			if (gameId) {
+				socketService.leaveGame(gameId);
+			}
 			unsubRole?.();
 			unsubState?.();
 			unsubTimer?.();
@@ -113,6 +122,7 @@ const GamePage: React.FC = () => {
 			unsubError?.();
 			unsubConnect?.();
 			unsubPlayers?.();
+			unsubOpponentLeft?.();
 			socketService.leaveGame(gameId);
 			socketService.disconnect();
 			hasConnected.current = false;

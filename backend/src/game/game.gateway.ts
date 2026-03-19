@@ -696,23 +696,104 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { gameId: string },
     @ConnectedSocket() client: Socket,
   ) {
+    const userId: string | undefined = client.data?.userId;
     client.leave(`game:${data.gameId}`);
 
     const gameRoom = this.activeGames.get(data.gameId);
-    if (gameRoom) {
-      gameRoom.players.delete(client.id);
-      gameRoom.spectators.delete(client.id);
+    if (!gameRoom) return ({ success: true });
 
-      if (!gameRoom.gameStarted) {
-        if (gameRoom.white === client.id) { gameRoom.white = null; gameRoom.whiteUserId = null; }
-        if (gameRoom.black === client.id) { gameRoom.black = null; gameRoom.blackUserId = null; }
-      }
+    gameRoom.players.delete(client.id);
+    gameRoom.spectators.delete(client.id);
 
+    const isWhite = gameRoom.white === client.id;
+    const isBlack = gameRoom.black === client.id;
+    const wasPlayer = isWhite || isBlack;
+
+    if (!wasPlayer) {
+      return ({ success: true });
+    }
+
+    if (!gameRoom.gameStarted) {
+      if (isWhite) { gameRoom.white = null; gameRoom.whiteUserId = null; }
+      if (isBlack) { gameRoom.black = null; gameRoom.blackUserId = null; }
       if (gameRoom.players.size === 0) {
         this.clearGameTimer(data.gameId);
         if (gameRoom.isBot) this.stockfishService.stopEngine(data.gameId);
         this.activeGames.delete(data.gameId);
+      } else {
+        this.server.to(`game:${data.gameId}`).emit('game:opponent-left', {
+          gameId: data.gameId,
+          message: 'Opponent left before the game started.',
+        });
       }
+      return ({ success: true });
+    }
+
+    if (!gameRoom) return ({ success: true });
+
+    if (gameRoom.isBot) {
+      const timerKey = `${data.gameId}:${userId}`;
+      if (this.reconnectTimers.has(timerKey)) return ({ success: true });
+
+      const timerId = setTimeout(async () => {
+        this.reconnectTimers.delete(timerKey);
+        const room = this.activeGames.get(data.gameId);
+        if (!room) return;
+
+        const humanSocket = room.botColor === 'b'
+          ? room.white
+          : room.black;
+        if (humanSocket && room.players.has(humanSocket)) return;
+
+        const winner = room.botColor === 'b' ? 'Black' : 'White';
+        const resultStr = `Player disconnected - ${winner} wins`;
+
+        this.clearGameTimer(data.gameId);
+        this.stockfishService.stopEngine(data.gameId);
+        this.activeGames.delete(data.gameId);
+
+        this.server.to(`game:${data.gameId}`).emit('game:over', { winner, result: resultStr });
+        await this.persistGameResult(data.gameId, winner, resultStr, true).catch(() => { });
+      }, 10_000);
+      this.reconnectTimers.set(timerKey, timerId);
+    } else {
+      if (gameRoom.moveCount === 0) {
+        const resultStr = 'Game abandoned';
+        this.clearGameTimer(data.gameId);
+        this.activeGames.delete(data.gameId);
+        this.server.to(`game:${data.gameId}`).emit('game:over', { winner: 'Draw', result: resultStr });
+        this.persistGameResult(data.gameId, 'Draw', resultStr, true).catch(() => { });
+        return ({ success: true });
+      }
+
+      const timerKey = `${data.gameId}:${userId}`;
+      if (this.reconnectTimers.has(timerKey)) return ({ success: true });
+
+      const remainingUserId = isWhite ? gameRoom.blackUserId : gameRoom.whiteUserId;
+      if (remainingUserId) {
+        this.notificationService.opponentDisconnected(remainingUserId, HUMAN_RECONNECT_SECONDS);
+      }
+
+      this.server.to(`game:${data.gameId}`).emit('game:opponent-disconnected', {
+        reconnectSeconds: HUMAN_RECONNECT_SECONDS,
+      });
+
+      const timerId = setTimeout(async () => {
+        this.reconnectTimers.delete(timerKey);
+        const room = this.activeGames.get(data.gameId);
+        if (!room) return;
+
+        const winner = isWhite ? 'Black' : 'White';
+        const resultStr = `${isWhite ? 'White' : 'Black'} disconnected - ${winner} wins`;
+        console.log(resultStr);
+
+        this.clearGameTimer(data.gameId);
+        this.activeGames.delete(data.gameId);
+
+        this.server.to(`game:${data.gameId}`).emit('game:over', { winner, result: resultStr });
+        this.notificationService.gameOver(data.gameId, resultStr, winner);
+        await this.persistGameResult(data.gameId, winner, resultStr, true).catch(() => { });
+      }, HUMAN_RECONNECT_SECONDS * 1000);
     }
 
     return { success: true };

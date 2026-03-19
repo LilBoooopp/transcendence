@@ -12,6 +12,7 @@ COMPOSE_CMD = docker compose
 
 all: $(CERT) $(ENV_FILE)
 	@printf "Launch configuration ${name}...\n"
+	@git submodule update --init --recursive
 	@$(COMPOSE_CMD) up --build
 #	@printf "Server listening on ...https://localhost:4443 and frontend landing page https://localhost:4443/wireframe/landing\n"
 
@@ -43,5 +44,8 @@ fclean: clean
 	rm -f $(KEY) $(CERT)
 	rm -rf nginx/ssl
 	rm -f .env
+
+seed:
+	@docker exec -it backend npx prisma db seed
 
  PHONY: all down re clean fclean

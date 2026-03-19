@@ -36,6 +36,8 @@ import {
   PatchAvatarDocs,
   DeleteUserDocs,
 } from './user.documentation';
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { ChangePasswordDto } from '../dto/change-password.dto';
 
 interface UploadedFile {
     filename: string;
@@ -70,7 +72,7 @@ export class UserController {
 
     @Patch()
     @PatchUserDocs()
-    async modifyUser(@Req() req: any, @Body() body) {
+    async modifyUser(@Req() req: any, @Body() body: UpdateUserDto) {
         const updatedUser = await this.userService.modifyUser(
             req.user.userId,
             body.username,
@@ -78,7 +80,6 @@ export class UserController {
             body.firstName,
             body.lastName,
             body.bio,
-            body.avatarUrl,
         );
 
         const response: any = { user: updatedUser };
@@ -88,7 +89,7 @@ export class UserController {
 
     @Patch('password')
     @PatchPasswordDocs()
-    async uploadPassword(@Req() req: any, @Body() body) {
+    async uploadPassword(@Req() req: any, @Body() body: ChangePasswordDto) {
         const updatedUser = await this.userService.modifyPassword(
             req.user.userId,
             body.oldPassword,
@@ -176,8 +177,14 @@ export class UserController {
     @GetByUsernameDocs()
     async getUserByUsername(@Param('username') username: string) {
         const user = await this.userService.findByUsername(username);
+        const userElo = await this.userService.getUserElo(user?.id || '');
+        const userStats = await this.userService.getUserHistory(user?.id || '');
         if (!user) throw new NotFoundException('User not found');
-        return user;
+        return {
+            ...user,
+            userElo,
+            userStats,
+        }
     }
 
     @UseGuards(AuthGuard)
