@@ -45,7 +45,7 @@ export function useSocketNotification(): void {
         pushRef.current({
           type: 'error',
           title: 'Disconnected',
-          message: 'Connection lost. Attempting to reocnnect...',
+          message: 'Connection lost. Attempting to reconnect...',
           duration: 0, // stays until reocnnect
         });
       }

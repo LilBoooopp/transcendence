@@ -45,4 +45,7 @@ fclean: clean
 	rm -rf nginx/ssl
 	rm -f .env
 
+seed:
+	@docker exec -it backend npx prisma db seed
+
  PHONY: all down re clean fclean
