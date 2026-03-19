@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 export type GameType = 'BULLET' | 'BLITZ' | 'RAPID';
 export type GameOutcome = 'win' | 'draw' | 'loss';
@@ -55,44 +56,52 @@ export class EloService {
       ` | black ${blackElo}->${newBlackElo} (${blackDelta > 0 ? '+' : ''}${blackDelta})`,
     );
 
-    await this.prisma.$transaction([
-      // white elo history 
-      this.prisma.eloHistory.create({
-        data: {
-          userId: whiteId,
-          gameId,
-          gameType,
-          eloBefore: whiteElo,
-          eloAfter: newWhiteElo,
-          eloChange: whiteDelta,
-          opponentElo: blackElo,
-          result: whiteOutcome,
-        },
-      }),
-      // black elo history
-      this.prisma.eloHistory.create({
-        data: {
-          userId: blackId,
-          gameId,
-          gameType,
-          eloBefore: blackElo,
-          eloAfter: newBlackElo,
-          eloChange: blackDelta,
-          opponentElo: whiteElo,
-          result: blackOutcome,
-        },
-      }),
-      // white stats
-      this.prisma.userStatistics.update({
-        where: { userId: whiteId },
-        data: this.buildEloUpdate(gameType, newWhiteElo),
-      }),
-      // black stats
-      this.prisma.userStatistics.update({
-        where: { userId: blackId },
-        data: this.buildEloUpdate(gameType, newBlackElo),
-      }),
-    ]);
+    try {
+      await this.prisma.$transaction([
+        // white elo history 
+        this.prisma.eloHistory.create({
+          data: {
+            userId: whiteId,
+            gameId,
+            gameType,
+            eloBefore: whiteElo,
+            eloAfter: newWhiteElo,
+            eloChange: whiteDelta,
+            opponentElo: blackElo,
+            result: whiteOutcome,
+          },
+        }),
+        // black elo history
+        this.prisma.eloHistory.create({
+          data: {
+            userId: blackId,
+            gameId,
+            gameType,
+            eloBefore: blackElo,
+            eloAfter: newBlackElo,
+            eloChange: blackDelta,
+            opponentElo: whiteElo,
+            result: blackOutcome,
+          },
+        }),
+        // white stats
+        this.prisma.userStatistics.update({
+          where: { userId: whiteId },
+          data: this.buildEloUpdate(gameType, newWhiteElo),
+        }),
+        // black stats
+        this.prisma.userStatistics.update({
+          where: { userId: blackId },
+          data: this.buildEloUpdate(gameType, newBlackElo),
+        }),
+      ]);
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
+        this.logger.warn(`Skipping ELO update - user no longer exists`);
+        return;
+      }
+      throw error;
+    }
   }
 
   /**
