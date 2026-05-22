@@ -25,10 +25,11 @@ model User {
   lastName  String?
   bio       String?
 
-  role      UserRole @default(USER)
-  isBanned  Boolean  @default(false)
-  bannedAt  DateTime?
-  banReason String?
+  role        UserRole @default(USER)
+  isBanned    Boolean  @default(false)
+  bannedAt    DateTime?
+  bannedUntil DateTime?
+  banReason   String?
 
   isOnline Boolean  @default(false)
   lastSeen DateTime @default(now())
@@ -44,6 +45,9 @@ model User {
 
   statistics UserStatistics?
   eloHistory EloHistory[]
+
+  reportsFiled    Report[] @relation("ReportsFrom")
+  reportsReceived Report[] @relation("ReportsAgainst")
 
   @@index([email])
   @@index([username])
@@ -184,4 +188,53 @@ enum GameResult {
   STALEMATE
   TIMEOUT
   RESIGNATION
+}
+
+enum AuditAction {
+  BAN
+  TEMP_BAN
+  UNBAN
+  PROMOTE
+  DEMOTE
+  REPORT_RESOLVE
+  REPORT_DISMISS
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  adminId    String
+  adminName  String
+  targetId   String?
+  targetName String?
+  action     AuditAction
+  detail     String?
+  createdAt  DateTime    @default(now())
+
+  @@index([adminId])
+  @@index([targetId])
+  @@index([createdAt])
+}
+
+model Report {
+  id           String       @id @default(uuid())
+  reporterId   String
+  reportedId   String
+  reason       String
+  status       ReportStatus @default(PENDING)
+  resolvedById String?
+  resolvedAt   DateTime?
+  createdAt    DateTime     @default(now())
+
+  reporter User @relation("ReportsFrom", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported User @relation("ReportsAgainst", fields: [reportedId], references: [id], onDelete: Cascade)
+
+  @@index([reportedId])
+  @@index([status])
+  @@index([createdAt])
 }

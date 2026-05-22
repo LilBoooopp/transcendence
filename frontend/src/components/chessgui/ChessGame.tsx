@@ -220,7 +220,7 @@ const ChessGame: React.FC<ChessGameProps> = (props) => {
 			</div>
 
 			{promotionMove && <PromotionPopup color={playerColor} theme={classicTheme} onSelect={completePromotion} />}
-			{showPopup && <GameEndPopup status={gameStatus} onHome={() => navigate('/')} onNewGame={() => navigate(destination)} onClose={() => setShowPopup(false)} />}
+			{showPopup && <GameEndPopup status={gameStatus} onHome={() => navigate('/')} onNewGame={() => navigate(destination)} onClose={() => setShowPopup(false)} opponentUserId={props.opponentUserId} opponentUsername={props.opponentUsername} />}
 		</div>
 	);
 };

@@ -10,6 +10,22 @@ import { Socket } from 'socket.io';
 import { JWT_SECRET } from '../configs/jwtsecret';
 import { PrismaService } from '../../prisma/prisma.service';
 
+async function checkBan(prisma: PrismaService, userId: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isBanned: true, bannedUntil: true },
+  });
+  if (!user?.isBanned) return;
+  if (user.bannedUntil && user.bannedUntil <= new Date()) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isBanned: false, bannedUntil: null, banReason: null, bannedAt: null },
+    });
+    return;
+  }
+  throw new UnauthorizedException('Your account has been banned');
+}
+
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(private jwtService: JwtService, private prisma: PrismaService) {}
@@ -24,11 +40,7 @@ export class AuthGuard implements CanActivate {
 
     try {
       const tokenPayload = await this.jwtService.verifyAsync(token);
-      const user = await this.prisma.user.findUnique({
-        where: { id: tokenPayload.sub },
-        select: { isBanned: true },
-      });
-      if (user?.isBanned) throw new UnauthorizedException('Your account has been banned');
+      await checkBan(this.prisma, tokenPayload.sub);
       request.user = { userId: tokenPayload.sub, username: tokenPayload.username };
       return true;
     } catch (error) {
@@ -51,9 +63,19 @@ export class AdminGuard implements CanActivate {
       const tokenPayload = await this.jwtService.verifyAsync(token);
       const user = await this.prisma.user.findUnique({
         where: { id: tokenPayload.sub },
-        select: { role: true, isBanned: true },
+        select: { role: true, isBanned: true, bannedUntil: true },
       });
-      if (!user || user.isBanned) throw new UnauthorizedException('Account unavailable');
+      if (!user) throw new UnauthorizedException('Account unavailable');
+      if (user.isBanned) {
+        if (user.bannedUntil && user.bannedUntil <= new Date()) {
+          await this.prisma.user.update({
+            where: { id: tokenPayload.sub },
+            data: { isBanned: false, bannedUntil: null, banReason: null, bannedAt: null },
+          });
+        } else {
+          throw new UnauthorizedException('Your account has been banned');
+        }
+      }
       if (user.role !== 'ADMIN') throw new ForbiddenException('Admin access required');
       request.user = { userId: tokenPayload.sub, username: tokenPayload.username };
       return true;
@@ -75,11 +97,7 @@ export class WsAuthGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync(token, { secret: JWT_SECRET });
-      const user = await this.prisma.user.findUnique({
-        where: { id: payload.sub },
-        select: { isBanned: true },
-      });
-      if (user?.isBanned) throw new UnauthorizedException('Your account has been banned');
+      await checkBan(this.prisma, payload.sub);
       client.data.userId = payload.sub;
       client.data.username = payload.username;
       return true;

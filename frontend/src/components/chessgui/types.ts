@@ -40,4 +40,6 @@ export interface ChessGameProps {
   initialGameOver?: { winner: string; result: string } | null;
   incrementMs?: number;
   players?: { white: string; black: string } | null;
+  opponentUserId?: string | null;
+  opponentUsername?: string | null;
 }

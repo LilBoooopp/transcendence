@@ -82,7 +82,16 @@ export class AuthService {
 
     if (!user) return null;
 
-    if (user.isBanned) throw new UnauthorizedException('Your account has been banned');
+    if (user.isBanned) {
+      if (user.bannedUntil && user.bannedUntil <= new Date()) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { isBanned: false, bannedUntil: null, banReason: null },
+        });
+      } else {
+        throw new UnauthorizedException('Your account has been banned');
+      }
+    }
 
     const valid = await bcrypt.compare(input.password, user.password);
 

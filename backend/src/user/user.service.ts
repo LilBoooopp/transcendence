@@ -22,12 +22,13 @@ type UserProfile = {
     role?: string;
 };
 
-type UserAuth = { id: string; username: string; password: string; fingerprint: string; isBanned: boolean };
+type UserAuth = { id: string; username: string; password: string; fingerprint: string; isBanned: boolean; bannedUntil: Date | null };
 type newFingerPrint = { id: string; fingerprint: string };
 type UserHistoryItem = {
     id: string;
     date: string;
     opponent: string;
+    opponentId: string | null;
     result: 'Win' | 'Loss' | 'Draw';
     moves: number;
     mode: 'Bullet' | 'Blitz' | 'Rapid';
@@ -102,7 +103,7 @@ export class UserService {
     async findAuthUser(username: string): Promise<UserAuth | null> {
         return this.prisma.user.findUnique({
             where: { username },
-            select: { id: true, username: true, password: true, fingerprint: true, isBanned: true },
+            select: { id: true, username: true, password: true, fingerprint: true, isBanned: true, bannedUntil: true },
         });
     }
 
@@ -489,12 +490,8 @@ export class UserService {
             const isWhite = game.whitePlayerId === id;
             const isBlack = game.blackPlayerId === id;
 
-            const opponent =
-                isWhite
-                    ? game.blackPlayer?.username
-                    : isBlack
-                        ? game.whitePlayer?.username
-                        : 'Unknown';
+            const opponentPlayer = isWhite ? game.blackPlayer : isBlack ? game.whitePlayer : null;
+            const opponent = opponentPlayer?.username;
 
             const refDate = game.endedAt || game.createdAt;
             const dateStr = refDate.toISOString().slice(0, 10);
@@ -532,7 +529,8 @@ export class UserService {
             const item: UserHistoryItem = {
                 id: game.id,
                 date: dateStr,
-                opponent: opponent ?? 'Unknowns',
+                opponent: opponent ?? 'Unknown',
+                opponentId: opponentPlayer?.id ?? null,
                 result,
                 moves,
                 mode,
@@ -543,5 +541,20 @@ export class UserService {
         });
 
         return history;
+    }
+
+    async createReport(reporterId: string, reportedId: string, reason: string): Promise<void> {
+        if (reporterId === reportedId) {
+            throw new BadRequestException('Cannot report yourself');
+        }
+        const target = await this.prisma.user.findUnique({ where: { id: reportedId } });
+        if (!target) throw new NotFoundException('User not found');
+
+        const existing = await this.prisma.report.findFirst({
+            where: { reporterId, reportedId, status: 'PENDING' },
+        });
+        if (existing) throw new BadRequestException('You already have a pending report for this user');
+
+        await this.prisma.report.create({ data: { reporterId, reportedId, reason } });
     }
 }
