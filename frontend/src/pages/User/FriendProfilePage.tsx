@@ -89,7 +89,15 @@ export default function FriendProfilePage() {
                 username={friendData?.username || profile?.username}
                 bio={friendData?.bio || profile?.bio} 
                 avatarUrl={friendData?.avatarUrl || profile?.avatarUrl}
-                elo={profile?.elo || 1200}
+                elo={
+                    friendData?.statistics
+                        ? Math.round(
+                            ((friendData.statistics.bulletElo ?? 1200) +
+                             (friendData.statistics.blitzElo ?? 1200) +
+                             (friendData.statistics.rapidElo ?? 1200)) / 3
+                          )
+                        : profile?.elo || 1200
+                }
                 currentStreak={friendData?.statistics?.currentStreak || profile?.currentStreak || 0}
                 bestStreak={friendData?.statistics?.bestStreak || profile?.bestStreak || 0}
             />
