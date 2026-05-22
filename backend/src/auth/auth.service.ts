@@ -3,6 +3,7 @@ import { UserService } from 'src/user/user.service'
 import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
+import { isUsernameAllowed } from '../common/username-filter';
 
 type AuthInput = { username: string; password: string };
 type SignInData = { userId: string; username: string; fingerprint: string };
@@ -24,6 +25,10 @@ export class AuthService {
   }): Promise<AuthResult> {
     if (!data.email || !data.username || !data.password) {
       throw new BadRequestException('Email, username, and password are mandatory');
+    }
+
+    if (!isUsernameAllowed(data.username)) {
+      throw new BadRequestException('Username contains prohibited content');
     }
 
     const existingUser = await this.prisma.user.findFirst({

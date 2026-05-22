@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { isUsernameAllowed } from '../common/username-filter';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import * as bcrypt from 'bcrypt';
@@ -175,6 +176,9 @@ export class UserService {
       }
 
         if (newUsername !== undefined && newUsername !== null && newUsername !== '') {
+            if (!isUsernameAllowed(newUsername)) {
+                throw new BadRequestException('Username contains prohibited content');
+            }
             data.username = newUsername;
         }
         if (newEmail !== undefined && newEmail !== null && newEmail !== '') {
