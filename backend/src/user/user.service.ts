@@ -21,7 +21,7 @@ type UserProfile = {
     email?: string | null;
 };
 
-type UserAuth = { id: string; username: string; password: string, fingerprint: string };
+type UserAuth = { id: string; username: string; password: string; fingerprint: string; isBanned: boolean };
 type newFingerPrint = { id: string; fingerprint: string };
 type UserHistoryItem = {
     id: string;
@@ -101,7 +101,7 @@ export class UserService {
     async findAuthUser(username: string): Promise<UserAuth | null> {
         return this.prisma.user.findUnique({
             where: { username },
-            select: { id: true, username: true, password: true, fingerprint: true, },
+            select: { id: true, username: true, password: true, fingerprint: true, isBanned: true },
         });
     }
 

@@ -82,6 +82,8 @@ export class AuthService {
 
     if (!user) return null;
 
+    if (user.isBanned) throw new UnauthorizedException('Your account has been banned');
+
     const valid = await bcrypt.compare(input.password, user.password);
 
     if (!valid) return null;
