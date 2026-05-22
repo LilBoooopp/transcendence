@@ -12,32 +12,22 @@ import { Server, Socket } from 'socket.io';
 import { GameService } from './game.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { Chess } from '../chess/src/Chess';
-import { StockfishService } from './stockfish.service';
-import { PieceSymbol } from '../chess/src/types';
+import { BotDifficulty, DIFFICULTY_CONFIG, StockfishService } from './stockfish.service';
 import { v4 as uuidv4 } from 'uuid';
 import { UseGuards } from '@nestjs/common';
 import { WsAuthGuard } from '../auth/guards/auth.guards';
 import { JwtService } from '@nestjs/jwt';
 import { JWT_SECRET } from '../auth/configs/jwtsecret';
-import { EloService } from '../elo/elo.service';
 import { NotificationService } from '../notification/notification.service';
 import { UserService } from '../user/user.service';
-
-type BotDifficulty = 'easy' | 'medium' | 'hard';
-
-const DIFFICULTY_TO_INT: Record<BotDifficulty, number> = {
-  easy: 1,
-  medium: 10,
-  hard: 20,
-};
 
 const HUMAN_RECONNECT_SECONDS = 30;
 const BOT_RECONNECT_SECONDS = 10;
 
 interface GameRoom {
   players: Set<string>;
-  white: string | null; // just socket
-  black: string | null; // socket
+  white: string | null;
+  black: string | null;
   whiteUserId: string | null;
   blackUserId: string | null;
   spectators: Set<string>;
@@ -66,20 +56,41 @@ interface MatchmakingEntry {
 const DEFAULT_TIME_KEY = '600+0';
 const DEFAULT_TIME_MS = 10 * 60 * 1000;
 const DEFAULT_INCREMENT_MS = 0;
+const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 function parseTc(key?: string): { initialMs: number; incrementMs: number } {
-  if (!key) return ({ initialMs: DEFAULT_TIME_MS, incrementMs: DEFAULT_INCREMENT_MS });
-  const parts = (key ?? '').split('+').map(Number);
+  if (!key) return { initialMs: DEFAULT_TIME_MS, incrementMs: DEFAULT_INCREMENT_MS };
+  const parts = key.split('+').map(Number);
   if (parts.length !== 2 || parts.some(isNaN)) {
-    return ({ initialMs: DEFAULT_TIME_MS, incrementMs: parts[1] * 1_000 });
+    return { initialMs: DEFAULT_TIME_MS, incrementMs: parts[1] * 1_000 };
   }
-  return ({ initialMs: parts[0] * 1_000, incrementMs: parts[1] * 1_000 });
+  return { initialMs: parts[0] * 1_000, incrementMs: parts[1] * 1_000 };
 }
 
-function toDbResult(winner: string): 'WHITE_WIN' | 'BLACK_WIN' | 'DRAW' {
-  if (winner === 'White') return ('WHITE_WIN');
-  if (winner === 'Black') return ('BLACK_WIN');
-  return ('DRAW');
+function makeEmptyRoom(initialMs: number, incrementMs: number): GameRoom {
+  return {
+    players: new Set(),
+    white: null,
+    black: null,
+    whiteUserId: null,
+    blackUserId: null,
+    spectators: new Set(),
+    fen: INITIAL_FEN,
+    pgn: '',
+    gameStarted: false,
+    whiteTimeMs: initialMs,
+    blackTimeMs: initialMs,
+    incrementMs,
+    currentTurn: 'w',
+    lastMoveAt: null,
+    timerRunning: false,
+    timerInterval: null,
+    isBot: false,
+    botColor: null,
+    botDifficulty: null,
+    gameStartedAt: null,
+    moveCount: 0,
+  };
 }
 
 @WebSocketGateway({ cors: { origin: '*' } })
@@ -87,26 +98,10 @@ function toDbResult(winner: string): 'WHITE_WIN' | 'BLACK_WIN' | 'DRAW' {
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
 
-
-  //Store games
   private activeGames = new Map<string, GameRoom>();
-  // Store connectionsa
   private activeUsers = new Map<string, string>();
-
-  /**
-  * matchmaking queues based on time control (eg. "600+0")
-  * each queue holds at most one player at a time,
-  * second player joins means they are paired.
-  */
   private matchmakingQueues = new Map<string, MatchmakingEntry>();
-
-  /**
-   * keyed by <gameId>:<userId>
-   * stores pending setTimeout handles so reconnects can cancel them
-   */
   private reconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
-
-  /** to enfoce one socket per user per game */
   private userGameSockets = new Map<string, Map<string, string>>();
 
   constructor(
@@ -114,58 +109,34 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly prisma: PrismaService,
     private readonly stockfishService: StockfishService,
     private readonly jwtService: JwtService,
-    private readonly eloService: EloService,
     private readonly notificationService: NotificationService,
     private readonly userService: UserService,
-  ) { }
+  ) {}
 
   async handleConnection(client: Socket) {
     const token = client.handshake.auth?.token;
-
     if (!token || token === '') {
-      console.log(`Rejected: no token provided by ${client.id}`);
       client.disconnect();
       return;
     }
     try {
       const payload = await this.jwtService.verifyAsync(token, { secret: JWT_SECRET });
       client.data.userId = payload.sub;
-      console.log(`Client connected: ${client.id}`);
-    } catch (err) {
-      console.log(`Rejected invalid token from ${client.id}: ${err.message}`);
-      console.log(`Token received: ${token?.slice(0, 20)}...`);
+    } catch {
       client.disconnect();
     }
   }
 
-  /**
-   * Handles socket drop for any reason
-   *
-   * ranked:
-   * moveCount === 0 -> game never really began, ABANDONED
-   * moveCount >= 1 -> real game; start 30-second reconnect window
-   *  if reconnected within window -> timer cancelled
-   *  if timeout expires -> opponent wins
-   *
-   * bot:
-   * 10 second timout
-   */
   handleDisconnect(client: Socket) {
     const userId: string | undefined = client.data?.userId;
-    console.log(`Client disconnected: ${client.id}`);
 
     if (userId) {
       for (const [gameId, socketMap] of this.userGameSockets) {
-        if (socketMap.get(userId) === client.id) {
-          socketMap.delete(userId);
-        }
-        if (socketMap.size === 0) {
-          this.userGameSockets.delete(gameId);
-        }
+        if (socketMap.get(userId) === client.id) socketMap.delete(userId);
+        if (socketMap.size === 0) this.userGameSockets.delete(gameId);
       }
     }
 
-    // remove from matchmaking
     for (const [tcKey, entry] of this.matchmakingQueues.entries()) {
       if (entry.clientId === client.id) {
         this.matchmakingQueues.delete(tcKey);
@@ -173,7 +144,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     }
 
-    // Remove from active games
     for (const [gameId, gameRoom] of this.activeGames.entries()) {
       if (!gameRoom.players.has(client.id)) continue;
 
@@ -184,37 +154,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const isBlack = gameRoom.black === client.id;
       const wasPlayer = isWhite || isBlack;
 
-
-      if (gameRoom.isBot) {
+      if (gameRoom.isBot && wasPlayer) {
         const timerKey = `${gameId}:${userId}`;
-        if (this.reconnectTimers.has(timerKey)) return; // already waiting
-
-        const timerId = setTimeout(async () => {
-          this.reconnectTimers.delete(timerKey);
-          const room = this.activeGames.get(gameId);
-          if (!room) return;
-
-          const humanSocket = room.botColor === 'b' ? room.white : room.black;
-          if (humanSocket && room.players.has(humanSocket)) return;
-
-          this.clearGameTimer(gameId);
-          this.stockfishService.stopEngine(gameId);
-
-          const result = 'Player abandoned';
-          this.server.to(`game:${gameId}`).emit('game:over', {
-            winner: 'Draw',
-            result,
-          });
-
-          this.notificationService.gameOver(gameId, result);
-
-          await this.persistGameResult(gameId, 'Draw', 'Player abandoned', true).catch(() => { });
-          this.userGameSockets.delete(gameId);
-          this.activeGames.delete(gameId);
-          console.log(`Bot game ${gameId} marked ABANDONED after reconnect timeout`);
-        }, BOT_RECONNECT_SECONDS * 1000);
-
-        this.reconnectTimers.set(timerKey, timerId);
+        if (!this.reconnectTimers.has(timerKey)) {
+          this.scheduleBotDisconnectTimeout(gameId, timerKey, true);
+        }
         continue;
       }
 
@@ -231,80 +175,37 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (this.reconnectTimers.has(timerKey)) continue;
 
       if (gameRoom.moveCount < 1) {
-        console.log(`Game ${gameId}: player disconnected before first move - ending game as abandoned and notifying room`);
         this.clearGameTimer(gameId);
-
         this.server.to(`game:${gameId}`).emit('game:over', {
           winner: 'Draw',
           result: 'Game abandoned - opponent left before game began',
         });
-
-        this.notificationService.gameOver(
-          gameId,
-          'Game abandoned - opponent left before game began',
-        );
-
+        this.notificationService.gameOver(gameId, 'Game abandoned - opponent left before game began');
         this.userGameSockets.delete(gameId);
         this.activeGames.delete(gameId);
-
         this.prisma.game
           .update({ where: { id: gameId }, data: { status: 'ABANDONED', endedAt: new Date() } })
-          .catch(() => { });
+          .catch(() => {});
         continue;
       }
-
-      console.log(`Game ${gameId}: ${userId} disconnected - starting ${HUMAN_RECONNECT_SECONDS}s reconnect window`);
 
       this.server.to(`game:${gameId}`).emit('game:opponent-disconnected', {
         reconnectSeconds: HUMAN_RECONNECT_SECONDS,
       });
 
-      // notification
-      const remainingUserId = isWhite
-        ? gameRoom.blackUserId
-        : gameRoom.whiteUserId;
+      const remainingUserId = isWhite ? gameRoom.blackUserId : gameRoom.whiteUserId;
       if (remainingUserId) {
-        this.notificationService.opponentDisconnected(
-          remainingUserId,
-          HUMAN_RECONNECT_SECONDS,
-        );
+        this.notificationService.opponentDisconnected(remainingUserId, HUMAN_RECONNECT_SECONDS);
       }
 
-      const timerId = setTimeout(async () => {
-        this.reconnectTimers.delete(timerKey);
-        const room = this.activeGames.get(gameId);
-        if (!room) return;
-
-        const winner = isWhite ? 'Black' : 'White';
-        const resultStr = `${isWhite ? 'White' : 'Black'} disconnected - ${winner} wins`;
-
-        this.clearGameTimer(gameId);
-        this.userGameSockets.delete(gameId);
-        this.activeGames.delete(gameId);
-
-        this.server.to(`game:${gameId}`).emit('game:over', { winner, result: resultStr });
-        console.log(`Game ${gameId}: reconnect window expired - ${resultStr}`);
-
-        this.notificationService.gameOver(gameId, resultStr, winner);
-
-        await this.persistGameResult(gameId, winner, resultStr, true).catch((e) =>
-          console.warn(`Failed to persist abandoned game ${gameId}:`, e.message),
-        );
-      }, HUMAN_RECONNECT_SECONDS * 1000);
-
-      this.reconnectTimers.set(timerKey, timerId);
+      this.scheduleHumanDisconnectTimeout(gameId, timerKey, isWhite);
     }
   }
 
-  /**
-   * Check if a user is already in a matchmaking queue or in an active game.
-   */
   private isUserBusy(userId: string): boolean {
-    // Check all matchmaking queues
     for (const entry of this.matchmakingQueues.values()) {
       if (entry.userId === userId) return true;
     }
-    // Check all active games (as a player, not spectator)
     for (const room of this.activeGames.values()) {
       if (room.whiteUserId === userId || room.blackUserId === userId) return true;
     }
@@ -313,14 +214,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   getUserActiveGameId(userId: string): string | null {
     for (const [gameId, room] of this.activeGames.entries()) {
-      if (
-        (room.whiteUserId === userId || room.blackUserId === userId) &&
-        room.gameStarted
-      ) {
-        return (gameId);
+      if ((room.whiteUserId === userId || room.blackUserId === userId) && room.gameStarted) {
+        return gameId;
       }
     }
-    return (null);
+    return null;
   }
 
   @SubscribeMessage('heartbeat')
@@ -328,10 +226,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = client.data?.userId;
     if (!userId) return;
     this.prisma.user
-      .update({
-        where: { id: userId },
-        data: { lastSeen: new Date() },
-      }).catch((e) => console.warn(`Heartbeat update failed for ${userId}:`, e.message));
+      .update({ where: { id: userId }, data: { lastSeen: new Date() } })
+      .catch((e) => console.warn(`Heartbeat update failed for ${userId}:`, e.message));
     return { success: true };
   }
 
@@ -343,64 +239,33 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = client.data.userId;
     const tcKey = data.timeControlKey ?? DEFAULT_TIME_KEY;
 
-    // Prevent duplicate matchmaking / playing
     if (this.isUserBusy(userId)) {
-      client.emit('matchmaking:error', {
-        message: 'You are already in a game or in matchmaking.',
-      });
-      console.log(`Matchmaking [${tcKey}]: ${client.id} (${userId}) rejected - already busy`);
+      client.emit('matchmaking:error', { message: 'You are already in a game or in matchmaking.' });
       return { success: false };
     }
 
     const waiting = this.matchmakingQueues.get(tcKey);
 
     if (waiting && waiting.clientId !== client.id) {
-      // match found
       this.matchmakingQueues.delete(tcKey);
 
       const gameId = uuidv4();
       const { initialMs, incrementMs } = parseTc(tcKey);
 
-      // assign colors
       const [whiteEntry, blackEntry] =
         Math.random() < 0.5
-          ? [waiting, { clientId: client.id, userId: userId }]
-          : [{ clientId: client.id, userId: userId }, waiting];
+          ? [waiting, { clientId: client.id, userId }]
+          : [{ clientId: client.id, userId }, waiting];
 
-      const gameRoom: GameRoom = {
-        players: new Set(),
-        white: null,
-        black: null,
-        whiteUserId: whiteEntry.userId,
-        blackUserId: blackEntry.userId,
-        spectators: new Set(),
-        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-        pgn: '',
-        gameStarted: false,
-        whiteTimeMs: initialMs,
-        blackTimeMs: initialMs,
-        incrementMs,
-        currentTurn: 'w',
-        lastMoveAt: null,
-        timerRunning: false,
-        timerInterval: null,
-        isBot: false,
-        botColor: null,
-        botDifficulty: null,
-        gameStartedAt: null,
-        moveCount: 0,
-      };
-
+      const gameRoom = makeEmptyRoom(initialMs, incrementMs);
+      gameRoom.whiteUserId = whiteEntry.userId;
+      gameRoom.blackUserId = blackEntry.userId;
       this.activeGames.set(gameId, gameRoom);
 
-      // notify players of game
       this.server.to(whiteEntry.clientId).emit('matchmaking:found', { gameId, role: 'white', timeControlKey: tcKey });
       this.server.to(blackEntry.clientId).emit('matchmaking:found', { gameId, role: 'black', timeControlKey: tcKey });
-
       this.notificationService.gameCreated(whiteEntry.userId, gameId);
       this.notificationService.gameCreated(blackEntry.userId, gameId);
-
-      console.log(`Matchmaking [${tcKey}]: paired ${whiteEntry.clientId} (W) vs ${blackEntry.clientId} (B) -> game ${gameId}`);
 
       try {
         await this.gameService.createGame(whiteEntry.userId, blackEntry.userId, gameId, tcKey);
@@ -408,31 +273,28 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         console.warn('Could not persist matchmade game:', e.message);
       }
     } else {
-      this.matchmakingQueues.set(tcKey, { clientId: client.id, userId: userId });
+      this.matchmakingQueues.set(tcKey, { clientId: client.id, userId });
       client.emit('matchmaking:waiting', { timeControlKey: tcKey });
-      console.log(`Matchmaking [${tcKey}]: ${client.id} is waiting`);
     }
 
-    return ({ success: true });
+    return { success: true };
   }
 
   @SubscribeMessage('matchmaking:cancel')
   handleMatchmakingCancel(@ConnectedSocket() client: Socket) {
     for (const [tcKey, entry] of this.matchmakingQueues.entries()) {
-      if (entry.clientId == client.id) {
+      if (entry.clientId === client.id) {
         this.matchmakingQueues.delete(tcKey);
-        console.log(`Matchmaking: ${client.id} cancelled`);
         break;
       }
     }
     client.emit('matchmaking:cancelled', {});
-    return ({ success: true });
+    return { success: true };
   }
 
-  // Join a room$
   @SubscribeMessage('game:join')
   async handleJoinGame(
-    @MessageBody() data: { gameId: string; timeControlKey?: string, claimedRole?: 'white' | 'black' },
+    @MessageBody() data: { gameId: string; timeControlKey?: string; claimedRole?: 'white' | 'black' },
     @ConnectedSocket() client: Socket,
   ) {
     const roomName = `game:${data.gameId}`;
@@ -447,9 +309,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (prevSocketId && prevSocketId !== client.id) {
       const prevSocket = this.server.sockets.sockets.get(prevSocketId);
       if (prevSocket) {
-        prevSocket.emit('game:replace', {
-          reason: 'This game was opened in another tab or device.',
-        });
+        prevSocket.emit('game:replace', { reason: 'This game was opened in another tab or device.' });
         prevSocket.leave(roomName);
         prevSocket.disconnect(true);
       }
@@ -463,58 +323,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
 
       if (!dbGame) {
-        client.emit('game:error', {
-          gameId: data.gameId,
-          message: 'This game does not exist.',
-        });
+        client.emit('game:error', { gameId: data.gameId, message: 'This game does not exist.' });
         client.leave(roomName);
         return { success: false, error: 'Game not found' };
       }
 
       if (dbGame.status === 'COMPLETED' || dbGame.status === 'ABANDONED') {
-        client.emit('game:role-assigned', {
-          gameId: data.gameId,
-          role: 'spectator',
-        });
-        client.emit('game:state', {
-          gameId: data.gameId,
-          fen: dbGame.fen ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-          pgn: dbGame.pgn ?? '',
-        });
-        client.emit('game:over', {
-          winner: dbGame.winner ?? 'Draw',
-          result: dbGame.result ?? 'Game ended',
-        });
-        return ({ success: true, gameId: data.gameId, role: 'spectator' });
+        client.emit('game:role-assigned', { gameId: data.gameId, role: 'spectator' });
+        client.emit('game:state', { gameId: data.gameId, fen: dbGame.fen ?? INITIAL_FEN, pgn: dbGame.pgn ?? '' });
+        client.emit('game:over', { winner: dbGame.winner ?? 'Draw', result: dbGame.result ?? 'Game ended' });
+        return { success: true, gameId: data.gameId, role: 'spectator' };
       }
 
       const { initialMs, incrementMs } = parseTc(data.timeControlKey);
-      this.activeGames.set(data.gameId, {
-        players: new Set(),
-        white: null,
-        black: null,
-        whiteUserId: null,
-        blackUserId: null,
-        spectators: new Set(),
-        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-        pgn: '',
-        gameStarted: false,
-        whiteTimeMs: initialMs,
-        blackTimeMs: initialMs,
-        incrementMs,
-        currentTurn: 'w',
-        lastMoveAt: null,
-        timerRunning: false,
-        timerInterval: null,
-        isBot: false,
-        botColor: null,
-        botDifficulty: null,
-        gameStartedAt: null,
-        moveCount: 0,
-      });
+      this.activeGames.set(data.gameId, makeEmptyRoom(initialMs, incrementMs));
     }
 
-    const gameRoom = this.activeGames.get(data.gameId);
+    const gameRoom = this.activeGames.get(data.gameId)!;
     gameRoom.players.add(client.id);
 
     const timerKey = `${data.gameId}:${userId}`;
@@ -522,21 +347,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (pendingTimer) {
       clearTimeout(pendingTimer);
       this.reconnectTimers.delete(timerKey);
-      console.log(`Game ${data.gameId}: ${userId} reconnected - timer cancelled`);
       if (gameRoom.whiteUserId === userId) gameRoom.white = client.id;
       if (gameRoom.blackUserId === userId) gameRoom.black = client.id;
-
       this.server.to(roomName).emit('game:opponent-reconnected', {});
-
       this.emitPlayerNames(data.gameId, roomName, gameRoom);
-
-      // notification
-      const otherUserId = gameRoom.whiteUserId === userId
-        ? gameRoom.blackUserId
-        : gameRoom.whiteUserId;
-      if (otherUserId) {
-        this.notificationService.opponentReconnected(otherUserId);
-      }
+      const otherUserId = gameRoom.whiteUserId === userId ? gameRoom.blackUserId : gameRoom.whiteUserId;
+      if (otherUserId) this.notificationService.opponentReconnected(otherUserId);
     }
 
     let assignedRole: 'white' | 'black' | 'spectator';
@@ -568,7 +384,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         gameRoom.blackUserId = userId;
       }
     } else if (gameRoom.white === null) {
-      assignedRole = 'white'
+      assignedRole = 'white';
       gameRoom.white = client.id;
       gameRoom.whiteUserId = userId;
     } else if (gameRoom.black === null) {
@@ -580,8 +396,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       gameRoom.spectators.add(client.id);
     }
 
-    console.log(`Client ${client.id} joined game ${data.gameId} as ${assignedRole}`);
-
     if (assignedRole !== 'spectator' && !gameRoom.gameStarted) {
       const whiteReady = gameRoom.white !== null && gameRoom.players.has(gameRoom.white);
       const blackReady = gameRoom.black !== null && gameRoom.players.has(gameRoom.black);
@@ -589,27 +403,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         gameRoom.gameStarted = true;
         this.startGameTimer(data.gameId, gameRoom);
         this.emitPlayerNames(data.gameId, roomName, gameRoom);
-
         if (gameRoom.whiteUserId && gameRoom.blackUserId) {
-          this.gameService.createGame(
-            gameRoom.whiteUserId,
-            gameRoom.blackUserId,
-            data.gameId,
-            data.timeControlKey ?? DEFAULT_TIME_KEY,
-          ).catch((e) => {
-            console.warn('Could not persist direct-join game to DB:', e.message);
-          })
+          this.gameService
+            .createGame(gameRoom.whiteUserId, gameRoom.blackUserId, data.gameId, data.timeControlKey ?? DEFAULT_TIME_KEY)
+            .catch((e) => console.warn('Could not persist direct-join game to DB:', e.message));
         }
       }
     }
 
-    // tell the client what role they got
-    client.emit('game:role-assigned', {
-      gameId: data.gameId,
-      role: assignedRole,
-    });
-
-    // Notify others in the game
+    client.emit('game:role-assigned', { gameId: data.gameId, role: assignedRole });
     client.to(roomName).emit('game:player-joined', {
       gameId: data.gameId,
       playersCount: gameRoom.players.size,
@@ -617,13 +419,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       blackConnected: gameRoom.black !== null,
       spectatorCount: gameRoom.spectators.size,
     });
-
-    client.emit('game:state', {
-      gameId: data.gameId,
-      fen: gameRoom.fen,
-      pgn: gameRoom.pgn,
-    });
-
+    client.emit('game:state', { gameId: data.gameId, fen: gameRoom.fen, pgn: gameRoom.pgn });
     client.emit('game:timer', {
       whiteTimeMs: this.getActiveTime(gameRoom, 'w'),
       blackTimeMs: this.getActiveTime(gameRoom, 'b'),
@@ -637,7 +433,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('game:bot-join')
   async handleBotJoin(
-    @MessageBody() data: { gameId: string; difficulty: BotDifficulty, timeControlKey?: string },
+    @MessageBody() data: { gameId: string; difficulty: BotDifficulty; timeControlKey?: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
@@ -652,9 +448,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (prevSocketId && prevSocketId !== client.id) {
       const prevSocket = this.server.sockets.sockets.get(prevSocketId);
       if (prevSocket) {
-        prevSocket.emit('game:replaced', {
-          reason: 'This game was opened in another tab or device.',
-        });
+        prevSocket.emit('game:replaced', { reason: 'This game was opened in another tab or device.' });
         prevSocket.leave(roomName);
         prevSocket.disconnect(true);
       }
@@ -662,8 +456,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     gameSocketMap.set(userId, client.id);
 
     const { initialMs, incrementMs } = parseTc(data.timeControlKey);
-
-
     const humanColor: 'white' | 'black' = Math.random() < 0.5 ? 'white' : 'black';
     const botColor: 'w' | 'b' = humanColor === 'white' ? 'b' : 'w';
 
@@ -674,7 +466,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       whiteUserId: humanColor === 'white' ? userId : null,
       blackUserId: humanColor === 'black' ? userId : null,
       spectators: new Set(),
-      fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      fen: INITIAL_FEN,
       pgn: '',
       gameStarted: true,
       whiteTimeMs: initialMs,
@@ -694,20 +486,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.activeGames.set(data.gameId, gameRoom);
 
     await this.stockfishService.startEngine(data.gameId, data.difficulty);
-
     await this.gameService.createBotGame(
       userId,
       humanColor,
       data.difficulty,
-      DIFFICULTY_TO_INT[data.difficulty],
+      DIFFICULTY_CONFIG[data.difficulty].skillLevel,
       data.timeControlKey ?? DEFAULT_TIME_KEY,
       data.gameId,
     );
 
-    client.emit('game:role-assigned', {
-      gameId: data.gameId,
-      role: humanColor,
-    });
+    client.emit('game:role-assigned', { gameId: data.gameId, role: humanColor });
 
     this.userService.findById(userId).then((user) => {
       const humanName = user?.username ?? 'Player';
@@ -715,23 +503,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const botName = `Stockfish (${difficulty})`;
       client.emit('game:players', {
         gameId: data.gameId,
-        white: {
-          userId: humanColor === 'white' ? userId : null,
-          username: humanColor === 'white' ? humanName : botName,
-        },
-        black: {
-          userId: humanColor === 'black' ? userId : null,
-          username: humanColor === 'black' ? humanName : botName,
-        },
+        white: { userId: humanColor === 'white' ? userId : null, username: humanColor === 'white' ? humanName : botName },
+        black: { userId: humanColor === 'black' ? userId : null, username: humanColor === 'black' ? humanName : botName },
       });
     });
 
-    client.emit('game:state', {
-      gameId: data.gameId,
-      fen: gameRoom.fen,
-      pgn: gameRoom.pgn,
-    });
-
+    client.emit('game:state', { gameId: data.gameId, fen: gameRoom.fen, pgn: gameRoom.pgn });
     this.startGameTimer(data.gameId, gameRoom);
 
     if (botColor === 'w') {
@@ -741,7 +518,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { success: true, role: humanColor };
   }
 
-  // Leave a game
   @SubscribeMessage('game:leave')
   handleLeaveGame(
     @MessageBody() data: { gameId: string },
@@ -759,7 +535,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     const gameRoom = this.activeGames.get(data.gameId);
-    if (!gameRoom) return ({ success: true });
+    if (!gameRoom) return { success: true };
 
     gameRoom.players.delete(client.id);
     gameRoom.spectators.delete(client.id);
@@ -768,9 +544,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const isBlack = gameRoom.black === client.id;
     const wasPlayer = isWhite || isBlack;
 
-    if (!wasPlayer) {
-      return ({ success: true });
-    }
+    if (!wasPlayer) return { success: true };
 
     if (!gameRoom.gameStarted) {
       if (isWhite) { gameRoom.white = null; gameRoom.whiteUserId = null; }
@@ -786,78 +560,37 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           message: 'Opponent left before the game started.',
         });
       }
-      return ({ success: true });
+      return { success: true };
     }
-
-    if (!gameRoom) return ({ success: true });
 
     if (gameRoom.isBot) {
       const timerKey = `${data.gameId}:${userId}`;
-      if (this.reconnectTimers.has(timerKey)) return ({ success: true });
-
-      const timerId = setTimeout(async () => {
-        this.reconnectTimers.delete(timerKey);
-        const room = this.activeGames.get(data.gameId);
-        if (!room) return;
-
-        const humanSocket = room.botColor === 'b'
-          ? room.white
-          : room.black;
-        if (humanSocket && room.players.has(humanSocket)) return;
-
-        const winner = room.botColor === 'b' ? 'Black' : 'White';
-        const resultStr = `Player disconnected - ${winner} wins`;
-
-        this.clearGameTimer(data.gameId);
-        this.stockfishService.stopEngine(data.gameId);
-        this.userGameSockets.delete(data.gameId);
-        this.activeGames.delete(data.gameId);
-
-        this.server.to(`game:${data.gameId}`).emit('game:over', { winner, result: resultStr });
-        await this.persistGameResult(data.gameId, winner, resultStr, true).catch(() => { });
-      }, 10_000);
-      this.reconnectTimers.set(timerKey, timerId);
-    } else {
-      if (gameRoom.moveCount === 0) {
-        const resultStr = 'Game abandoned';
-        this.clearGameTimer(data.gameId);
-        this.userGameSockets.delete(data.gameId);
-        this.activeGames.delete(data.gameId);
-        this.server.to(`game:${data.gameId}`).emit('game:over', { winner: 'Draw', result: resultStr });
-        this.persistGameResult(data.gameId, 'Draw', resultStr, true).catch(() => { });
-        return ({ success: true });
+      if (!this.reconnectTimers.has(timerKey)) {
+        this.scheduleBotDisconnectTimeout(data.gameId, timerKey, false);
       }
-
-      const timerKey = `${data.gameId}:${userId}`;
-      if (this.reconnectTimers.has(timerKey)) return ({ success: true });
-
-      const remainingUserId = isWhite ? gameRoom.blackUserId : gameRoom.whiteUserId;
-      if (remainingUserId) {
-        this.notificationService.opponentDisconnected(remainingUserId, HUMAN_RECONNECT_SECONDS);
-      }
-
-      this.server.to(`game:${data.gameId}`).emit('game:opponent-disconnected', {
-        reconnectSeconds: HUMAN_RECONNECT_SECONDS,
-      });
-
-      const timerId = setTimeout(async () => {
-        this.reconnectTimers.delete(timerKey);
-        const room = this.activeGames.get(data.gameId);
-        if (!room) return;
-
-        const winner = isWhite ? 'Black' : 'White';
-        const resultStr = `${isWhite ? 'White' : 'Black'} disconnected - ${winner} wins`;
-        console.log(resultStr);
-
-        this.clearGameTimer(data.gameId);
-        this.userGameSockets.delete(data.gameId);
-        this.activeGames.delete(data.gameId);
-
-        this.server.to(`game:${data.gameId}`).emit('game:over', { winner, result: resultStr });
-        this.notificationService.gameOver(data.gameId, resultStr, winner);
-        await this.persistGameResult(data.gameId, winner, resultStr, true).catch(() => { });
-      }, HUMAN_RECONNECT_SECONDS * 1000);
+      return { success: true };
     }
+
+    if (gameRoom.moveCount === 0) {
+      this.clearGameTimer(data.gameId);
+      this.userGameSockets.delete(data.gameId);
+      this.activeGames.delete(data.gameId);
+      this.server.to(`game:${data.gameId}`).emit('game:over', { winner: 'Draw', result: 'Game abandoned' });
+      this.gameService.persistGameResult(data.gameId, 'Draw', 'Game abandoned', true).catch(() => {});
+      return { success: true };
+    }
+
+    const timerKey = `${data.gameId}:${userId}`;
+    if (this.reconnectTimers.has(timerKey)) return { success: true };
+
+    const remainingUserId = isWhite ? gameRoom.blackUserId : gameRoom.whiteUserId;
+    if (remainingUserId) {
+      this.notificationService.opponentDisconnected(remainingUserId, HUMAN_RECONNECT_SECONDS);
+    }
+    this.server.to(`game:${data.gameId}`).emit('game:opponent-disconnected', {
+      reconnectSeconds: HUMAN_RECONNECT_SECONDS,
+    });
+    this.scheduleHumanDisconnectTimeout(data.gameId, timerKey, isWhite);
 
     return { success: true };
   }
@@ -869,10 +602,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const roomName = `game:${data.gameId}`;
 
-    console.log(`MOVE RECEIVED from client ${client.id}`);
-    console.log(`Game: ${data.gameId}`);
-    console.log(`Move:`, data.move);
-
     try {
       if (!data.gameId || !data.move || !data.fen) {
         throw new WsException('Invalid move data');
@@ -882,17 +611,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!gameRoom || !gameRoom.players.has(client.id)) {
         throw new WsException('You are not in this game');
       }
-
       if (gameRoom.white !== client.id && gameRoom.black !== client.id) {
         throw new WsException('Spectators cannot make moves');
       }
 
-      console.log(`Broadcasting 'game:move' event to room...`);
-      client.to(roomName).emit('game:move', {
-        move: data.move,
-        fen: data.fen,
-        pgn: data.pgn,
-      });
+      client.to(roomName).emit('game:move', { move: data.move, fen: data.fen, pgn: data.pgn });
 
       gameRoom.fen = data.fen;
       gameRoom.pgn = data.pgn;
@@ -908,9 +631,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         } else {
           gameRoom.blackTimeMs = Math.max(0, gameRoom.blackTimeMs - elapsed + gameRoom.incrementMs);
         }
-
         gameRoom.lastMoveAt = Date.now();
-
         this.server.to(roomName).emit('game:timer', {
           whiteTimeMs: gameRoom.whiteTimeMs,
           blackTimeMs: gameRoom.blackTimeMs,
@@ -919,9 +640,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           incrementMs: gameRoom.incrementMs,
         });
       }
-      console.log(`Move in game ${data.gameId}:`, data.move);
 
-      this.gameService.updateGame(data.gameId, { fen: data.fen, moves: data.pgn })
+      this.gameService
+        .updateGame(data.gameId, { fen: data.fen, moves: data.pgn })
         .catch((err) => console.warn('Failed to save game state to DB (non-fatal):', err.message));
 
       if (gameRoom.isBot && gameRoom.currentTurn === gameRoom.botColor) {
@@ -930,36 +651,26 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       return { success: true };
     } catch (error) {
-      console.error('Error handling move:', error);
       client.emit('error', { message: error.message ?? 'failed to process move' });
       return { success: false, error: error.message };
     }
   }
 
-
   @SubscribeMessage('game:over')
   async handleGameOver(
     @MessageBody() data: { gameId: string; winner: string; result: string },
-    @ConnectedSocket() client: Socket,
   ) {
     const gameRoom = this.activeGames.get(data.gameId);
     if (gameRoom) {
       gameRoom.timerRunning = false;
       this.clearGameTimer(data.gameId);
-      if (gameRoom.isBot) {
-        this.stockfishService.stopEngine(data.gameId);
-      }
+      if (gameRoom.isBot) this.stockfishService.stopEngine(data.gameId);
     }
 
-    // Broadcast gameover to all players
-    this.server.to(`game:${data.gameId}`).emit('game:over', {
-      winner: data.winner,
-      result: data.result,
-    });
-
+    this.server.to(`game:${data.gameId}`).emit('game:over', { winner: data.winner, result: data.result });
     this.notificationService.gameOver(data.gameId, data.result, data.winner);
 
-    await this.persistGameResult(data.gameId, data.winner, data.result);
+    await this.gameService.persistGameResult(data.gameId, data.winner, data.result, false, gameRoom ?? undefined);
     this.userGameSockets.delete(data.gameId);
     this.activeGames.delete(data.gameId);
 
@@ -972,7 +683,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const gameRoom = this.activeGames.get(data.gameId);
-    if (!gameRoom) return ({ success: false });
+    if (!gameRoom) return { success: false };
 
     const resigningColor = gameRoom.white === client.id ? 'White' : 'Black';
     const winner = resigningColor === 'White' ? 'Black' : 'White';
@@ -982,18 +693,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.clearGameTimer(data.gameId);
     if (gameRoom.isBot) this.stockfishService.stopEngine(data.gameId);
 
-    this.server.to(`game:${data.gameId}`).emit('game:over', {
-      winner,
-      result: resultStr,
-    });
-
+    this.server.to(`game:${data.gameId}`).emit('game:over', { winner, result: resultStr });
     this.notificationService.gameOver(data.gameId, resultStr, winner);
 
-    await this.persistGameResult(data.gameId, winner, resultStr);
+    await this.gameService.persistGameResult(data.gameId, winner, resultStr, false, gameRoom);
     this.userGameSockets.delete(data.gameId);
     this.activeGames.delete(data.gameId);
 
-    return ({ success: true });
+    return { success: true };
   }
 
   @SubscribeMessage('game:draw-offer')
@@ -1002,26 +709,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const gameRoom = this.activeGames.get(data.gameId);
-    if (!gameRoom) return ({ success: false });
+    if (!gameRoom) return { success: false };
 
-    // forward only to opponent
-    client.to(`game:${data.gameId}`).emit('game:draw-offered', {
-      gameId: data.gameId,
-    });
+    client.to(`game:${data.gameId}`).emit('game:draw-offered', { gameId: data.gameId });
 
-    // notifications
-    const gameRoomDraw = this.activeGames.get(data.gameId);
-    if (gameRoomDraw) {
-      const offererIsWhite = gameRoomDraw.white === client.id;
-      const opponentUserId = offererIsWhite
-        ? gameRoomDraw.blackUserId
-        : gameRoomDraw.whiteUserId;
-      if (opponentUserId) {
-        this.notificationService.drawOffered(opponentUserId);
-      }
-    }
+    const offererIsWhite = gameRoom.white === client.id;
+    const opponentUserId = offererIsWhite ? gameRoom.blackUserId : gameRoom.whiteUserId;
+    if (opponentUserId) this.notificationService.drawOffered(opponentUserId);
 
-    return ({ success: true });
+    return { success: true };
   }
 
   @SubscribeMessage('game:draw-response')
@@ -1030,7 +726,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const gameRoom = this.activeGames.get(data.gameId);
-    if (!gameRoom) return ({ success: false });
+    if (!gameRoom) return { success: false };
 
     if (data.accepted) {
       const resultStr = 'Draw by agreement';
@@ -1038,37 +734,22 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.clearGameTimer(data.gameId);
       if (gameRoom.isBot) this.stockfishService.stopEngine(data.gameId);
 
-      this.server.to(`game:${data.gameId}`).emit('game:over', {
-        winner: 'Draw',
-        result: resultStr,
-      });
-
+      this.server.to(`game:${data.gameId}`).emit('game:over', { winner: 'Draw', result: resultStr });
       this.notificationService.gameOver(data.gameId, resultStr);
 
-      await this.persistGameResult(data.gameId, 'Draw', resultStr);
+      await this.gameService.persistGameResult(data.gameId, 'Draw', resultStr, false, gameRoom);
       this.userGameSockets.delete(data.gameId);
       this.activeGames.delete(data.gameId);
     } else {
-      client.to(`game:${data.gameId}`).emit('game:draw-declined', {
-        gameId: data.gameId,
-      });
+      client.to(`game:${data.gameId}`).emit('game:draw-declined', { gameId: data.gameId });
 
-      const drawRoom = this.activeGames.get(data.gameId);
-      if (drawRoom) {
-        const declinerIsWhite = drawRoom.white === client.id;
-        const offererUserId = declinerIsWhite
-          ? drawRoom.blackUserId
-          : drawRoom.whiteUserId;
-        if (offererUserId) {
-          this.notificationService.drawDeclined(offererUserId);
-        }
-      }
+      const declinerIsWhite = gameRoom.white === client.id;
+      const offererUserId = declinerIsWhite ? gameRoom.blackUserId : gameRoom.whiteUserId;
+      if (offererUserId) this.notificationService.drawDeclined(offererUserId);
     }
 
-    return ({ success: true });
+    return { success: true };
   }
-
-  // Spectator join game
 
   @SubscribeMessage('spectator:join')
   handleSpectateJoin(
@@ -1076,22 +757,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     client.join(`game:${data.gameId}`);
-
-    // Notify players that spectator count increased
     this.server.to(`game:${data.gameId}`).emit('spectate:count', {
       gameId: data.gameId,
       count: this.activeGames.get(data.gameId)?.spectators.size ?? 0,
     });
-
     return { success: true };
   }
 
-  // Get online users
   @SubscribeMessage('user:get-online')
   handleGetOnlineUsers() {
-    return {
-      users: Array.from(this.activeUsers.keys()),
-    };
+    return { users: Array.from(this.activeUsers.keys()) };
   }
 
   @SubscribeMessage('game:load')
@@ -1101,47 +776,37 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     try {
       const game = await this.gameService.getGame(data.gameId);
-
-      client.emit('game:loaded', {
-        gameId: game.id,
-        fen: game.fen,
-        pgn: game.moves,
-        status: game.status,
-      });
-
+      client.emit('game:loaded', { gameId: game.id, fen: game.fen, pgn: game.moves, status: game.status });
       return { success: true };
-    } catch (error) {
-      console.log('Error loading game:', error);
+    } catch {
       throw new WsException('Game not found');
     }
   }
 
-  // helper functinos
-  private getActiveTime(gameRoom: any, color: 'w' | 'b'): number {
+  // ─── Private helpers ────────────────────────────────────────────────────────
+
+  private getActiveTime(gameRoom: GameRoom, color: 'w' | 'b'): number {
     if (!gameRoom.timerRunning || !gameRoom.lastMoveAt) {
-      return (color === 'w' ? gameRoom.whiteTimeMs : gameRoom.blackTimeMs);
+      return color === 'w' ? gameRoom.whiteTimeMs : gameRoom.blackTimeMs;
     }
     const stored = color === 'w' ? gameRoom.whiteTimeMs : gameRoom.blackTimeMs;
     if (gameRoom.currentTurn === color) {
-      return (Math.max(0, stored - (Date.now() - gameRoom.lastMoveAt)));
+      return Math.max(0, stored - (Date.now() - gameRoom.lastMoveAt));
     }
-    return (stored);
+    return stored;
   }
 
-  private startGameTimer(gameId: string, gameRoom: any) {
+  private startGameTimer(gameId: string, gameRoom: GameRoom) {
     gameRoom.timerRunning = true;
     gameRoom.gameStartedAt = Date.now();
     gameRoom.lastMoveAt = Date.now();
-    const inc = gameRoom.incrementMs;
-
-    console.log(`Game ${gameId} started - timers running (${gameRoom.whiteTimeMs / 1000}s + ${inc / 1000}s increment`);
 
     this.server.to(`game:${gameId}`).emit('game:timer', {
       whiteTimeMs: gameRoom.whiteTimeMs,
       blackTimeMs: gameRoom.blackTimeMs,
       currentTurn: gameRoom.currentTurn,
       timerRunning: true,
-      incrementMs: inc,
+      incrementMs: gameRoom.incrementMs,
     });
 
     gameRoom.timerInterval = setInterval(() => {
@@ -1154,22 +819,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const loser = gameRoom.currentTurn === 'b' ? 'White' : 'Black';
       const result = `${loser} ran out of time - ${winner} wins`;
 
-      console.log(`Game ${gameId}: ${result}`);
-
       gameRoom.timerRunning = false;
-      if (gameRoom.currentTurn === 'w') {
-        gameRoom.whiteTimeMs = 0;
-      } else {
-        gameRoom.blackTimeMs = 0;
-      }
+      if (gameRoom.currentTurn === 'w') gameRoom.whiteTimeMs = 0;
+      else gameRoom.blackTimeMs = 0;
 
       clearInterval(gameRoom.timerInterval);
       gameRoom.timerInterval = null;
 
       this.server.to(`game:${gameId}`).emit('game:over', { winner, result });
-
       this.notificationService.gameOver(gameId, result, winner);
-
       this.server.to(`game:${gameId}`).emit('game:timer', {
         whiteTimeMs: gameRoom.whiteTimeMs,
         blackTimeMs: gameRoom.blackTimeMs,
@@ -1178,7 +836,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         incrementMs: gameRoom.incrementMs,
       });
 
-      this.persistGameResult(gameId, winner, result);
+      this.gameService.persistGameResult(gameId, winner, result, false, gameRoom);
       this.userGameSockets.delete(gameId);
       this.activeGames.delete(gameId);
     }, 1000);
@@ -1204,119 +862,56 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         black: { userId: gameRoom.blackUserId, username: blackUser?.username ?? 'Unknown' },
       });
     } catch (e) {
-      console.warn('Coule not emit player names:', e.message);
-    }
-  }
-  /**
-   * Centralised endofgame persistence
-   *
-   * @param abandoned true when the game ended because a player disconnected.
-   */
-  private async persistGameResult(
-    gameId: string,
-    winner: string,
-    result: string,
-    abandoned = false,
-  ): Promise<void> {
-    const gameRoom = this.activeGames.get(gameId);
-    const endedAt = new Date();
-
-    try {
-      const game = await this.prisma.game.findUnique({
-        where: { id: gameId },
-        select: {
-          whitePlayerId: true,
-          blackPlayerId: true,
-          timeControl: true,
-          isRanked: true,
-          isAiGame: true,
-          startedAt: true,
-        },
-      });
-
-      const startMs =
-        gameRoom?.gameStartedAt ??
-        (game?.startedAt ? game.startedAt.getTime() : null);
-      const playTimeSeconds = startMs
-        ? Math.max(0, Math.floor((endedAt.getTime() - startMs) / 1000))
-        : 0;
-
-      await this.prisma.game.update({
-        where: { id: gameId },
-        data: {
-          status: abandoned ? 'ABANDONED' : 'COMPLETED',
-          result: toDbResult(winner),
-          winner: winner.toLowerCase(),
-          endedAt,
-          fen: gameRoom?.fen ?? undefined,
-          pgn: gameRoom?.pgn ?? undefined,
-          moves: gameRoom?.pgn ?? undefined,
-          totalMoves: gameRoom ? Math.ceil(gameRoom.moveCount / 2) : undefined,
-        },
-      });
-
-      const whiteId = gameRoom?.whiteUserId ?? game?.whitePlayerId ?? null;
-      const blackId = gameRoom?.blackUserId ?? game?.blackPlayerId ?? null;
-      const w = winner.toLowerCase();
-
-      if (!game?.isAiGame) {
-        if (whiteId) {
-          const outcome: 'win' | 'draw' | 'loss' =
-            w === 'white' ? 'win' : w === 'draw' ? 'draw' : 'loss';
-          await this.updatePlayerStats(whiteId, outcome, playTimeSeconds);
-        }
-
-        if (blackId) {
-          const outcome: 'win' | 'draw' | 'loss' =
-            w === 'black' ? 'win' : w === 'draw' ? 'draw' : 'loss';
-          await this.updatePlayerStats(blackId, outcome, playTimeSeconds);
-        }
-      }
-
-      if (!abandoned && game?.isRanked && !game?.isAiGame && whiteId && blackId) {
-        await this.eloService.processGameResult(
-          gameId,
-          game.timeControl,
-          whiteId,
-          blackId,
-          winner,
-        );
-      }
-    } catch (e) {
-      console.warn(`Failed to persist result for game ${gameId} (non-fatal):`, e.message);
+      console.warn('Could not emit player names:', e.message);
     }
   }
 
-  /**
-  * updates UserStatistics for one player after game ends.
-  * does not touch ELO (done in EloServic)
-  */
-  private async updatePlayerStats(
-    userId: string,
-    outcome: 'win' | 'draw' | 'loss',
-    playTimeSeconds: number,
-  ): Promise<void> {
-    const stats = await this.prisma.userStatistics.upsert({
-      where: { userId },
-      create: { userId, bulletElo: 1200, blitzElo: 1200, rapidElo: 1200 },
-      update: {},
-    });
+  private scheduleHumanDisconnectTimeout(gameId: string, timerKey: string, isWhite: boolean): void {
+    const timerId = setTimeout(async () => {
+      this.reconnectTimers.delete(timerKey);
+      if (!this.activeGames.has(gameId)) return;
 
-    const newStreak = outcome === 'win' ? stats.currentStreak + 1 : 0;
-    const newBestStreak = Math.max(stats.bestStreak, newStreak);
+      const winner = isWhite ? 'Black' : 'White';
+      const resultStr = `${isWhite ? 'White' : 'Black'} disconnected - ${winner} wins`;
 
-    await this.prisma.userStatistics.update({
-      where: { userId },
-      data: {
-        totalGames: { increment: 1 },
-        wins: outcome === 'win' ? { increment: 1 } : undefined,
-        losses: outcome === 'loss' ? { increment: 1 } : undefined,
-        draws: outcome === 'draw' ? { increment: 1 } : undefined,
-        currentStreak: newStreak,
-        bestStreak: newBestStreak,
-        totalPlayTime: { increment: playTimeSeconds },
-      },
-    });
+      this.clearGameTimer(gameId);
+      const room = this.activeGames.get(gameId);
+      this.userGameSockets.delete(gameId);
+      this.activeGames.delete(gameId);
+
+      this.server.to(`game:${gameId}`).emit('game:over', { winner, result: resultStr });
+      this.notificationService.gameOver(gameId, resultStr, winner);
+      await this.gameService
+        .persistGameResult(gameId, winner, resultStr, true, room ?? undefined)
+        .catch((e) => console.warn(`Failed to persist abandoned game ${gameId}:`, e.message));
+    }, HUMAN_RECONNECT_SECONDS * 1000);
+
+    this.reconnectTimers.set(timerKey, timerId);
+  }
+
+  private scheduleBotDisconnectTimeout(gameId: string, timerKey: string, abandoned: boolean): void {
+    const timerId = setTimeout(async () => {
+      this.reconnectTimers.delete(timerKey);
+      const room = this.activeGames.get(gameId);
+      if (!room) return;
+
+      const humanSocket = room.botColor === 'b' ? room.white : room.black;
+      if (humanSocket && room.players.has(humanSocket)) return;
+
+      const winner = abandoned ? 'Draw' : (room.botColor === 'b' ? 'Black' : 'White');
+      const resultStr = abandoned ? 'Player abandoned' : `Player disconnected - ${winner} wins`;
+
+      this.clearGameTimer(gameId);
+      this.stockfishService.stopEngine(gameId);
+      this.userGameSockets.delete(gameId);
+      this.activeGames.delete(gameId);
+
+      this.server.to(`game:${gameId}`).emit('game:over', { winner, result: resultStr });
+      this.notificationService.gameOver(gameId, resultStr);
+      await this.gameService.persistGameResult(gameId, winner, resultStr, true, room).catch(() => {});
+    }, BOT_RECONNECT_SECONDS * 1000);
+
+    this.reconnectTimers.set(timerKey, timerId);
   }
 
   private scheduleBotMove(gameId: string, gameRoom: GameRoom): void {
@@ -1324,17 +919,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       try {
         const fenBeforeMove = gameRoom.fen;
         const uciMove = await this.stockfishService.getBestMove(gameId, gameRoom.fen);
-        const parsed = this.parseUciMove(uciMove);
+        const parsed = this.stockfishService.parseUciMove(uciMove);
 
         const chess = new Chess(fenBeforeMove);
-        const moveResult = chess.move({
-          from: parsed.from,
-          to: parsed.to,
-          promotion: parsed.promotion,
-        });
+        const moveResult = chess.move({ from: parsed.from, to: parsed.to, promotion: parsed.promotion });
 
         if (!moveResult) {
-          console.error(`Bot move ${uciMove} was illegal in postion ${fenBeforeMove}`);
+          console.error(`Bot move ${uciMove} was illegal in position ${fenBeforeMove}`);
           return;
         }
 
@@ -1358,12 +949,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           gameRoom.lastMoveAt = Date.now();
         }
 
-        this.server.to(`game:${gameId}`).emit('game:move', {
-          move: parsed,
-          fen: newFen,
-          pgn: newPgn,
-        });
-
+        this.server.to(`game:${gameId}`).emit('game:move', { move: parsed, fen: newFen, pgn: newPgn });
         this.server.to(`game:${gameId}`).emit('game:timer', {
           whiteTimeMs: gameRoom.whiteTimeMs,
           blackTimeMs: gameRoom.blackTimeMs,
@@ -1376,12 +962,4 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     });
   }
-
-  private parseUciMove(uci: string): { from: string, to: string; promotion?: PieceSymbol } {
-    const from = uci.slice(0, 2);
-    const to = uci.slice(2, 4);
-    const promotion = uci.length === 5 ? uci[4] as PieceSymbol : undefined;
-    return (promotion ? { from, to, promotion } : { from, to });
-  }
-
 }
