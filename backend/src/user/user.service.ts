@@ -19,6 +19,7 @@ type UserProfile = {
     bio: string | null;
     avatarUrl: string | null;
     email?: string | null;
+    role?: string;
 };
 
 type UserAuth = { id: string; username: string; password: string; fingerprint: string; isBanned: boolean };
@@ -130,6 +131,7 @@ export class UserService {
                 lastName: true,
                 bio: true,
                 avatarUrl: true,
+                role: true,
             },
         });
     }

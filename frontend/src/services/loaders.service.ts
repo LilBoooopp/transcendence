@@ -71,3 +71,21 @@ export async function friendLoader({ params }: any) {
   const friendData = await friendRes.json()
   return { friendData };
 }
+
+export async function adminLoader() {
+  const [meRes, usersRes] = await Promise.all([
+    fetch('/api/users/me', { headers: getApiHeaders() }),
+    fetch('/api/admin/users', { headers: getApiHeaders() }),
+  ]);
+
+  if (meRes.status === 401) throw new Error('Unauthorized');
+  if (usersRes.status === 401) throw new Error('Unauthorized');
+  if (usersRes.status === 403) throw new Error('Forbidden');
+  if (!meRes.ok || !usersRes.ok) throw new Error('Failed');
+
+  const [me, users] = await Promise.all([meRes.json(), usersRes.json()]);
+
+  if (me.role !== 'ADMIN') throw new Error('Forbidden');
+
+  return { me, users };
+}
