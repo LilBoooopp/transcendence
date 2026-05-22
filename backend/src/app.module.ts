@@ -10,6 +10,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { RateLimitGuard } from './auth/guards/rate-limit.guard';
 import { FriendsModule } from './friends/friend.module';
+import { AdminModule } from './admin/admin.module';
  
 @Module({
   imports: [
@@ -27,7 +28,8 @@ import { FriendsModule } from './friends/friend.module';
     GameModule,
     UserModule,
     AuthModule,
-	FriendsModule
+	FriendsModule,
+    AdminModule,
   ],
   providers: [
     {

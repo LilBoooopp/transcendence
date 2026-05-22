@@ -121,9 +121,27 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
     try {
       const payload = await this.jwtService.verifyAsync(token, { secret: JWT_SECRET });
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { isBanned: true },
+      });
+      if (user?.isBanned) {
+        client.emit('banned', { message: 'Your account has been banned.' });
+        client.disconnect(true);
+        return;
+      }
       client.data.userId = payload.sub;
     } catch {
       client.disconnect();
+    }
+  }
+
+  kickUser(userId: string): void {
+    for (const [, socket] of this.server.sockets.sockets) {
+      if (socket.data.userId === userId) {
+        socket.emit('banned', { message: 'Your account has been banned.' });
+        socket.disconnect(true);
+      }
     }
   }
 

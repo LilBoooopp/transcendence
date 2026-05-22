@@ -19,8 +19,10 @@ import SoloLauncher from './pages/Game/SoloLauncher';
 import SoloGamePage from './pages/Game/SoloGamePage';
 //Import loaders from services
 import { ProtectedLayout } from './components/ProtectedRoute';
-import { dashboardLoader, userLoader, friendLoader } from './services/loaders.service';
+import { AdminRoute } from './components/AdminRoute';
+import { dashboardLoader, userLoader, friendLoader, adminLoader } from './services/loaders.service';
 import { ErrorPage } from './pages/Error/ErrorPage';
+import AdminPanel from './pages/Admin/AdminPanel';
 
 function NotificationListener({ children }: { children: React.ReactNode }) {
   useSocketNotification();
@@ -77,6 +79,12 @@ const router = createBrowserRouter([
           { path: "/solo-game", element: <SoloGamePage /> },
           { path: "*", element: <NotFound /> },
         ],
+       },
+       {
+         element: <AdminRoute />,
+         children: [
+           { path: "/admin", element: <AdminPanel />, loader: adminLoader, errorElement: <ErrorPage /> },
+         ],
        }
 
     ]

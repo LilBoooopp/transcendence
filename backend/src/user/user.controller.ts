@@ -1,6 +1,7 @@
 import {
     Controller,
     Patch,
+    Post,
     Get,
     Body,
     Param,
@@ -201,5 +202,17 @@ export class UserController {
         const user = await this.userService.findById(id);
         if (!user) throw new NotFoundException('User not found');
         return user;
+    }
+
+    @UseGuards(AuthGuard)
+    @Post(':userId/report')
+    async reportUser(
+        @Param('userId') userId: string,
+        @Body() body: { reason: string },
+        @Req() req: any,
+    ) {
+        if (!body.reason?.trim()) throw new BadRequestException('Reason is required');
+        await this.userService.createReport(req.user.userId, userId, body.reason.trim());
+        return { success: true };
     }
 }
