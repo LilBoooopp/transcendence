@@ -1,24 +1,36 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { v4 as uuidv4 } from 'uuid';
+import { EloService } from '../elo/elo.service';
+
+export interface GameRoomSnapshot {
+  gameStartedAt: number | null;
+  fen?: string;
+  pgn?: string;
+  moveCount: number;
+  whiteUserId: string | null;
+  blackUserId: string | null;
+}
+
+function toDbResult(winner: string): 'WHITE_WIN' | 'BLACK_WIN' | 'DRAW' {
+  if (winner === 'White') return 'WHITE_WIN';
+  if (winner === 'Black') return 'BLACK_WIN';
+  return 'DRAW';
+}
 
 @Injectable()
 export class GameService {
-  private waitingPlayers: Map<string, string> = new Map(); // userId to socketId
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eloService: EloService,
+  ) {}
 
-  constructor(private prisma: PrismaService) { }
-
-  /**
-  * Creates or no-ops a game row.
-  * startedAt is set here so persistGameResult can compute totalPlayTime even if gameRoom memory cleared.
-  */
   async createGame(
     whitePlayerId: string,
     blackPlayerId: string,
     id: string,
-    timeControl?: string
+    timeControl?: string,
   ) {
-    return (this.prisma.game.upsert({
+    return this.prisma.game.upsert({
       where: { id },
       create: {
         id,
@@ -30,63 +42,21 @@ export class GameService {
         startedAt: new Date(),
       },
       update: {},
-    }));
-  }
-
-  // Find or create game
-  async findOpponent(userId: string, socketId: string): Promise<string | null> {
-    // is someone waiing
-    const entries = Array.from(this.waitingPlayers.entries());
-
-    if (entries.length > 0) {
-      const [opponentId] = entries[0];
-      this.waitingPlayers.delete(opponentId);
-
-      /// make game with matched plaeyrs
-      const gameId = uuidv4();
-      const game = await this.createGame(opponentId, userId, gameId);
-      return (game.id);
-    } else {
-      // noone waiting, add to waitlist
-      this.waitingPlayers.set(userId, socketId);
-      return (null);
-    }
-  }
-
-  async getOrCreateGame(gameId: string) {
-    let game = await this.prisma.game.findUnique({ where: { id: gameId } });
-
-    if (!game) {
-      game = await this.prisma.game.create({
-        data: {
-          id: gameId,
-          status: 'WAITING',
-          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-        },
-      });
-    }
-
-    return (game);
+    });
   }
 
   async updateGame(gameId: string, data: { fen: string; moves: any }) {
-    return (this.prisma.game.update({
+    return this.prisma.game.update({
       where: { id: gameId },
-      data: {
-        fen: data.fen,
-        moves: data.moves,
-      },
-    }));
+      data: { fen: data.fen, moves: data.moves },
+    });
   }
 
   async getGame(gameId: string) {
-    return (this.prisma.game.findUnique({
+    return this.prisma.game.findUnique({
       where: { id: gameId },
-      include: {
-        whitePlayer: true,
-        blackPlayer: true,
-      },
-    }));
+      include: { whitePlayer: true, blackPlayer: true },
+    });
   }
 
   async createBotGame(
@@ -97,7 +67,7 @@ export class GameService {
     timeControl: string,
     id: string,
   ) {
-    return (this.prisma.game.create({
+    return this.prisma.game.create({
       data: {
         id,
         whitePlayerId: color === 'white' ? userId : null,
@@ -108,6 +78,107 @@ export class GameService {
         timeControl,
         startedAt: new Date(),
       },
-    }));
+    });
+  }
+
+  async persistGameResult(
+    gameId: string,
+    winner: string,
+    result: string,
+    abandoned = false,
+    room?: GameRoomSnapshot,
+  ): Promise<void> {
+    const endedAt = new Date();
+
+    try {
+      const game = await this.prisma.game.findUnique({
+        where: { id: gameId },
+        select: {
+          whitePlayerId: true,
+          blackPlayerId: true,
+          timeControl: true,
+          isRanked: true,
+          isAiGame: true,
+          startedAt: true,
+        },
+      });
+
+      const startMs =
+        room?.gameStartedAt ?? (game?.startedAt ? game.startedAt.getTime() : null);
+      const playTimeSeconds = startMs
+        ? Math.max(0, Math.floor((endedAt.getTime() - startMs) / 1000))
+        : 0;
+
+      await this.prisma.game.update({
+        where: { id: gameId },
+        data: {
+          status: abandoned ? 'ABANDONED' : 'COMPLETED',
+          result: toDbResult(winner),
+          winner: winner.toLowerCase(),
+          endedAt,
+          fen: room?.fen ?? undefined,
+          pgn: room?.pgn ?? undefined,
+          moves: room?.pgn ?? undefined,
+          totalMoves: room ? Math.ceil(room.moveCount / 2) : undefined,
+        },
+      });
+
+      const whiteId = room?.whiteUserId ?? game?.whitePlayerId ?? null;
+      const blackId = room?.blackUserId ?? game?.blackPlayerId ?? null;
+      const w = winner.toLowerCase();
+
+      if (!game?.isAiGame) {
+        if (whiteId) {
+          const outcome: 'win' | 'draw' | 'loss' =
+            w === 'white' ? 'win' : w === 'draw' ? 'draw' : 'loss';
+          await this.updatePlayerStats(whiteId, outcome, playTimeSeconds);
+        }
+        if (blackId) {
+          const outcome: 'win' | 'draw' | 'loss' =
+            w === 'black' ? 'win' : w === 'draw' ? 'draw' : 'loss';
+          await this.updatePlayerStats(blackId, outcome, playTimeSeconds);
+        }
+      }
+
+      if (!abandoned && game?.isRanked && !game?.isAiGame && whiteId && blackId) {
+        await this.eloService.processGameResult(
+          gameId,
+          game.timeControl,
+          whiteId,
+          blackId,
+          winner,
+        );
+      }
+    } catch (e) {
+      console.warn(`Failed to persist result for game ${gameId} (non-fatal):`, e.message);
+    }
+  }
+
+  async updatePlayerStats(
+    userId: string,
+    outcome: 'win' | 'draw' | 'loss',
+    playTimeSeconds: number,
+  ): Promise<void> {
+    const stats = await this.prisma.userStatistics.upsert({
+      where: { userId },
+      create: { userId, bulletElo: 1200, blitzElo: 1200, rapidElo: 1200 },
+      update: {},
+    });
+
+    const newStreak = outcome === 'win' ? stats.currentStreak + 1 : 0;
+    const newBestStreak = Math.max(stats.bestStreak, newStreak);
+
+    await this.prisma.userStatistics.update({
+      where: { userId },
+      data: {
+        totalGames: { increment: 1 },
+        wins: outcome === 'win' ? { increment: 1 } : undefined,
+        losses: outcome === 'loss' ? { increment: 1 } : undefined,
+        draws: outcome === 'draw' ? { increment: 1 } : undefined,
+        currentStreak: newStreak,
+        bestStreak: newBestStreak,
+        totalPlayTime: { increment: playTimeSeconds },
+      },
+    });
   }
 }

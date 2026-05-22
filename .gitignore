@@ -48,3 +48,7 @@ coverage/
 # Temp
 *.tmp
 .cache/
+
+# Personal Claude instructions
+CLAUDE.local.md
+.claude/

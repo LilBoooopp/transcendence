@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
+import { PieceSymbol } from '../chess/src/types';
 
 export type BotDifficulty = 'easy' | 'medium' | 'hard';
 
@@ -124,6 +125,13 @@ export class StockfishService implements OnModuleDestroy {
 
     this.engines.delete(gameId);
     this.logger.log(`Engine stopped [${gameId}]`);
+  }
+
+  parseUciMove(uci: string): { from: string; to: string; promotion?: PieceSymbol } {
+    const from = uci.slice(0, 2);
+    const to = uci.slice(2, 4);
+    const promotion = uci.length === 5 ? uci[4] as PieceSymbol : undefined;
+    return promotion ? { from, to, promotion } : { from, to };
   }
 
   onModuleDestroy(): void {
