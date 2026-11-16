@@ -58,6 +58,14 @@ const DEFAULT_TIME_MS = 10 * 60 * 1000;
 const DEFAULT_INCREMENT_MS = 0;
 const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
+// Authoritative board rebuilt from the room's own history; client-sent FEN/PGN is never trusted.
+// shortcut: replays the whole PGN on every move, keep a Chess instance on the room if it shows in profiles.
+function boardOf(room: GameRoom): Chess {
+  const chess = new Chess();
+  if (room.pgn && !chess.loadPgn(room.pgn)) chess.load(room.fen);
+  return chess;
+}
+
 function parseTc(key?: string): { initialMs: number; incrementMs: number } {
   if (!key) return { initialMs: DEFAULT_TIME_MS, incrementMs: DEFAULT_INCREMENT_MS };
   const parts = key.split('+').map(Number);
@@ -319,7 +327,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!this.activeGames.has(data.gameId)) {
       const dbGame = await this.prisma.game.findUnique({
         where: { id: data.gameId },
-        select: { status: true, result: true, winner: true, fen: true, pgn: true },
+        select: { status: true, result: true, winner: true, fen: true, pgn: true, moves: true },
       });
 
       if (!dbGame) {
@@ -336,7 +344,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       const { initialMs, incrementMs } = parseTc(data.timeControlKey);
-      this.activeGames.set(data.gameId, makeEmptyRoom(initialMs, incrementMs));
+      const restored = makeEmptyRoom(initialMs, incrementMs);
+      // Moves are checked against the room's board, so a room rebuilt after a restart resumes from the saved position.
+      restored.fen = dbGame.fen ?? INITIAL_FEN;
+      restored.pgn = typeof dbGame.moves === 'string' ? dbGame.moves : '';
+      restored.currentTurn = restored.fen.split(' ')[1] === 'b' ? 'b' : 'w';
+      this.activeGames.set(data.gameId, restored);
     }
 
     const gameRoom = this.activeGames.get(data.gameId)!;
@@ -603,7 +616,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const roomName = `game:${data.gameId}`;
 
     try {
-      if (!data.gameId || !data.move || !data.fen) {
+      if (!data.gameId || !data.move) {
         throw new WsException('Invalid move data');
       }
 
@@ -615,10 +628,27 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         throw new WsException('Spectators cannot make moves');
       }
 
-      client.to(roomName).emit('game:move', { move: data.move, fen: data.fen, pgn: data.pgn });
+      // Apply the move on the server's board: data.fen / data.pgn are ignored on purpose,
+      // the FEN ends up on Stockfish's stdin and in every other client.
+      const chess = boardOf(gameRoom);
+      if (chess.turn() !== (gameRoom.white === client.id ? 'w' : 'b')) {
+        throw new WsException('Not your turn');
+      }
+      const { from, to, promotion } = data.move;
+      const moveResult =
+        typeof from === 'string' && typeof to === 'string' && (promotion == null || typeof promotion === 'string')
+          ? chess.move({ from, to, promotion: promotion ?? undefined })
+          : null;
+      if (!moveResult) {
+        throw new WsException('Illegal move');
+      }
+      const fen = chess.fen();
+      const pgn = chess.pgn();
 
-      gameRoom.fen = data.fen;
-      gameRoom.pgn = data.pgn;
+      client.to(roomName).emit('game:move', { move: moveResult, fen, pgn });
+
+      gameRoom.fen = fen;
+      gameRoom.pgn = pgn;
       gameRoom.moveCount += 1;
 
       const movedColor = gameRoom.currentTurn;
@@ -642,7 +672,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       this.gameService
-        .updateGame(data.gameId, { fen: data.fen, moves: data.pgn })
+        .updateGame(data.gameId, { fen, moves: pgn })
         .catch((err) => console.warn('Failed to save game state to DB (non-fatal):', err.message));
 
       if (gameRoom.isBot && gameRoom.currentTurn === gameRoom.botColor) {
@@ -921,7 +951,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const uciMove = await this.stockfishService.getBestMove(gameId, gameRoom.fen);
         const parsed = this.stockfishService.parseUciMove(uciMove);
 
-        const chess = new Chess(fenBeforeMove);
+        const chess = boardOf(gameRoom); // keeps the full PGN, a FEN-only board would drop the history
         const moveResult = chess.move({ from: parsed.from, to: parsed.to, promotion: parsed.promotion });
 
         if (!moveResult) {

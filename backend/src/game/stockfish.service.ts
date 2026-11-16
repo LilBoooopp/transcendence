@@ -102,6 +102,11 @@ export class StockfishService implements OnModuleDestroy {
       return (Promise.reject(new Error(`No engine found for ${gameId}`)));
     }
 
+    // A newline here would let the caller send arbitrary UCI commands (setoption ...) to the engine.
+    if (!/^[\w\/ -]+$/.test(fen)) {
+      return (Promise.reject(new Error(`Refusing malformed FEN for ${gameId}`)));
+    }
+
     const { moveTimeMs } = DIFFICULTY_CONFIG[instance.difficulty];
 
     return (new Promise((resolve, reject) => {
