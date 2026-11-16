@@ -28,6 +28,14 @@ $(ENV_FILE):
 	@JWT=$$(openssl rand -base64 48); sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$$JWT|" .env
 	@printf "Generated new JWT_SECRET in .env\n"
 
+# Production stack (compiled backend, static frontend, ports 80/443): see docker-compose.prod.yml
+prod: $(CERT) $(ENV_FILE)
+	@git submodule update --init --recursive
+	@docker compose -f docker-compose.prod.yml up --build -d
+
+prod-down:
+	@docker compose -f docker-compose.prod.yml down
+
 down:
 	@printf "Stopping configuration ${name}...\n"
 	@$(COMPOSE_CMD) down
@@ -49,3 +57,4 @@ seed:
 	@docker exec -it backend npx prisma db seed
 
  PHONY: all down re clean fclean
+.PHONY: prod prod-down
