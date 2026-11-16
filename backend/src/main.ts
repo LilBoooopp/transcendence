@@ -9,17 +9,20 @@ import { PrismaService } from './prisma/prisma.service';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  const config = new DocumentBuilder()
-    .setTitle('Chess API')
-    .setDescription('API documentation for Chess Platform')
-    .setVersion('1.0.0')
-    .addServer('/api', 'API Gateway')
-    .addServer('http://localhost:4000', 'Local Backend')
-    .addBearerAuth()
-    .build();
+  // The full route map is a development aid: do not publish it on a production host.
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('Chess API')
+      .setDescription('API documentation for Chess Platform')
+      .setVersion('1.0.0')
+      .addServer('/api', 'API Gateway')
+      .addServer('http://localhost:4000', 'Local Backend')
+      .addBearerAuth()
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);  
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   app.set('trust proxy', 1);
 
