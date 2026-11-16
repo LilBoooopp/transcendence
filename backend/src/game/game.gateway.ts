@@ -46,6 +46,7 @@ interface GameRoom {
   botDifficulty: BotDifficulty | null;
   gameStartedAt: number | null;
   moveCount: number;
+  drawOfferedBy?: 'White' | 'Black';
 }
 
 interface MatchmakingEntry {
@@ -436,6 +437,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { gameId: string; difficulty: BotDifficulty; timeControlKey?: string },
     @ConnectedSocket() client: Socket,
   ) {
+    // A bot game always starts a fresh room: never replace someone else's running game.
+    if (this.activeGames.has(data.gameId)) {
+      return { success: false, error: 'Game already exists' };
+    }
+
     const userId = client.data.userId;
     const roomName = `game:${data.gameId}`;
     client.join(roomName);
@@ -658,19 +664,39 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('game:over')
   async handleGameOver(
-    @MessageBody() data: { gameId: string; winner: string; result: string },
+    @MessageBody() data: { gameId: string },
+    @ConnectedSocket() client: Socket,
   ) {
     const gameRoom = this.activeGames.get(data.gameId);
-    if (gameRoom) {
-      gameRoom.timerRunning = false;
-      this.clearGameTimer(data.gameId);
-      if (gameRoom.isBot) this.stockfishService.stopEngine(data.gameId);
+    if (!gameRoom || !this.playerColor(gameRoom, client)) return { success: false };
+
+    // The client only signals that the game ended: winner and reason come from the server's board.
+    const chess = new Chess();
+    if (!gameRoom.pgn || !chess.loadPgn(gameRoom.pgn)) chess.load(gameRoom.fen);
+
+    let winner: string;
+    let result: string;
+    if (chess.isCheckmate()) {
+      winner = chess.turn() === 'w' ? 'Black' : 'White';
+      result = 'Checkmate';
+    } else if (chess.isStalemate()) {
+      winner = 'Draw';
+      result = 'Stalemate';
+    } else if (chess.isDraw()) {
+      winner = 'Draw';
+      result = 'Draw';
+    } else {
+      return { success: false };
     }
 
-    this.server.to(`game:${data.gameId}`).emit('game:over', { winner: data.winner, result: data.result });
-    this.notificationService.gameOver(data.gameId, data.result, data.winner);
+    gameRoom.timerRunning = false;
+    this.clearGameTimer(data.gameId);
+    if (gameRoom.isBot) this.stockfishService.stopEngine(data.gameId);
 
-    await this.gameService.persistGameResult(data.gameId, data.winner, data.result, false, gameRoom ?? undefined);
+    this.server.to(`game:${data.gameId}`).emit('game:over', { winner, result });
+    this.notificationService.gameOver(data.gameId, result, winner === 'Draw' ? undefined : winner);
+
+    await this.gameService.persistGameResult(data.gameId, winner, result, false, gameRoom);
     this.userGameSockets.delete(data.gameId);
     this.activeGames.delete(data.gameId);
 
@@ -685,7 +711,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const gameRoom = this.activeGames.get(data.gameId);
     if (!gameRoom) return { success: false };
 
-    const resigningColor = gameRoom.white === client.id ? 'White' : 'Black';
+    const resigningColor = this.playerColor(gameRoom, client);
+    if (!resigningColor) return { success: false };
     const winner = resigningColor === 'White' ? 'Black' : 'White';
     const resultStr = `${resigningColor} resigned - ${winner} wins`;
 
@@ -711,10 +738,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const gameRoom = this.activeGames.get(data.gameId);
     if (!gameRoom) return { success: false };
 
+    const offerer = this.playerColor(gameRoom, client);
+    if (!offerer) return { success: false };
+    gameRoom.drawOfferedBy = offerer;
+
     client.to(`game:${data.gameId}`).emit('game:draw-offered', { gameId: data.gameId });
 
-    const offererIsWhite = gameRoom.white === client.id;
-    const opponentUserId = offererIsWhite ? gameRoom.blackUserId : gameRoom.whiteUserId;
+    const opponentUserId = offerer === 'White' ? gameRoom.blackUserId : gameRoom.whiteUserId;
     if (opponentUserId) this.notificationService.drawOffered(opponentUserId);
 
     return { success: true };
@@ -727,6 +757,13 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const gameRoom = this.activeGames.get(data.gameId);
     if (!gameRoom) return { success: false };
+
+    // Only the opponent of whoever offered the draw may answer it.
+    const responder = this.playerColor(gameRoom, client);
+    if (!responder || !gameRoom.drawOfferedBy || gameRoom.drawOfferedBy === responder) {
+      return { success: false };
+    }
+    gameRoom.drawOfferedBy = undefined;
 
     if (data.accepted) {
       const resultStr = 'Draw by agreement';
@@ -743,8 +780,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } else {
       client.to(`game:${data.gameId}`).emit('game:draw-declined', { gameId: data.gameId });
 
-      const declinerIsWhite = gameRoom.white === client.id;
-      const offererUserId = declinerIsWhite ? gameRoom.blackUserId : gameRoom.whiteUserId;
+      const offererUserId = responder === 'White' ? gameRoom.blackUserId : gameRoom.whiteUserId;
       if (offererUserId) this.notificationService.drawDeclined(offererUserId);
     }
 
@@ -784,6 +820,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   // ─── Private helpers ────────────────────────────────────────────────────────
+
+  private playerColor(room: GameRoom, client: Socket): 'White' | 'Black' | null {
+    if (room.white === client.id) return 'White';
+    if (room.black === client.id) return 'Black';
+    return null;
+  }
 
   private getActiveTime(gameRoom: GameRoom, color: 'w' | 'b'): number {
     if (!gameRoom.timerRunning || !gameRoom.lastMoveAt) {
