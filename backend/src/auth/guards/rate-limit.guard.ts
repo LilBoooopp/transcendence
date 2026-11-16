@@ -9,10 +9,8 @@ export class RateLimitGuard extends ThrottlerGuard {
     if (userId) return `user:${userId}`;
 
     // quota par ip
-    const xff = req.headers?.['x-forwarded-for'];
-    const ipFromProxy = Array.isArray(xff) ? xff[0] : xff?.split(',')[0]?.trim();
-    const ip = ipFromProxy || req.ip || req.socket?.remoteAddress || 'unknown';
-
-    return `ip:${ip}`;
+    // req.ip is the address nginx saw ('trust proxy' is 1 in main.ts). Never read X-Forwarded-For
+    // directly: its leftmost entry is whatever the client sent, so each request could pick a new bucket.
+    return `ip:${req.ip || req.socket?.remoteAddress || 'unknown'}`;
   }
 }
