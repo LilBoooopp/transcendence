@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLoaderData } from 'react-router-dom';
 import ProfileTile from '../../components/ProfileTile';
 import { useNotification } from "../../notifications";
+import { socketService } from '../../services/socket.service';
 
 type ProfileData = {
 	username: string;
@@ -153,7 +154,12 @@ const ProfilePage = () => {
 	        }
 		
 	        const data = await res.json();
-	        if (data.accessToken) localStorage.setItem('token', data.accessToken);
+	        if (data.accessToken) {
+	            localStorage.setItem('token', data.accessToken);
+	            // The old token is revoked: reconnect so the socket authenticates with the new one.
+	            socketService.disconnect();
+	            socketService.connect();
+	        }
 		
 	        return { success: true, message: 'Password changed successfully' };
 	    } catch {

@@ -36,6 +36,11 @@ export default function Navbar({ isDarkMode, toggleDarkMode }: NavbarProps) {
   }, [location]);
 
   const handleLogout = () => {
+    // Revoke the token server-side too: dropping it locally leaves a stolen copy valid.
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetch('/api/auth/logout', { method: 'POST', headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    }
     localStorage.removeItem('token');
     setIsAuthenticated(false);
     setIsAdmin(false);
