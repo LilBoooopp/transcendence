@@ -2,6 +2,9 @@
   "name": "chess-backend",
   "version": "1.0.0",
   "description": "NestJS backend for Chess Platform",
+  "prisma": {
+    "seed": "ts-node ./script/seed.ts"
+  },
   "scripts": {
     "start": "nest start",
     "start:dev": "nest start --watch",
