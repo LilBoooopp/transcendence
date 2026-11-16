@@ -24,6 +24,8 @@ async function bootstrap() {
 
   app.useStaticAssets(join(process.cwd(), 'src', 'uploads'), {
   prefix: '/uploads/',
+  // nginx's nosniff is not inherited by /api/ (that location sets its own add_header)
+  setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff'),
 });
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }));
