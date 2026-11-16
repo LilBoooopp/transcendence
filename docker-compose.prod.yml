@@ -1,0 +1,68 @@
+# Production stack: `make prod`.
+# Differences from docker-compose.yml (development):
+#   - backend is compiled and runs as an unprivileged user, with no file watcher and no source bind mount
+#   - frontend is a static build served by nginx (no webpack dev server)
+#   - avatars live in a named volume instead of the source tree
+#   - nginx listens on the standard ports 80 / 443
+# Put your certificate in nginx/ssl/cert.pem + key.pem (`make` generates a self-signed one).
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - transcendence
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+    volumes:
+      - uploads:/app/src/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - transcendence
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile.prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+    networks:
+      - transcendence
+
+networks:
+  transcendence:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  uploads:
