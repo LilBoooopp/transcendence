@@ -146,12 +146,18 @@ export class FriendsService {
   }
 
   async acceptFriendRequest(userId: string, friendId: string) {
-    const friend = await this.prisma.friend.update({
-      where: { id: friendId },
+    // Only the recipient of a still-pending request may answer it.
+    const { count } = await this.prisma.friend.updateMany({
+      where: { id: friendId, toUserId: userId, status: 'PENDING' },
       data: {
         status: 'ACCEPTED',
         respondedAt: new Date(),
       },
+    });
+    if (count === 0) throw new NotFoundException('Friend request not found');
+
+    const friend = await this.prisma.friend.findUnique({
+      where: { id: friendId },
       include: {
         fromUser: {
           select: {
@@ -183,13 +189,14 @@ export class FriendsService {
   }
 
   async rejectFriendRequest(userId: string, friendId: string) {
-    await this.prisma.friend.update({
-      where: { id: friendId },
+    const { count } = await this.prisma.friend.updateMany({
+      where: { id: friendId, toUserId: userId, status: 'PENDING' },
       data: {
         status: 'REJECTED',
         respondedAt: new Date(),
       },
     });
+    if (count === 0) throw new NotFoundException('Friend request not found');
 
     return { success: true };
   }
