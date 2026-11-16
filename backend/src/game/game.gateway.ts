@@ -346,7 +346,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!this.activeGames.has(data.gameId)) {
       const dbGame = await this.prisma.game.findUnique({
         where: { id: data.gameId },
-        select: { status: true, result: true, winner: true, fen: true, pgn: true, moves: true },
+        select: { status: true, result: true, winner: true, fen: true, pgn: true, moves: true, whitePlayerId: true, blackPlayerId: true },
       });
 
       if (!dbGame) {
@@ -368,6 +368,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       restored.fen = dbGame.fen ?? INITIAL_FEN;
       restored.pgn = typeof dbGame.moves === 'string' ? dbGame.moves : '';
       restored.currentTurn = restored.fen.split(' ')[1] === 'b' ? 'b' : 'w';
+      // Seats of a game rebuilt from the DB still belong to its players.
+      restored.whiteUserId = dbGame.whitePlayerId;
+      restored.blackUserId = dbGame.blackPlayerId;
       this.activeGames.set(data.gameId, restored);
     }
 
@@ -389,24 +392,29 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     let assignedRole: 'white' | 'black' | 'spectator';
 
+    // A seat is free only when no user owns it. The socket alone says nothing: a matchmade game reserves
+    // both seats before either player has connected, and a bot's seat never has a socket.
+    const whiteFree = gameRoom.whiteUserId === null && !gameRoom.isBot;
+    const blackFree = gameRoom.blackUserId === null && !gameRoom.isBot;
+
     if (gameRoom.whiteUserId === userId) {
       assignedRole = 'white';
       gameRoom.white = client.id;
     } else if (gameRoom.blackUserId === userId) {
       assignedRole = 'black';
       gameRoom.black = client.id;
-    } else if (data.claimedRole === 'white' && gameRoom.white === null) {
+    } else if (data.claimedRole === 'white' && whiteFree) {
       assignedRole = 'white';
       gameRoom.white = client.id;
       gameRoom.whiteUserId = userId;
-    } else if (data.claimedRole === 'black' && gameRoom.black === null) {
+    } else if (data.claimedRole === 'black' && blackFree) {
       assignedRole = 'black';
       gameRoom.black = client.id;
       gameRoom.blackUserId = userId;
     } else if (gameRoom.gameStarted) {
       assignedRole = 'spectator';
       gameRoom.spectators.add(client.id);
-    } else if (gameRoom.white === null && gameRoom.black === null) {
+    } else if (whiteFree && blackFree) {
       assignedRole = Math.random() < 0.5 ? 'white' : 'black';
       if (assignedRole === 'white') {
         gameRoom.white = client.id;
@@ -415,11 +423,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         gameRoom.black = client.id;
         gameRoom.blackUserId = userId;
       }
-    } else if (gameRoom.white === null) {
+    } else if (whiteFree) {
       assignedRole = 'white';
       gameRoom.white = client.id;
       gameRoom.whiteUserId = userId;
-    } else if (gameRoom.black === null) {
+    } else if (blackFree) {
       assignedRole = 'black';
       gameRoom.black = client.id;
       gameRoom.blackUserId = userId;
