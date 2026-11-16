@@ -476,8 +476,22 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (this.activeGames.has(data.gameId)) {
       return { success: false, error: 'Game already exists' };
     }
+    if (typeof data.gameId !== 'string' || !Object.keys(DIFFICULTY_CONFIG).includes(data.difficulty)) {
+      return { success: false, error: 'Invalid bot game request' };
+    }
 
     const userId = client.data.userId;
+
+    // One engine per user: a new bot game ends the previous one, so a client cannot pile up Stockfish processes.
+    for (const [oldId, old] of this.activeGames) {
+      if (!old.isBot || (old.whiteUserId !== userId && old.blackUserId !== userId)) continue;
+      this.clearGameTimer(oldId);
+      this.stockfishService.stopEngine(oldId);
+      this.userGameSockets.delete(oldId);
+      this.activeGames.delete(oldId);
+      this.gameService.persistGameResult(oldId, 'Draw', 'Player abandoned', true, old).catch(() => {});
+    }
+
     const roomName = `game:${data.gameId}`;
     client.join(roomName);
 
@@ -526,15 +540,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.activeGames.set(data.gameId, gameRoom);
 
-    await this.stockfishService.startEngine(data.gameId, data.difficulty);
-    await this.gameService.createBotGame(
-      userId,
-      humanColor,
-      data.difficulty,
-      DIFFICULTY_CONFIG[data.difficulty].skillLevel,
-      data.timeControlKey ?? DEFAULT_TIME_KEY,
-      data.gameId,
-    );
+    try {
+      await this.stockfishService.startEngine(data.gameId, data.difficulty);
+      await this.gameService.createBotGame(
+        userId,
+        humanColor,
+        data.difficulty,
+        DIFFICULTY_CONFIG[data.difficulty].skillLevel,
+        data.timeControlKey ?? DEFAULT_TIME_KEY,
+        data.gameId,
+      );
+    } catch (e) {
+      // Do not leave an engine process behind for a game that never started.
+      this.stockfishService.stopEngine(data.gameId);
+      this.userGameSockets.delete(data.gameId);
+      this.activeGames.delete(data.gameId);
+      throw e;
+    }
 
     client.emit('game:role-assigned', { gameId: data.gameId, role: humanColor });
 
