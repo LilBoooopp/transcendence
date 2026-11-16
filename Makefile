@@ -26,7 +26,8 @@ $(CERT):
 $(ENV_FILE):
 	@cp .env.example .env
 	@JWT=$$(openssl rand -base64 48); sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$$JWT|" .env
-	@printf "Generated new JWT_SECRET in .env\n"
+	@DBPW=$$(openssl rand -hex 24); sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$$DBPW|" .env
+	@printf "Generated new JWT_SECRET and POSTGRES_PASSWORD in .env\n"
 
 down:
 	@printf "Stopping configuration ${name}...\n"
