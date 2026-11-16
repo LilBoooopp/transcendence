@@ -1,5 +1,6 @@
 import { Controller, Post, Get, Body, Param, UseGuards, Req } from '@nestjs/common';
 import { FriendsService } from './friends.service';
+import { FriendRequestDto } from '../dto/friend-request.dto';
 import { AuthGuard } from '../auth/guards/auth.guards';
 import { Throttle } from '@nestjs/throttler';
 import { RateLimitGuard } from '../auth/guards/rate-limit.guard';
@@ -21,7 +22,7 @@ export class FriendsController {
 
   @Post()
   @SendFriendRequestDocs()
-  async sendFriendRequest(@Req() req: any, @Body() body: { toUsername: string }) {
+  async sendFriendRequest(@Req() req: any, @Body() body: FriendRequestDto) {
     return this.friendsService.friendRequest(req.user.userId, body.toUsername);
   }
 

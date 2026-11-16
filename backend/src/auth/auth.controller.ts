@@ -2,6 +2,7 @@ import { Controller, Req, Request, Body, Get, HttpCode, HttpStatus, Post, UseGua
 import { AuthService} from './auth.service';
 import { AuthGuard } from './guards/auth.guards';
 import { CreateUserDto } from '../dto/create-user.dto';
+import { LoginDto } from '../dto/login.dto';
 import { Throttle } from '@nestjs/throttler';
 import { RateLimitGuard } from './guards/rate-limit.guard';
 import {
@@ -23,7 +24,7 @@ export class AuthController {
 	@HttpCode(HttpStatus.OK)
 	@Post('login')
 	@LoginDocs()
-	login(@Body() input: {username: string; password: string}) {
+	login(@Body() input: LoginDto) {
 		return this.authService.authenticate(input);
 	}
 

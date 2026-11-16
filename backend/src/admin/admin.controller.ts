@@ -12,6 +12,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminGuard } from '../auth/guards/auth.guards';
 import { GameGateway } from '../game/game.gateway';
+import { BanUserDto } from '../dto/ban-user.dto';
 
 @Controller('admin')
 @UseGuards(AdminGuard)
@@ -50,7 +51,7 @@ export class AdminController {
   @Post('users/:userId/ban')
   async banUser(
     @Param('userId') userId: string,
-    @Body() body: { reason?: string; durationHours?: number },
+    @Body() body: BanUserDto,
     @Req() req: any,
   ) {
     const target = await this.prisma.user.findUnique({
