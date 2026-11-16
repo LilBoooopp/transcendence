@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate, useLocation, useLoaderData } from 'react-router-dom';
 import FriendProfileTile from '../../components/FriendProfileTile';
 import Button from '../../components/Button';
 import * as Icons from 'lucide-react';
 import { GameModeStatsCard } from '../../components/GameModeStatsCard';
 import GameHistoryList, { GameHistoryItem } from '../../components/GameHistoryList';
+import { useNotification } from '../../notifications';
 
 interface ChartDataPoint {
     date: string;
@@ -53,10 +54,68 @@ const StatsView = ({ chartData }: { chartData: ChartData }) => {
     );
 };
 
+function ReportModal({ userId, username, onClose }: { userId: string; username: string; onClose: () => void }) {
+    const [reason, setReason] = useState('');
+    const [loading, setLoading] = useState(false);
+    const { push } = useNotification();
+
+    async function submit() {
+        if (!reason.trim()) return;
+        setLoading(true);
+        try {
+            const res = await fetch(`/api/users/${userId}/report`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+                body: JSON.stringify({ reason: reason.trim() }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.message ?? 'Failed');
+            }
+            push({ type: 'success', title: 'Report submitted', message: 'Admins will review your report.', duration: 4000 });
+            onClose();
+        } catch (e: any) {
+            push({ type: 'error', title: 'Report failed', message: e.message, duration: 5000 });
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="bg-primary rounded-xl shadow-xl p-6 w-full max-w-md mx-4 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-heading font-bold text-text-default flex items-center gap-2">
+                        <Icons.Flag size={20} className="text-accent" /> Report {username}
+                    </h2>
+                    <button onClick={onClose} className="text-text-default/40 hover:text-text-default transition-colors">
+                        <Icons.X size={20} />
+                    </button>
+                </div>
+                <p className="text-sm text-text-default/60">Describe why you're reporting this player. Admins will review your report.</p>
+                <textarea
+                    value={reason}
+                    onChange={e => setReason(e.target.value)}
+                    placeholder="e.g. Using a chess engine, abusive behavior…"
+                    rows={4}
+                    className="w-full bg-contrast border border-accent/20 rounded-lg px-3 py-2 text-sm text-text-default placeholder:text-text-default/30 focus:outline-none focus:border-accent/60 resize-none"
+                />
+                <div className="flex gap-3 justify-end">
+                    <Button variant="secondary" onClick={onClose} className="px-4 py-2 text-sm">Cancel</Button>
+                    <Button variant="tertiary" onClick={submit} disabled={!reason.trim() || loading} className="px-4 py-2 text-sm">
+                        {loading ? 'Sending…' : 'Submit report'}
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function FriendProfilePage() {
     const { username } = useParams<{ username: string }>();
     const navigate = useNavigate();
     const location = useLocation();
+    const [reportOpen, setReportOpen] = useState(false);
     
     const profile = location.state?.friendData;
     const { friendData } = useLoaderData() as { friendData: any };
@@ -110,12 +169,23 @@ export default function FriendProfilePage() {
                 <GameHistoryList history={historyData} />
             </div>
 
-            {/* Back Button positioned below the tile */}
-            <div className="flex justify-center md:justify-start mt-2">
-                 <Button variant="tertiary" onClick={() => navigate(-1)} className="text-sm px-6 py-2">
-                     &larr; Back
-                 </Button>
+            {/* Back + Report */}
+            <div className="flex justify-between items-center mt-2">
+                <Button variant="tertiary" onClick={() => navigate(-1)} className="text-sm px-6 py-2">
+                    &larr; Back
+                </Button>
+                <Button variant="secondary" onClick={() => setReportOpen(true)} className="text-sm px-4 py-2 flex items-center gap-2">
+                    <Icons.Flag size={15} /> Report
+                </Button>
             </div>
+
+            {reportOpen && (
+                <ReportModal
+                    userId={friendData?.id}
+                    username={friendData?.username || profile?.username}
+                    onClose={() => setReportOpen(false)}
+                />
+            )}
         </div>
     );
 }
