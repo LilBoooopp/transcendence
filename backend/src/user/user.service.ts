@@ -58,20 +58,6 @@ const UPLOADS_DIR = join(process.cwd(), 'src', 'uploads');
 export class UserService {
     constructor(private prisma: PrismaService) { }
 
-    async findByEmail(email: string): Promise<UserProfile | null> {
-        return this.prisma.user.findUnique({
-            where: { email },
-            select: {
-                username: true,
-                id: true,
-                firstName: true,
-                bio: true,
-                isOnline: true,
-                avatarUrl: true,
-            },
-        });
-    }
-
     async findById(id: string): Promise<UserProfile | null> {
         return this.prisma.user.findUnique({
             where: { id },

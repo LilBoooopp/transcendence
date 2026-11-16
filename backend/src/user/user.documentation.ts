@@ -142,28 +142,6 @@ export function GetHistoryDocs() {
   );
 }
 
-export function GetByEmailDocs() {
-  return applyDecorators(
-    ApiOperation({ summary: 'Get user by email' }),
-    ApiParam({ name: 'email', description: 'Email address of the user' }),
-    ApiResponse({
-      status: 200,
-      description: 'User retrieved successfully',
-      schema: {
-        example: {
-          username: 'john_doe',
-          id: 'user1',
-          firstName: 'John',
-          bio: 'Chess player',
-          isOnline: true,
-          avatarUrl: 'avatar.png',
-        },
-      },
-    }),
-    ApiResponse({ status: 404, description: 'User not found' }),
-  );
-}
-
 export function GetByUsernameDocs() {
   return applyDecorators(
     ApiOperation({ summary: 'Get user by username' }),

@@ -29,7 +29,6 @@ import {
   GetStatsDocs,
   GetEloHistoryDocs,
   GetHistoryDocs,
-  GetByEmailDocs,
   GetByUsernameDocs,
   GetByIdDocs,
   PatchUserDocs,
@@ -169,14 +168,6 @@ export class UserController {
     @GetEloHistoryDocs()
     async getUserElo(@Req() req: any) {
         return await this.userService.getUserElo(req.user.userId);
-    }
-
-    @Get('email/:email')
-    @GetByEmailDocs()
-    async getUserByEmail(@Param('email') email: string) {
-        const user = await this.userService.findByEmail(email);
-        if (!user) throw new NotFoundException('User not found');
-        return user;
     }
 
     @Get('username/:username')
