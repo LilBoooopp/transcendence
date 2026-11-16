@@ -38,6 +38,7 @@ import {
 } from './user.documentation';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
+import { ReportUserDto } from '../dto/report-user.dto';
 
 interface UploadedFile {
     filename: string;
@@ -204,7 +205,7 @@ export class UserController {
     @Post(':userId/report')
     async reportUser(
         @Param('userId') userId: string,
-        @Body() body: { reason: string },
+        @Body() body: ReportUserDto,
         @Req() req: any,
     ) {
         if (!body.reason?.trim()) throw new BadRequestException('Reason is required');
