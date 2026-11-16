@@ -453,7 +453,12 @@ export class UserService {
             throw new NotFoundException('User not found');
         }
 
-        return await this.prisma.user.update({
+        // Anonymising the row is not enough: friendships and the avatar file still point at the person.
+        await this.prisma.friend.deleteMany({
+            where: { OR: [{ fromUserId: id }, { toUserId: id }] },
+        });
+
+        await this.prisma.user.update({
             where: { id },
             data: {
                 email: `deleted-${id}@deleted.invalid`,
@@ -467,6 +472,10 @@ export class UserService {
                 isOnline: false,
             },
         });
+
+        await this.deleteAvatarIfCustom(user.avatarUrl);
+
+        return { success: true };
     }
 
     async getUserHistory(id: string): Promise<UserHistory> {
