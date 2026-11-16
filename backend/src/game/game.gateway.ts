@@ -20,6 +20,7 @@ import { JwtService } from '@nestjs/jwt';
 import { JWT_SECRET } from '../auth/configs/jwtsecret';
 import { NotificationService } from '../notification/notification.service';
 import { UserService } from '../user/user.service';
+import { CORS_ORIGINS } from '../common/cors';
 
 const HUMAN_RECONNECT_SECONDS = 30;
 const BOT_RECONNECT_SECONDS = 10;
@@ -102,7 +103,7 @@ function makeEmptyRoom(initialMs: number, incrementMs: number): GameRoom {
   };
 }
 
-@WebSocketGateway({ cors: { origin: '*' } })
+@WebSocketGateway({ cors: { origin: CORS_ORIGINS } })
 @UseGuards(WsAuthGuard)
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
