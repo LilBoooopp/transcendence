@@ -110,15 +110,20 @@ export class AuthService {
   }
 
   async signIn(user: SignInData): Promise<AuthResult> {
+    // Accounts created without a fingerprint (seed data) get one on first login.
+    const fingerprint =
+      user.fingerprint ?? (await this.usersService.updateFingerprint(user.userId)).fingerprint;
     const tokenPayload = {
       sub: user.userId,
-      username: user.fingerprint,
+      fingerprint,
     };
     const accessToken = await this.jwtService.signAsync(tokenPayload);
     return { accessToken, username: user.username, userId: user.userId };
   }
 
   async logout(userId: string) {
+    // Rotating the fingerprint revokes every token of the account, on all devices.
+    await this.usersService.updateFingerprint(userId);
     return true;
   }
 

@@ -15,7 +15,7 @@ import { Chess } from '../chess/src/Chess';
 import { BotDifficulty, DIFFICULTY_CONFIG, StockfishService } from './stockfish.service';
 import { v4 as uuidv4 } from 'uuid';
 import { UseGuards } from '@nestjs/common';
-import { WsAuthGuard } from '../auth/guards/auth.guards';
+import { WsAuthGuard, hasCurrentFingerprint } from '../auth/guards/auth.guards';
 import { JwtService } from '@nestjs/jwt';
 import { JWT_SECRET } from '../auth/configs/jwtsecret';
 import { NotificationService } from '../notification/notification.service';
@@ -132,8 +132,12 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const payload = await this.jwtService.verifyAsync(token, { secret: JWT_SECRET });
       const user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
-        select: { isBanned: true },
+        select: { isBanned: true, fingerprint: true },
       });
+      if (!hasCurrentFingerprint(payload, user)) {
+        client.disconnect(true);
+        return;
+      }
       if (user?.isBanned) {
         client.emit('banned', { message: 'Your account has been banned.' });
         client.disconnect(true);

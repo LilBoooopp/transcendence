@@ -10,12 +10,23 @@ import { Socket } from 'socket.io';
 import { JWT_SECRET } from '../configs/jwtsecret';
 import { PrismaService } from '../../prisma/prisma.service';
 
-async function checkBan(prisma: PrismaService, userId: string): Promise<void> {
+// A signature alone is not enough: the token must carry the account's current fingerprint.
+// It is rotated on password change and logout and cleared on deletion, which revokes older tokens.
+export function hasCurrentFingerprint(
+  payload: { fingerprint?: unknown },
+  user: { fingerprint: string | null } | null,
+): boolean {
+  return !!user?.fingerprint && payload.fingerprint === user.fingerprint;
+}
+
+async function checkAccount(prisma: PrismaService, payload: { sub: string; fingerprint?: unknown }): Promise<void> {
+  const userId = payload.sub;
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { isBanned: true, bannedUntil: true },
+    select: { isBanned: true, bannedUntil: true, fingerprint: true },
   });
-  if (!user?.isBanned) return;
+  if (!hasCurrentFingerprint(payload, user)) throw new UnauthorizedException('Session expired');
+  if (!user.isBanned) return;
   if (user.bannedUntil && user.bannedUntil <= new Date()) {
     await prisma.user.update({
       where: { id: userId },
@@ -40,8 +51,8 @@ export class AuthGuard implements CanActivate {
 
     try {
       const tokenPayload = await this.jwtService.verifyAsync(token);
-      await checkBan(this.prisma, tokenPayload.sub);
-      request.user = { userId: tokenPayload.sub, username: tokenPayload.username };
+      await checkAccount(this.prisma, tokenPayload);
+      request.user = { userId: tokenPayload.sub };
       return true;
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
@@ -63,9 +74,10 @@ export class AdminGuard implements CanActivate {
       const tokenPayload = await this.jwtService.verifyAsync(token);
       const user = await this.prisma.user.findUnique({
         where: { id: tokenPayload.sub },
-        select: { role: true, isBanned: true, bannedUntil: true },
+        select: { role: true, isBanned: true, bannedUntil: true, fingerprint: true },
       });
       if (!user) throw new UnauthorizedException('Account unavailable');
+      if (!hasCurrentFingerprint(tokenPayload, user)) throw new UnauthorizedException('Session expired');
       if (user.isBanned) {
         if (user.bannedUntil && user.bannedUntil <= new Date()) {
           await this.prisma.user.update({
@@ -77,7 +89,7 @@ export class AdminGuard implements CanActivate {
         }
       }
       if (user.role !== 'ADMIN') throw new ForbiddenException('Admin access required');
-      request.user = { userId: tokenPayload.sub, username: tokenPayload.username };
+      request.user = { userId: tokenPayload.sub };
       return true;
     } catch (error) {
       if (error instanceof UnauthorizedException || error instanceof ForbiddenException) throw error;
@@ -97,9 +109,8 @@ export class WsAuthGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync(token, { secret: JWT_SECRET });
-      await checkBan(this.prisma, payload.sub);
+      await checkAccount(this.prisma, payload);
       client.data.userId = payload.sub;
-      client.data.username = payload.username;
       return true;
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
