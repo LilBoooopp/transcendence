@@ -2,6 +2,7 @@ import { Controller, Req, Request, Body, Get, HttpCode, HttpStatus, Post, UseGua
 import { AuthService} from './auth.service';
 import { AuthGuard } from './guards/auth.guards';
 import { CreateUserDto } from '../dto/create-user.dto';
+import { LoginDto } from '../dto/login.dto';
 import { Throttle } from '@nestjs/throttler';
 import { RateLimitGuard } from './guards/rate-limit.guard';
 import {
@@ -19,15 +20,16 @@ import {
 export class AuthController {
 	constructor(private authService: AuthService) {}
 
-	@Throttle({ default: { limit: 100, ttl: 60_000 } })
+	// Per IP: 10 guesses a minute is plenty for a person and slow enough to make password guessing useless.
+	@Throttle({ default: { limit: 10, ttl: 60_000 } })
 	@HttpCode(HttpStatus.OK)
 	@Post('login')
 	@LoginDocs()
-	login(@Body() input: {username: string; password: string}) {
+	login(@Body() input: LoginDto) {
 		return this.authService.authenticate(input);
 	}
 
-	@Throttle({ default: { limit: 100, ttl: 60_000 } })
+	@Throttle({ default: { limit: 10, ttl: 60_000 } })
 	@Post('register')
 	@RegisterDocs()
 	@HttpCode(HttpStatus.CREATED)

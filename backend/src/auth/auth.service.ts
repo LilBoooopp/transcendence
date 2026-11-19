@@ -3,6 +3,7 @@ import { UserService } from 'src/user/user.service'
 import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
+import { isUsernameAllowed } from '../common/username-filter';
 
 type AuthInput = { username: string; password: string };
 type SignInData = { userId: string; username: string; fingerprint: string };
@@ -24,6 +25,10 @@ export class AuthService {
   }): Promise<AuthResult> {
     if (!data.email || !data.username || !data.password) {
       throw new BadRequestException('Email, username, and password are mandatory');
+    }
+
+    if (!isUsernameAllowed(data.username)) {
+      throw new BadRequestException('Username contains prohibited content');
     }
 
     const existingUser = await this.prisma.user.findFirst({
@@ -82,9 +87,20 @@ export class AuthService {
 
     if (!user) return null;
 
+    // Password first: otherwise anyone could learn which accounts are banned without knowing their password.
     const valid = await bcrypt.compare(input.password, user.password);
-
     if (!valid) return null;
+
+    if (user.isBanned) {
+      if (user.bannedUntil && user.bannedUntil <= new Date()) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { isBanned: false, bannedUntil: null, banReason: null },
+        });
+      } else {
+        throw new UnauthorizedException('Your account has been banned');
+      }
+    }
 
     return {
       userId: user.id,
@@ -94,15 +110,20 @@ export class AuthService {
   }
 
   async signIn(user: SignInData): Promise<AuthResult> {
+    // Accounts created without a fingerprint (seed data) get one on first login.
+    const fingerprint =
+      user.fingerprint ?? (await this.usersService.updateFingerprint(user.userId)).fingerprint;
     const tokenPayload = {
       sub: user.userId,
-      username: user.fingerprint,
+      fingerprint,
     };
     const accessToken = await this.jwtService.signAsync(tokenPayload);
     return { accessToken, username: user.username, userId: user.userId };
   }
 
   async logout(userId: string) {
+    // Rotating the fingerprint revokes every token of the account, on all devices.
+    await this.usersService.updateFingerprint(userId);
     return true;
   }
 

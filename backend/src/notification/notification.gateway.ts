@@ -10,6 +10,7 @@ import { NotificationService } from './notification.service';
 import { JwtService } from '@nestjs/jwt';
 import { JWT_SECRET } from 'src/auth/configs/jwtsecret';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { CORS_ORIGINS } from '../common/cors';
 
 /**
  * NotificationGateway
@@ -18,7 +19,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
  *     1. hand the server ref to notificationservice on init
  *     2. auto-join every authenticated socket into a personal room (`user:<userId>`) so NotificationService.notifyUser() can target them
  */
-@WebSocketGateway({ cors: { origin: '*' } })
+@WebSocketGateway({ cors: { origin: CORS_ORIGINS } })
 export class NotificationGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
@@ -103,6 +104,7 @@ export class NotificationGateway implements OnGatewayInit, OnGatewayConnection, 
             }).catch((e) => console.warn(`Failed to mark user ${userId} offline:`, e.message));
         }
       }, 5000);
+      this.offlineTimers.set(userId, timer);
     });
   }
 }

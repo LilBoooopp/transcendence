@@ -48,3 +48,10 @@ coverage/
 # Temp
 *.tmp
 .cache/
+
+# Personal Claude instructions
+CLAUDE.local.md
+.claude/
+
+# Database and avatar dumps from `make backup`
+backups/

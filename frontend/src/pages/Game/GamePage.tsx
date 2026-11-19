@@ -37,6 +37,7 @@ const GamePage: React.FC = () => {
 	const [waiting, setWaiting] = useState(true);
 
 	const [players, setPlayers] = useState<{ white: string, black: string } | null>(null);
+	const [playerUserIds, setPlayerUserIds] = useState<{ white: string | null, black: string | null } | null>(null);
 
 	const hasConnected = useRef(false);
 
@@ -100,6 +101,7 @@ const GamePage: React.FC = () => {
 				black: { userId: string | null; username: string };
 			}) => {
 				setPlayers({ white: data.white.username, black: data.black.username });
+				setPlayerUserIds({ white: data.white.userId, black: data.black.userId });
 			});
 
 			socketService.joinGame(gameId, tcKey, state.role ?? undefined);
@@ -174,6 +176,10 @@ const GamePage: React.FC = () => {
 		);
 	}
 
+	const opponentColor = role === 'white' ? 'black' : 'white';
+	const opponentUserId = playerUserIds?.[opponentColor] ?? null;
+	const opponentUsername = players?.[opponentColor] ?? null;
+
 	return (
 		<ChessGame
 			gameId={gameId}
@@ -185,6 +191,8 @@ const GamePage: React.FC = () => {
 			incrementMs={timeControl.incrementMs}
 			initialGameOver={initialGameOver}
 			players={players}
+			opponentUserId={opponentUserId}
+			opponentUsername={opponentUsername}
 		/>
 	);
 };

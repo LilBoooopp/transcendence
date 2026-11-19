@@ -1,0 +1,10 @@
+# Only used by builds whose context is the repository root (nginx/Dockerfile.prod).
+.git
+.env
+.claude
+**/node_modules
+**/build
+**/dist
+backend
+database
+nginx/ssl

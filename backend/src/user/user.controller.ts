@@ -1,6 +1,7 @@
 import {
     Controller,
     Patch,
+    Post,
     Get,
     Body,
     Param,
@@ -18,7 +19,7 @@ import { Throttle } from '@nestjs/throttler';
 import { RateLimitGuard } from '../auth/guards/rate-limit.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { join } from 'path';
 import { mkdirSync } from 'fs';
 import { JwtService } from '@nestjs/jwt';
 import {
@@ -28,7 +29,6 @@ import {
   GetStatsDocs,
   GetEloHistoryDocs,
   GetHistoryDocs,
-  GetByEmailDocs,
   GetByUsernameDocs,
   GetByIdDocs,
   PatchUserDocs,
@@ -38,6 +38,7 @@ import {
 } from './user.documentation';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
+import { ReportUserDto } from '../dto/report-user.dto';
 
 interface UploadedFile {
     filename: string;
@@ -47,6 +48,13 @@ interface UploadedFile {
 }
 
 const UPLOADS_DIR = join(process.cwd(), 'src', 'uploads');
+
+const AVATAR_EXTENSIONS: Record<string, string> = {
+    'image/png': '.png',
+    'image/jpeg': '.jpg',
+    'image/jpg': '.jpg',
+    'image/webp': '.webp',
+};
 
 @Controller('users')
 @UserControllerDocs()
@@ -123,15 +131,13 @@ export class UserController {
                     cb(null, UPLOADS_DIR);
                 },
                 filename: (req, file, cb) => {
-                    const extension = extname(file.originalname).toLowerCase();
-                    const safeExtension = extension || '.png';
-                    cb(null, `${req.user.userId}-${Date.now()}${safeExtension}`);
+                    // Never reuse the client's extension: "x.html" sent as image/png would be served as HTML.
+                    cb(null, `${req.user.userId}-${Date.now()}${AVATAR_EXTENSIONS[file.mimetype]}`);
                 },
             }),
             limits: { fileSize: 5 * 1024 * 1024 },
             fileFilter: (_req, file, cb) => {
-                const isAllowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'].includes(file.mimetype);
-                if (!isAllowed) {
+                if (!Object.keys(AVATAR_EXTENSIONS).includes(file.mimetype)) {
                     return cb(new BadRequestException('Only png, jpg, jpeg, webp files are allowed'), false);
                 }
                 cb(null, true);
@@ -165,14 +171,6 @@ export class UserController {
         return await this.userService.getUserElo(req.user.userId);
     }
 
-    @Get('email/:email')
-    @GetByEmailDocs()
-    async getUserByEmail(@Param('email') email: string) {
-        const user = await this.userService.findByEmail(email);
-        if (!user) throw new NotFoundException('User not found');
-        return user;
-    }
-
     @Get('username/:username')
     @GetByUsernameDocs()
     async getUserByUsername(@Param('username') username: string) {
@@ -201,5 +199,17 @@ export class UserController {
         const user = await this.userService.findById(id);
         if (!user) throw new NotFoundException('User not found');
         return user;
+    }
+
+    @UseGuards(AuthGuard)
+    @Post(':userId/report')
+    async reportUser(
+        @Param('userId') userId: string,
+        @Body() body: ReportUserDto,
+        @Req() req: any,
+    ) {
+        if (!body.reason?.trim()) throw new BadRequestException('Reason is required');
+        await this.userService.createReport(req.user.userId, userId, body.reason.trim());
+        return { success: true };
     }
 }

@@ -1,0 +1,84 @@
+# Production stack: `make prod`.
+# Differences from docker-compose.yml (development):
+#   - backend is compiled and runs as an unprivileged user, with no file watcher and no source bind mount
+#   - frontend is a static build served by nginx (no webpack dev server)
+#   - avatars live in a named volume instead of the source tree
+#   - nginx serves plain HTTP on HTTP_PORT for a TLS-terminating proxy (Nginx Proxy Manager + Let's Encrypt)
+
+# Docker keeps container logs forever by default: cap them so a long-running host does not fill its disk.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - transcendence
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      - uploads:/app/src/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # The port only opens once migrations ran and Nest finished booting.
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect(4000, '127.0.0.1').on('connect', () => process.exit(0)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    networks:
+      - transcendence
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile.prod
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      TRUSTED_PROXY: ${TRUSTED_PROXY:-172.16.0.0/12}
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - transcendence
+
+networks:
+  transcendence:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  uploads:

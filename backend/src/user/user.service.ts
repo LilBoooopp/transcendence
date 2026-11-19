@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { isUsernameAllowed } from '../common/username-filter';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import * as bcrypt from 'bcrypt';
@@ -19,14 +20,16 @@ type UserProfile = {
     bio: string | null;
     avatarUrl: string | null;
     email?: string | null;
+    role?: string;
 };
 
-type UserAuth = { id: string; username: string; password: string, fingerprint: string };
+type UserAuth = { id: string; username: string; password: string; fingerprint: string; isBanned: boolean; bannedUntil: Date | null };
 type newFingerPrint = { id: string; fingerprint: string };
 type UserHistoryItem = {
     id: string;
     date: string;
     opponent: string;
+    opponentId: string | null;
     result: 'Win' | 'Loss' | 'Draw';
     moves: number;
     mode: 'Bullet' | 'Blitz' | 'Rapid';
@@ -54,20 +57,6 @@ const UPLOADS_DIR = join(process.cwd(), 'src', 'uploads');
 @Injectable()
 export class UserService {
     constructor(private prisma: PrismaService) { }
-
-    async findByEmail(email: string): Promise<UserProfile | null> {
-        return this.prisma.user.findUnique({
-            where: { email },
-            select: {
-                username: true,
-                id: true,
-                firstName: true,
-                bio: true,
-                isOnline: true,
-                avatarUrl: true,
-            },
-        });
-    }
 
     async findById(id: string): Promise<UserProfile | null> {
         return this.prisma.user.findUnique({
@@ -101,7 +90,7 @@ export class UserService {
     async findAuthUser(username: string): Promise<UserAuth | null> {
         return this.prisma.user.findUnique({
             where: { username },
-            select: { id: true, username: true, password: true, fingerprint: true, },
+            select: { id: true, username: true, password: true, fingerprint: true, isBanned: true, bannedUntil: true },
         });
     }
 
@@ -130,6 +119,7 @@ export class UserService {
                 lastName: true,
                 bio: true,
                 avatarUrl: true,
+                role: true,
             },
         });
     }
@@ -152,26 +142,10 @@ export class UserService {
             avatarUrl?: string;
         } = {};
 
-		if (data.username || data.email) {
-        const where: any = { OR: [] };
-        if (data.username) where.OR.push({ username: data.username });
-        if (data.email) where.OR.push({ email: data.email });
-
-        const conflict = await this.prisma.user.findFirst({
-          where,
-          select: { id: true, username: true, email: true },
-        });
-        if (conflict && conflict.id !== id) {
-          if (data.username && conflict.username === data.username) {
-            throw new ConflictException('Username already taken');
-          }
-          if (data.email && conflict.email === data.email) {
-            throw new ConflictException('Email already taken');
-          }
-        }
-      }
-
         if (newUsername !== undefined && newUsername !== null && newUsername !== '') {
+            if (!isUsernameAllowed(newUsername)) {
+                throw new BadRequestException('Username contains prohibited content');
+            }
             data.username = newUsername;
         }
         if (newEmail !== undefined && newEmail !== null && newEmail !== '') {
@@ -446,7 +420,12 @@ export class UserService {
             throw new NotFoundException('User not found');
         }
 
-        return await this.prisma.user.update({
+        // Anonymising the row is not enough: friendships and the avatar file still point at the person.
+        await this.prisma.friend.deleteMany({
+            where: { OR: [{ fromUserId: id }, { toUserId: id }] },
+        });
+
+        await this.prisma.user.update({
             where: { id },
             data: {
                 email: `deleted-${id}@deleted.invalid`,
@@ -460,6 +439,10 @@ export class UserService {
                 isOnline: false,
             },
         });
+
+        await this.deleteAvatarIfCustom(user.avatarUrl);
+
+        return { success: true };
     }
 
     async getUserHistory(id: string): Promise<UserHistory> {
@@ -468,31 +451,24 @@ export class UserService {
             where: {
                 status: 'COMPLETED',
                 isAiGame: false,
-                OR: [
-                    { whitePlayerId: id },
-                    { blackPlayerId: id },
-                ],
+                players: { some: { userId: id } },
             },
             orderBy: {
                 endedAt: 'desc',
             },
             take: 10,
             include: {
-                whitePlayer: { select: { id: true, username: true } },
-                blackPlayer: { select: { id: true, username: true } },
+                players: { select: { color: true, user: { select: { id: true, username: true } } } },
             },
         });
 
         const history: UserHistory = games.map((game) => {
-            const isWhite = game.whitePlayerId === id;
-            const isBlack = game.blackPlayerId === id;
+            const me = game.players.find((p) => p.user.id === id);
+            const isWhite = me?.color === 'WHITE';
+            const isBlack = me?.color === 'BLACK';
 
-            const opponent =
-                isWhite
-                    ? game.blackPlayer?.username
-                    : isBlack
-                        ? game.whitePlayer?.username
-                        : 'Unknown';
+            const opponentPlayer = game.players.find((p) => p.user.id !== id)?.user ?? null;
+            const opponent = opponentPlayer?.username;
 
             const refDate = game.endedAt || game.createdAt;
             const dateStr = refDate.toISOString().slice(0, 10);
@@ -530,7 +506,8 @@ export class UserService {
             const item: UserHistoryItem = {
                 id: game.id,
                 date: dateStr,
-                opponent: opponent ?? 'Unknowns',
+                opponent: opponent ?? 'Unknown',
+                opponentId: opponentPlayer?.id ?? null,
                 result,
                 moves,
                 mode,
@@ -541,5 +518,20 @@ export class UserService {
         });
 
         return history;
+    }
+
+    async createReport(reporterId: string, reportedId: string, reason: string): Promise<void> {
+        if (reporterId === reportedId) {
+            throw new BadRequestException('Cannot report yourself');
+        }
+        const target = await this.prisma.user.findUnique({ where: { id: reportedId } });
+        if (!target) throw new NotFoundException('User not found');
+
+        const existing = await this.prisma.report.findFirst({
+            where: { reporterId, reportedId, status: 'PENDING' },
+        });
+        if (existing) throw new BadRequestException('You already have a pending report for this user');
+
+        await this.prisma.report.create({ data: { reporterId, reportedId, reason } });
     }
 }

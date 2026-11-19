@@ -7,6 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 // User model - handles authentication and profiles
 model User {
   id          String  @id @default(uuid())
@@ -20,20 +25,28 @@ model User {
   lastName  String?
   bio       String?
 
+  role        UserRole  @default(USER)
+  isBanned    Boolean   @default(false)
+  bannedAt    DateTime?
+  bannedUntil DateTime?
+  banReason   String?
+
   isOnline Boolean  @default(false)
   lastSeen DateTime @default(now())
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  gamesAsWhite Game[] @relation("WhitePlayer")
-  gamesAsBlack Game[] @relation("BlackPlayer")
+  games GamePlayer[]
 
   friendRequestsFrom Friend[] @relation("FriendsFrom")
   friendRequestsTo   Friend[] @relation("FriendsTo")
 
   statistics UserStatistics?
   eloHistory EloHistory[]
+
+  reportsFiled    Report[] @relation("ReportsFrom")
+  reportsReceived Report[] @relation("ReportsAgainst")
 
   @@index([email])
   @@index([username])
@@ -125,10 +138,8 @@ enum GameType {
 model Game {
   id String @id @default(uuid())
 
-  whitePlayerId String?
-  blackPlayerId String?
-  whitePlayer   User?   @relation("WhitePlayer", fields: [whitePlayerId], references: [id], onDelete: SetNull)
-  blackPlayer   User?   @relation("BlackPlayer", fields: [blackPlayerId], references: [id], onDelete: SetNull)
+  // who sat where: two rows for a human game, one for a bot game (the bot has no user)
+  players GamePlayer[]
 
   // game state
   status GameStatus  @default(WAITING)
@@ -155,9 +166,25 @@ model Game {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  @@index([whitePlayerId])
-  @@index([blackPlayerId])
   @@index([status])
+}
+
+enum PlayerColor {
+  WHITE
+  BLACK
+}
+
+// users <-> games, many to many: one row per seat taken
+model GamePlayer {
+  gameId String
+  userId String
+  color  PlayerColor
+  game   Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, color]) // one player per seat
+  @@unique([gameId, userId]) // nobody plays both sides
+  @@index([userId])
 }
 
 enum GameStatus {
@@ -174,4 +201,53 @@ enum GameResult {
   STALEMATE
   TIMEOUT
   RESIGNATION
+}
+
+enum AuditAction {
+  BAN
+  TEMP_BAN
+  UNBAN
+  PROMOTE
+  DEMOTE
+  REPORT_RESOLVE
+  REPORT_DISMISS
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  adminId    String
+  adminName  String
+  targetId   String?
+  targetName String?
+  action     AuditAction
+  detail     String?
+  createdAt  DateTime    @default(now())
+
+  @@index([adminId])
+  @@index([targetId])
+  @@index([createdAt])
+}
+
+model Report {
+  id           String       @id @default(uuid())
+  reporterId   String
+  reportedId   String
+  reason       String
+  status       ReportStatus @default(PENDING)
+  resolvedById String?
+  resolvedAt   DateTime?
+  createdAt    DateTime     @default(now())
+
+  reporter User @relation("ReportsFrom", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported User @relation("ReportsAgainst", fields: [reportedId], references: [id], onDelete: Cascade)
+
+  @@index([reportedId])
+  @@index([status])
+  @@index([createdAt])
 }
