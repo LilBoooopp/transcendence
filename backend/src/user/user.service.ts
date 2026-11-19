@@ -451,26 +451,23 @@ export class UserService {
             where: {
                 status: 'COMPLETED',
                 isAiGame: false,
-                OR: [
-                    { whitePlayerId: id },
-                    { blackPlayerId: id },
-                ],
+                players: { some: { userId: id } },
             },
             orderBy: {
                 endedAt: 'desc',
             },
             take: 10,
             include: {
-                whitePlayer: { select: { id: true, username: true } },
-                blackPlayer: { select: { id: true, username: true } },
+                players: { select: { color: true, user: { select: { id: true, username: true } } } },
             },
         });
 
         const history: UserHistory = games.map((game) => {
-            const isWhite = game.whitePlayerId === id;
-            const isBlack = game.blackPlayerId === id;
+            const me = game.players.find((p) => p.user.id === id);
+            const isWhite = me?.color === 'WHITE';
+            const isBlack = me?.color === 'BLACK';
 
-            const opponentPlayer = isWhite ? game.blackPlayer : isBlack ? game.whitePlayer : null;
+            const opponentPlayer = game.players.find((p) => p.user.id !== id)?.user ?? null;
             const opponent = opponentPlayer?.username;
 
             const refDate = game.endedAt || game.createdAt;

@@ -355,7 +355,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!this.activeGames.has(data.gameId)) {
       const dbGame = await this.prisma.game.findUnique({
         where: { id: data.gameId },
-        select: { status: true, result: true, winner: true, fen: true, pgn: true, moves: true, whitePlayerId: true, blackPlayerId: true, timeControl: true },
+        select: { status: true, result: true, winner: true, fen: true, pgn: true, moves: true, players: { select: { userId: true, color: true } }, timeControl: true },
       });
 
       if (!dbGame) {
@@ -379,8 +379,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       restored.pgn = typeof dbGame.moves === 'string' ? dbGame.moves : '';
       restored.currentTurn = restored.fen.split(' ')[1] === 'b' ? 'b' : 'w';
       // Seats of a game rebuilt from the DB still belong to its players.
-      restored.whiteUserId = dbGame.whitePlayerId;
-      restored.blackUserId = dbGame.blackPlayerId;
+      restored.whiteUserId = dbGame.players.find((p) => p.color === 'WHITE')?.userId ?? null;
+      restored.blackUserId = dbGame.players.find((p) => p.color === 'BLACK')?.userId ?? null;
       this.activeGames.set(data.gameId, restored);
     }
 

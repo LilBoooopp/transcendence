@@ -45,8 +45,12 @@ export class GameService implements OnModuleInit {
       where: { id },
       create: {
         id,
-        whitePlayerId,
-        blackPlayerId,
+        players: {
+          create: [
+            { userId: whitePlayerId, color: 'WHITE' },
+            { userId: blackPlayerId, color: 'BLACK' },
+          ],
+        },
         timeControl,
         status: 'IN_PROGRESS',
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
@@ -66,7 +70,7 @@ export class GameService implements OnModuleInit {
   async getGame(gameId: string) {
     return this.prisma.game.findUnique({
       where: { id: gameId },
-      include: { whitePlayer: true, blackPlayer: true },
+      include: { players: { select: { color: true, user: { select: { id: true, username: true } } } } },
     });
   }
 
@@ -81,8 +85,8 @@ export class GameService implements OnModuleInit {
     return this.prisma.game.create({
       data: {
         id,
-        whitePlayerId: color === 'white' ? userId : null,
-        blackPlayerId: color === 'black' ? userId : null,
+        // only the human gets a seat row: the bot is not a user
+        players: { create: { userId, color: color === 'white' ? 'WHITE' : 'BLACK' } },
         status: 'IN_PROGRESS',
         isAiGame: true,
         aiDifficulty: aiDifficultyInt,
@@ -105,8 +109,7 @@ export class GameService implements OnModuleInit {
       const game = await this.prisma.game.findUnique({
         where: { id: gameId },
         select: {
-          whitePlayerId: true,
-          blackPlayerId: true,
+          players: { select: { userId: true, color: true } },
           timeControl: true,
           isRanked: true,
           isAiGame: true,
@@ -137,8 +140,9 @@ export class GameService implements OnModuleInit {
       });
       if (claimed.count === 0) return;
 
-      const whiteId = room?.whiteUserId ?? game?.whitePlayerId ?? null;
-      const blackId = room?.blackUserId ?? game?.blackPlayerId ?? null;
+      const seat = (color: 'WHITE' | 'BLACK') => game?.players.find((p) => p.color === color)?.userId ?? null;
+      const whiteId = room?.whiteUserId ?? seat('WHITE');
+      const blackId = room?.blackUserId ?? seat('BLACK');
       const w = winner.toLowerCase();
 
       if (!game?.isAiGame) {
