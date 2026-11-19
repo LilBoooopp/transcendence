@@ -20,7 +20,8 @@ import {
 export class AuthController {
 	constructor(private authService: AuthService) {}
 
-	@Throttle({ default: { limit: 100, ttl: 60_000 } })
+	// Per IP: 10 guesses a minute is plenty for a person and slow enough to make password guessing useless.
+	@Throttle({ default: { limit: 10, ttl: 60_000 } })
 	@HttpCode(HttpStatus.OK)
 	@Post('login')
 	@LoginDocs()
@@ -28,7 +29,7 @@ export class AuthController {
 		return this.authService.authenticate(input);
 	}
 
-	@Throttle({ default: { limit: 100, ttl: 60_000 } })
+	@Throttle({ default: { limit: 10, ttl: 60_000 } })
 	@Post('register')
 	@RegisterDocs()
 	@HttpCode(HttpStatus.CREATED)

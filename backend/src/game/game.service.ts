@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EloService } from '../elo/elo.service';
 
@@ -18,11 +18,22 @@ function toDbResult(winner: string): 'WHITE_WIN' | 'BLACK_WIN' | 'DRAW' {
 }
 
 @Injectable()
-export class GameService {
+export class GameService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eloService: EloService,
   ) {}
+
+  // Bot rooms and their engines live in memory: after a restart those games can never resume, and a rebuilt
+  // room would hand the bot's empty seat to whoever joins. Close them before the gateway accepts sockets.
+  async onModuleInit() {
+    await this.prisma.game
+      .updateMany({
+        where: { isAiGame: true, status: { in: ['WAITING', 'IN_PROGRESS'] } },
+        data: { status: 'ABANDONED', endedAt: new Date() },
+      })
+      .catch((e) => console.warn('Could not close bot games left over from the last run:', e.message));
+  }
 
   async createGame(
     whitePlayerId: string,
@@ -109,8 +120,10 @@ export class GameService {
         ? Math.max(0, Math.floor((endedAt.getTime() - startMs) / 1000))
         : 0;
 
-      await this.prisma.game.update({
-        where: { id: gameId },
+      // Claim the end of the game atomically: a repeated resign / game:over (or a race with the clock)
+      // finds the game already closed and must not count stats and Elo a second time.
+      const claimed = await this.prisma.game.updateMany({
+        where: { id: gameId, status: { in: ['WAITING', 'IN_PROGRESS'] } },
         data: {
           status: abandoned ? 'ABANDONED' : 'COMPLETED',
           result: toDbResult(winner),
@@ -122,6 +135,7 @@ export class GameService {
           totalMoves: room ? Math.ceil(room.moveCount / 2) : undefined,
         },
       });
+      if (claimed.count === 0) return;
 
       const whiteId = room?.whiteUserId ?? game?.whitePlayerId ?? null;
       const blackId = room?.blackUserId ?? game?.blackPlayerId ?? null;

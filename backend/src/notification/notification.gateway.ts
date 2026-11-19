@@ -104,6 +104,7 @@ export class NotificationGateway implements OnGatewayInit, OnGatewayConnection, 
             }).catch((e) => console.warn(`Failed to mark user ${userId} offline:`, e.message));
         }
       }, 5000);
+      this.offlineTimers.set(userId, timer);
     });
   }
 }
