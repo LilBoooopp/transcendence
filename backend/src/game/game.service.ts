@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EloService } from '../elo/elo.service';
 
@@ -18,11 +18,22 @@ function toDbResult(winner: string): 'WHITE_WIN' | 'BLACK_WIN' | 'DRAW' {
 }
 
 @Injectable()
-export class GameService {
+export class GameService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eloService: EloService,
   ) {}
+
+  // Bot rooms and their engines live in memory: after a restart those games can never resume, and a rebuilt
+  // room would hand the bot's empty seat to whoever joins. Close them before the gateway accepts sockets.
+  async onModuleInit() {
+    await this.prisma.game
+      .updateMany({
+        where: { isAiGame: true, status: { in: ['WAITING', 'IN_PROGRESS'] } },
+        data: { status: 'ABANDONED', endedAt: new Date() },
+      })
+      .catch((e) => console.warn('Could not close bot games left over from the last run:', e.message));
+  }
 
   async createGame(
     whitePlayerId: string,
@@ -34,8 +45,12 @@ export class GameService {
       where: { id },
       create: {
         id,
-        whitePlayerId,
-        blackPlayerId,
+        players: {
+          create: [
+            { userId: whitePlayerId, color: 'WHITE' },
+            { userId: blackPlayerId, color: 'BLACK' },
+          ],
+        },
         timeControl,
         status: 'IN_PROGRESS',
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
@@ -55,7 +70,7 @@ export class GameService {
   async getGame(gameId: string) {
     return this.prisma.game.findUnique({
       where: { id: gameId },
-      include: { whitePlayer: true, blackPlayer: true },
+      include: { players: { select: { color: true, user: { select: { id: true, username: true } } } } },
     });
   }
 
@@ -70,8 +85,8 @@ export class GameService {
     return this.prisma.game.create({
       data: {
         id,
-        whitePlayerId: color === 'white' ? userId : null,
-        blackPlayerId: color === 'black' ? userId : null,
+        // only the human gets a seat row: the bot is not a user
+        players: { create: { userId, color: color === 'white' ? 'WHITE' : 'BLACK' } },
         status: 'IN_PROGRESS',
         isAiGame: true,
         aiDifficulty: aiDifficultyInt,
@@ -94,8 +109,7 @@ export class GameService {
       const game = await this.prisma.game.findUnique({
         where: { id: gameId },
         select: {
-          whitePlayerId: true,
-          blackPlayerId: true,
+          players: { select: { userId: true, color: true } },
           timeControl: true,
           isRanked: true,
           isAiGame: true,
@@ -109,8 +123,10 @@ export class GameService {
         ? Math.max(0, Math.floor((endedAt.getTime() - startMs) / 1000))
         : 0;
 
-      await this.prisma.game.update({
-        where: { id: gameId },
+      // Claim the end of the game atomically: a repeated resign / game:over (or a race with the clock)
+      // finds the game already closed and must not count stats and Elo a second time.
+      const claimed = await this.prisma.game.updateMany({
+        where: { id: gameId, status: { in: ['WAITING', 'IN_PROGRESS'] } },
         data: {
           status: abandoned ? 'ABANDONED' : 'COMPLETED',
           result: toDbResult(winner),
@@ -122,9 +138,11 @@ export class GameService {
           totalMoves: room ? Math.ceil(room.moveCount / 2) : undefined,
         },
       });
+      if (claimed.count === 0) return;
 
-      const whiteId = room?.whiteUserId ?? game?.whitePlayerId ?? null;
-      const blackId = room?.blackUserId ?? game?.blackPlayerId ?? null;
+      const seat = (color: 'WHITE' | 'BLACK') => game?.players.find((p) => p.color === color)?.userId ?? null;
+      const whiteId = room?.whiteUserId ?? seat('WHITE');
+      const blackId = room?.blackUserId ?? seat('BLACK');
       const w = winner.toLowerCase();
 
       if (!game?.isAiGame) {

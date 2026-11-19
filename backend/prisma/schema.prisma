@@ -25,8 +25,8 @@ model User {
   lastName  String?
   bio       String?
 
-  role        UserRole @default(USER)
-  isBanned    Boolean  @default(false)
+  role        UserRole  @default(USER)
+  isBanned    Boolean   @default(false)
   bannedAt    DateTime?
   bannedUntil DateTime?
   banReason   String?
@@ -37,8 +37,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  gamesAsWhite Game[] @relation("WhitePlayer")
-  gamesAsBlack Game[] @relation("BlackPlayer")
+  games GamePlayer[]
 
   friendRequestsFrom Friend[] @relation("FriendsFrom")
   friendRequestsTo   Friend[] @relation("FriendsTo")
@@ -139,10 +138,8 @@ enum GameType {
 model Game {
   id String @id @default(uuid())
 
-  whitePlayerId String?
-  blackPlayerId String?
-  whitePlayer   User?   @relation("WhitePlayer", fields: [whitePlayerId], references: [id], onDelete: SetNull)
-  blackPlayer   User?   @relation("BlackPlayer", fields: [blackPlayerId], references: [id], onDelete: SetNull)
+  // who sat where: two rows for a human game, one for a bot game (the bot has no user)
+  players GamePlayer[]
 
   // game state
   status GameStatus  @default(WAITING)
@@ -169,9 +166,25 @@ model Game {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  @@index([whitePlayerId])
-  @@index([blackPlayerId])
   @@index([status])
+}
+
+enum PlayerColor {
+  WHITE
+  BLACK
+}
+
+// users <-> games, many to many: one row per seat taken
+model GamePlayer {
+  gameId String
+  userId String
+  color  PlayerColor
+  game   Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, color]) // one player per seat
+  @@unique([gameId, userId]) // nobody plays both sides
+  @@index([userId])
 }
 
 enum GameStatus {

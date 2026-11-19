@@ -142,25 +142,6 @@ export class UserService {
             avatarUrl?: string;
         } = {};
 
-		if (data.username || data.email) {
-        const where: any = { OR: [] };
-        if (data.username) where.OR.push({ username: data.username });
-        if (data.email) where.OR.push({ email: data.email });
-
-        const conflict = await this.prisma.user.findFirst({
-          where,
-          select: { id: true, username: true, email: true },
-        });
-        if (conflict && conflict.id !== id) {
-          if (data.username && conflict.username === data.username) {
-            throw new ConflictException('Username already taken');
-          }
-          if (data.email && conflict.email === data.email) {
-            throw new ConflictException('Email already taken');
-          }
-        }
-      }
-
         if (newUsername !== undefined && newUsername !== null && newUsername !== '') {
             if (!isUsernameAllowed(newUsername)) {
                 throw new BadRequestException('Username contains prohibited content');
@@ -470,26 +451,23 @@ export class UserService {
             where: {
                 status: 'COMPLETED',
                 isAiGame: false,
-                OR: [
-                    { whitePlayerId: id },
-                    { blackPlayerId: id },
-                ],
+                players: { some: { userId: id } },
             },
             orderBy: {
                 endedAt: 'desc',
             },
             take: 10,
             include: {
-                whitePlayer: { select: { id: true, username: true } },
-                blackPlayer: { select: { id: true, username: true } },
+                players: { select: { color: true, user: { select: { id: true, username: true } } } },
             },
         });
 
         const history: UserHistory = games.map((game) => {
-            const isWhite = game.whitePlayerId === id;
-            const isBlack = game.blackPlayerId === id;
+            const me = game.players.find((p) => p.user.id === id);
+            const isWhite = me?.color === 'WHITE';
+            const isBlack = me?.color === 'BLACK';
 
-            const opponentPlayer = isWhite ? game.blackPlayer : isBlack ? game.whitePlayer : null;
+            const opponentPlayer = game.players.find((p) => p.user.id !== id)?.user ?? null;
             const opponent = opponentPlayer?.username;
 
             const refDate = game.endedAt || game.createdAt;

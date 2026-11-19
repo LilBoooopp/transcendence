@@ -4,7 +4,6 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
-import { PrismaService } from './prisma/prisma.service';
 import { CORS_ORIGINS } from './common/cors';
 
 async function bootstrap() {
@@ -40,15 +39,6 @@ async function bootstrap() {
 
     credentials: true,
   });
-
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (adminEmail) {
-    const prisma = app.get(PrismaService);
-    await prisma.user.updateMany({
-      where: { email: adminEmail },
-      data: { role: 'ADMIN' },
-    }).catch(() => {});
-  }
 
   await app.listen(4000, '0.0.0.0');
   console.log('Backend is running on http://localhost:4000');

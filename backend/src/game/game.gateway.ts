@@ -56,8 +56,6 @@ interface MatchmakingEntry {
 }
 
 const DEFAULT_TIME_KEY = '600+0';
-const DEFAULT_TIME_MS = 10 * 60 * 1000;
-const DEFAULT_INCREMENT_MS = 0;
 const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 // Authoritative board rebuilt from the room's own history; client-sent FEN/PGN is never trusted.
@@ -68,13 +66,19 @@ function boardOf(room: GameRoom): Chess {
   return chess;
 }
 
-function parseTc(key?: string): { initialMs: number; incrementMs: number } {
-  if (!key) return { initialMs: DEFAULT_TIME_MS, incrementMs: DEFAULT_INCREMENT_MS };
-  const parts = key.split('+').map(Number);
-  if (parts.length !== 2 || parts.some(isNaN)) {
-    return { initialMs: DEFAULT_TIME_MS, incrementMs: parts[1] * 1_000 };
-  }
-  return { initialMs: parts[0] * 1_000, incrementMs: parts[1] * 1_000 };
+// "<seconds>+<increment>", e.g. "600+0". Anything malformed or out of range becomes the default, so a client
+// cannot pick a 0 s / NaN / week-long clock, nor open an unbounded number of matchmaking queues.
+function normalizeTc(key?: unknown): string {
+  const match = typeof key === 'string' ? /^(\d{1,5})\+(\d{1,3})$/.exec(key) : null;
+  if (!match) return DEFAULT_TIME_KEY;
+  const initial = Number(match[1]);
+  const increment = Number(match[2]);
+  return initial >= 15 && initial <= 10_800 && increment <= 180 ? `${initial}+${increment}` : DEFAULT_TIME_KEY;
+}
+
+function parseTc(key?: unknown): { initialMs: number; incrementMs: number } {
+  const [initial, increment] = normalizeTc(key).split('+').map(Number);
+  return { initialMs: initial * 1_000, incrementMs: increment * 1_000 };
 }
 
 function makeEmptyRoom(initialMs: number, incrementMs: number): GameRoom {
@@ -269,7 +273,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    const tcKey = data.timeControlKey ?? DEFAULT_TIME_KEY;
+    const tcKey = normalizeTc(data.timeControlKey);
 
     if (this.isUserBusy(userId)) {
       client.emit('matchmaking:error', { message: 'You are already in a game or in matchmaking.' });
@@ -351,7 +355,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!this.activeGames.has(data.gameId)) {
       const dbGame = await this.prisma.game.findUnique({
         where: { id: data.gameId },
-        select: { status: true, result: true, winner: true, fen: true, pgn: true, moves: true, whitePlayerId: true, blackPlayerId: true },
+        select: { status: true, result: true, winner: true, fen: true, pgn: true, moves: true, players: { select: { userId: true, color: true } }, timeControl: true },
       });
 
       if (!dbGame) {
@@ -367,15 +371,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return { success: true, gameId: data.gameId, role: 'spectator' };
       }
 
-      const { initialMs, incrementMs } = parseTc(data.timeControlKey);
+      // The clock comes from the stored game: the client's key would let the first player back pick the time.
+      const { initialMs, incrementMs } = parseTc(dbGame.timeControl);
       const restored = makeEmptyRoom(initialMs, incrementMs);
       // Moves are checked against the room's board, so a room rebuilt after a restart resumes from the saved position.
       restored.fen = dbGame.fen ?? INITIAL_FEN;
       restored.pgn = typeof dbGame.moves === 'string' ? dbGame.moves : '';
       restored.currentTurn = restored.fen.split(' ')[1] === 'b' ? 'b' : 'w';
       // Seats of a game rebuilt from the DB still belong to its players.
-      restored.whiteUserId = dbGame.whitePlayerId;
-      restored.blackUserId = dbGame.blackPlayerId;
+      restored.whiteUserId = dbGame.players.find((p) => p.color === 'WHITE')?.userId ?? null;
+      restored.blackUserId = dbGame.players.find((p) => p.color === 'BLACK')?.userId ?? null;
       this.activeGames.set(data.gameId, restored);
     }
 
@@ -450,7 +455,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.emitPlayerNames(data.gameId, roomName, gameRoom);
         if (gameRoom.whiteUserId && gameRoom.blackUserId) {
           this.gameService
-            .createGame(gameRoom.whiteUserId, gameRoom.blackUserId, data.gameId, data.timeControlKey ?? DEFAULT_TIME_KEY)
+            .createGame(gameRoom.whiteUserId, gameRoom.blackUserId, data.gameId, normalizeTc(data.timeControlKey))
             .catch((e) => console.warn('Could not persist direct-join game to DB:', e.message));
         }
       }
@@ -556,7 +561,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         humanColor,
         data.difficulty,
         DIFFICULTY_CONFIG[data.difficulty].skillLevel,
-        data.timeControlKey ?? DEFAULT_TIME_KEY,
+        normalizeTc(data.timeControlKey),
         data.gameId,
       );
     } catch (e) {
@@ -779,9 +784,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(`game:${data.gameId}`).emit('game:over', { winner, result });
     this.notificationService.gameOver(data.gameId, result, winner === 'Draw' ? undefined : winner);
 
-    await this.gameService.persistGameResult(data.gameId, winner, result, false, gameRoom);
     this.userGameSockets.delete(data.gameId);
     this.activeGames.delete(data.gameId);
+    await this.gameService.persistGameResult(data.gameId, winner, result, false, gameRoom);
 
     return { success: true };
   }
@@ -806,9 +811,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(`game:${data.gameId}`).emit('game:over', { winner, result: resultStr });
     this.notificationService.gameOver(data.gameId, resultStr, winner);
 
-    await this.gameService.persistGameResult(data.gameId, winner, resultStr, false, gameRoom);
     this.userGameSockets.delete(data.gameId);
     this.activeGames.delete(data.gameId);
+    await this.gameService.persistGameResult(data.gameId, winner, resultStr, false, gameRoom);
 
     return { success: true };
   }
@@ -857,9 +862,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(`game:${data.gameId}`).emit('game:over', { winner: 'Draw', result: resultStr });
       this.notificationService.gameOver(data.gameId, resultStr);
 
-      await this.gameService.persistGameResult(data.gameId, 'Draw', resultStr, false, gameRoom);
       this.userGameSockets.delete(data.gameId);
       this.activeGames.delete(data.gameId);
+      await this.gameService.persistGameResult(data.gameId, 'Draw', resultStr, false, gameRoom);
     } else {
       client.to(`game:${data.gameId}`).emit('game:draw-declined', { gameId: data.gameId });
 

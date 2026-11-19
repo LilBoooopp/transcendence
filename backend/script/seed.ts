@@ -216,8 +216,12 @@ async function main() {
     // Create game + elo history atomically
     const game = await prisma.game.create({
       data: {
-        whitePlayerId: whiteId,
-        blackPlayerId: blackId,
+        players: {
+          create: [
+            { userId: whiteId, color: 'WHITE' },
+            { userId: blackId, color: 'BLACK' },
+          ],
+        },
         status: 'COMPLETED',
         result,
         winner,
@@ -280,14 +284,15 @@ async function main() {
       where: {
         status: 'COMPLETED',
         isRanked: true,
-        OR: [{ whitePlayerId: userId }, { blackPlayerId: userId }],
+        players: { some: { userId } },
       },
+      include: { players: { where: { userId }, select: { color: true } } },
     });
 
     let wins = 0, losses = 0, draws = 0, totalPlayTime = 0;
 
     for (const g of games) {
-      const isWhite = g.whitePlayerId === userId;
+      const isWhite = g.players[0]?.color === 'WHITE';
       const w = g.winner;
       if (w === null || g.result === 'DRAW' || g.result === 'STALEMATE') draws++;
       else if ((isWhite && w === 'white') || (!isWhite && w === 'black')) wins++;
@@ -306,7 +311,7 @@ async function main() {
     );
     let streak = 0;
     for (const g of sortedGames) {
-      const isWhite = g.whitePlayerId === userId;
+      const isWhite = g.players[0]?.color === 'WHITE';
       const w = g.winner;
       const won = (isWhite && w === 'white') || (!isWhite && w === 'black');
       if (won) streak++;
