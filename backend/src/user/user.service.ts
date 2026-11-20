@@ -509,7 +509,7 @@ export class UserService {
                 id: game.id,
                 date: dateStr,
                 opponent: opponent ?? 'Unknown',
-                opponentId: opponentPlayer?.id ?? null,
+                opponentId: opponentPlayer && !opponentPlayer.isDeleted ? opponentPlayer.id : null,
                 result,
                 moves,
                 mode,

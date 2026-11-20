@@ -15,6 +15,8 @@ const BLOCKED_TERMS = [
 ];
 
 export function isUsernameAllowed(username: string): boolean {
+  // Reserved for anonymised accounts: deleteUser renames to deleted-<id>, a squatted name would make that fail.
+  if (username.toLowerCase().startsWith('deleted-')) return false;
   const normalized = username.toLowerCase().replace(/[_.\-]/g, '');
   return !BLOCKED_TERMS.some(term => normalized.includes(term));
 }

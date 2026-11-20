@@ -1,6 +1,4 @@
 ALTER TABLE "User" ADD COLUMN "isDeleted" BOOLEAN NOT NULL DEFAULT false;
 
-UPDATE "User"
-SET "isDeleted" = true
-WHERE "password" = '[DELETED]'
-   OR ("username" LIKE 'deleted-%' AND "email" LIKE 'deleted-%@deleted.invalid');
+-- deleteUser has always set this marker; a bcrypt hash can never equal it.
+UPDATE "User" SET "isDeleted" = true WHERE "password" = '[DELETED]';

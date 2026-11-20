@@ -32,8 +32,8 @@ export class FriendsService {
   ) { }
 
   async friendRequest(fromUserId: string, toUsername: string) {
-    const toUser = await this.prisma.user.findUnique({
-      where: { username: toUsername.toLowerCase() },
+    const toUser = await this.prisma.user.findFirst({
+      where: { username: toUsername.toLowerCase(), isDeleted: false },
     });
 
     if (!toUser) throw new NotFoundException('User not found');
@@ -80,8 +80,7 @@ export class FriendsService {
             avatarUrl: true,
             statistics: true,
             isOnline: true,
-            bio: true,
-            isDeleted: true
+            bio: true
           }
         },
         toUser: {
@@ -91,18 +90,16 @@ export class FriendsService {
             avatarUrl: true,
             statistics: true,
             isOnline: true,
-            bio: true,
-            isDeleted: true
+            bio: true
           }
         }
       }
     });
 
-    const friends: FriendProfileList = friendRelations.flatMap(relation => {
+    const friends: FriendProfileList = friendRelations.map(relation => {
       const friend = relation.fromUserId === fromUserId
         ? relation.toUser
         : relation.fromUser;
-      if (friend.isDeleted) return [];
 
       const activeGameId = friend.isOnline
         ? this.gameGateway.getUserActiveGameId(friend.id)
@@ -136,19 +133,16 @@ export class FriendsService {
             id: true,
             username: true,
             avatarUrl: true,
-            isDeleted: true,
           },
         },
       },
     });
 
-    return friendRequests
-      .filter((req) => !req.fromUser.isDeleted)
-      .map((req) => ({
-        id: req.id,
-        username: req.fromUser.username,
-        avatarUrl: req.fromUser.avatarUrl,
-      }));
+    return friendRequests.map((req) => ({
+      id: req.id,
+      username: req.fromUser.username,
+      avatarUrl: req.fromUser.avatarUrl,
+    }));
   }
 
   async acceptFriendRequest(userId: string, friendId: string) {
