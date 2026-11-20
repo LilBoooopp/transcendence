@@ -25,7 +25,9 @@ export async function dashboardLoader() {
     me.json(),
   ]);
 
-  const leaderboard = usersRaw.map((user: any, index: number) => {
+  const leaderboard = usersRaw
+    .filter((user: any) => !user.isDeleted && !String(user.username || '').startsWith('deleted-'))
+    .map((user: any, index: number) => {
     const s = user.statistics || {};
     const rapidElo = s.rapidElo ?? 1200;
     const bulletElo = s.bulletElo ?? 1200;

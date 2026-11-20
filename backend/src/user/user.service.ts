@@ -59,8 +59,8 @@ export class UserService {
     constructor(private prisma: PrismaService) { }
 
     async findById(id: string): Promise<UserProfile | null> {
-        return this.prisma.user.findUnique({
-            where: { id },
+        return this.prisma.user.findFirst({
+            where: { id, isDeleted: false },
             select: {
                 username: true,
                 id: true,
@@ -73,8 +73,8 @@ export class UserService {
     }
 
     async findByUsername(username: string): Promise<UserProfile | null> {
-        return this.prisma.user.findUnique({
-            where: { username },
+        return this.prisma.user.findFirst({
+            where: { username, isDeleted: false },
             select: {
                 username: true,
                 id: true,
@@ -96,6 +96,7 @@ export class UserService {
 
     async getAllUsers(): Promise<UserProfile[]> {
         return this.prisma.user.findMany({
+            where: { isDeleted: false },
             select: {
                 username: true,
                 id: true,
@@ -109,8 +110,8 @@ export class UserService {
     }
 
     async getUserProfile(id: string): Promise<UserProfile> {
-        return this.prisma.user.findUnique({
-            where: { id },
+        return this.prisma.user.findFirst({
+            where: { id, isDeleted: false },
             select: {
                 username: true,
                 id: true,
@@ -254,8 +255,8 @@ export class UserService {
     }
 
     async getUserStat(id: string): Promise<UserStat> {
-        const user = await this.prisma.user.findUnique({
-            where: { id },
+        const user = await this.prisma.user.findFirst({
+            where: { id, isDeleted: false },
             select: {
                 username: true,
                 avatarUrl: true,
@@ -412,8 +413,8 @@ export class UserService {
     }
 
     async deleteUser(id: string) {
-        const user = await this.prisma.user.findUnique({
-            where: { id },
+        const user = await this.prisma.user.findFirst({
+            where: { id, isDeleted: false },
         });
 
         if (!user) {
@@ -432,6 +433,7 @@ export class UserService {
                 username: `deleted-${id}`,
                 password: '[DELETED]',
                 fingerprint: null,
+                isDeleted: true,
                 avatarUrl: null,
                 firstName: null,
                 lastName: null,
@@ -458,7 +460,7 @@ export class UserService {
             },
             take: 10,
             include: {
-                players: { select: { color: true, user: { select: { id: true, username: true } } } },
+                players: { select: { color: true, user: { select: { id: true, username: true, isDeleted: true } } } },
             },
         });
 
@@ -468,7 +470,7 @@ export class UserService {
             const isBlack = me?.color === 'BLACK';
 
             const opponentPlayer = game.players.find((p) => p.user.id !== id)?.user ?? null;
-            const opponent = opponentPlayer?.username;
+            const opponent = opponentPlayer && !opponentPlayer.isDeleted ? opponentPlayer.username : null;
 
             const refDate = game.endedAt || game.createdAt;
             const dateStr = refDate.toISOString().slice(0, 10);
@@ -524,7 +526,9 @@ export class UserService {
         if (reporterId === reportedId) {
             throw new BadRequestException('Cannot report yourself');
         }
-        const target = await this.prisma.user.findUnique({ where: { id: reportedId } });
+        const target = await this.prisma.user.findFirst({
+            where: { id: reportedId, isDeleted: false },
+        });
         if (!target) throw new NotFoundException('User not found');
 
         const existing = await this.prisma.report.findFirst({
