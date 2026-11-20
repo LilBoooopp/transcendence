@@ -32,6 +32,7 @@ export class AdminController {
   @Get('users')
   async listUsers() {
     return this.prisma.user.findMany({
+      where: { isDeleted: false },
       select: {
         id: true,
         username: true,

@@ -33,6 +33,7 @@ model User {
 
   isOnline Boolean  @default(false)
   lastSeen DateTime @default(now())
+  isDeleted Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

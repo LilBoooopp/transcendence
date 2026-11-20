@@ -32,8 +32,8 @@ export class FriendsService {
   ) { }
 
   async friendRequest(fromUserId: string, toUsername: string) {
-    const toUser = await this.prisma.user.findUnique({
-      where: { username: toUsername.toLowerCase() },
+    const toUser = await this.prisma.user.findFirst({
+      where: { username: toUsername.toLowerCase(), isDeleted: false },
     });
 
     if (!toUser) throw new NotFoundException('User not found');
